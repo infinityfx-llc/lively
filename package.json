@@ -1,0 +1,11 @@
+{
+	"name": "@infinityfx-llc/lively",
+	"version": "0.0.1",
+	"description": "",
+	"main": "index.js",
+	"repository": "infinityfx-llc/lively",
+	"author": "InfinityFX <contact@infinity-fx.com> (https://infinity-fx.com)",
+	"license": "GPL-3.0",
+	"bugs": "https://github.com/infinityfx-llc/lively/issues",
+	"homepage": "https://github.com/infinityfx-llc/lively#readme"
+}

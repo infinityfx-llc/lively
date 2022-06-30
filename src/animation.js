@@ -8,7 +8,9 @@ export default class Animation {
         position: { x: 0, y: 0 },
         clip: { left: 0, top: 0, right: 0, bottom: 0 },
         borderRadius: 0,
-        active: { value: true, at: 0 }
+        active: { value: true, at: 0 },
+        backgroundColor: 'initial',
+        color: 'initial'
     }
 
     constructor({ delay = 0, duration = 1, loop = false, interpolate = 'ease', origin = { x: 0.5, y: 0.5 }, scaleCorrection = false, ...properties } = {}, initial = {}) {
@@ -177,6 +179,8 @@ export default class Animation {
                 break;
                 case 'opacity':
                 case 'active':
+                case 'backgroundColor':
+                case 'color':
                     properties[key] = val;
             }
         });
@@ -194,7 +198,9 @@ export default class Animation {
             paddingTop,
             paddingBottom,
             borderRadius,
-            boxSizing
+            boxSizing,
+            backgroundColor,
+            color
         } = getComputedStyle(element);
         const { x, y } = element.getBoundingClientRect();
 
@@ -212,7 +218,9 @@ export default class Animation {
             paddingRight: parseInt(paddingRight),
             paddingTop: parseInt(paddingTop),
             paddingBottom: parseInt(paddingBottom),
-            borderRadius: parseInt(borderRadius.split(' ')[0])
+            borderRadius: parseInt(borderRadius.split(' ')[0]),
+            backgroundColor,
+            color
         };
     }
 
@@ -242,9 +250,11 @@ export default class Animation {
 
     apply(element, keyframe, initial = false) {
         const applyStyles = () => {
+            const initialStyles = element.UITools.initialStyles;
+
             Object.entries(keyframe).forEach(([key, val]) => {
                 if (key === 'width') {
-                    const { clientWidth, width, paddingLeft, paddingRight, includePadding } = element.UITools.initialStyles;
+                    const { clientWidth, width, paddingLeft, paddingRight, includePadding } = initialStyles;
                     const { size, padStart, padEnd } = this.test(val, clientWidth, width, paddingLeft, paddingRight, includePadding);
 
                     element.style.width = size;
@@ -254,7 +264,7 @@ export default class Animation {
                 }
 
                 if (key === 'height') {
-                    const { clientHeight, height, paddingTop, paddingBottom, includePadding } = element.UITools.initialStyles;
+                    const { clientHeight, height, paddingTop, paddingBottom, includePadding } = initialStyles;
                     const { size, padStart, padEnd } = this.test(val, clientHeight, height, paddingTop, paddingBottom, includePadding);
 
                     element.style.height = size;
@@ -264,6 +274,7 @@ export default class Animation {
                 }
 
                 if (key === 'active') return;
+                // if (val === 'initial') return element.style[key] = initialStyles[key];
 
                 element.style[key] = val;
             });

@@ -6,6 +6,7 @@ import Animation from './animation';
 // mabye split whileViewport up into onEnter and onLeave
 // animate things like background color
 // implement repeat argument (and maybe repeat delay)
+// cancel animationqueue delays
 
 export default class Animatable extends Component {
 
@@ -75,7 +76,7 @@ export default class Animatable extends Component {
     }
 
     removeEvent(event, callback) {
-        if (!(event in window.UITools?.Events)) return;
+        if (typeof window === 'undefined' || !window.UITools?.Events || !(event in window.UITools?.Events)) return;
         if (!('ListenerID' in callback.UITools)) return;
 
         delete window.UITools.Events[event][callback.UITools.ListenerID];
@@ -215,7 +216,7 @@ export default class Animatable extends Component {
     style(inherited = {}) {
         const styles = {
             ...inherited,
-            transitionProperty: `transform, opacity, clip-path, border-radius${this.props.scaleCorrection ? ', width, height, left, top' : ''}`,
+            transitionProperty: `transform, opacity, clip-path, border-radius, backgroundColor, color${this.props.scaleCorrection ? ', width, height, left, top' : ''}`,
             willChange: 'transform'
         };
 

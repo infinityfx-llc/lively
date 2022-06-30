@@ -67,7 +67,8 @@ export default class Morph extends Animatable {
             opacity: [0, 0, 1],
             scale: { x: 1, y: 1 },
             position: { x: 0, y: 0 },
-            borderRadius: a.borderRadius
+            borderRadius: a.borderRadius,
+            backgroundColor: [a.backgroundColor, a.backgroundColor, a.backgroundColor]
         }, {}, this.scaleCorrection);
     }
 
@@ -99,7 +100,8 @@ export default class Morph extends Animatable {
                 }
             ],
             opacity: [1, 1, 0],
-            borderRadius: [a.borderRadius, b.borderRadius, b.borderRadius]
+            borderRadius: [a.borderRadius, b.borderRadius, b.borderRadius],
+            backgroundColor: [a.backgroundColor, b.backgroundColor, b.backgroundColor]
         }, {}, this.scaleCorrection);
     }
 

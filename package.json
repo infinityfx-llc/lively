@@ -1,11 +1,38 @@
 {
-	"name": "@infinityfx-llc/lively",
-	"version": "0.0.1",
-	"description": "",
-	"main": "index.js",
+	"name": "@infinityfx/lively",
+	"version": "0.0.2",
+	"description": "Zero configuration, performant react animation library",
+	"main": "dist/index.js",
+	"module": "dist/index.js",
 	"repository": "infinityfx-llc/lively",
 	"author": "InfinityFX <contact@infinity-fx.com> (https://infinity-fx.com)",
 	"license": "GPL-3.0",
 	"bugs": "https://github.com/infinityfx-llc/lively/issues",
-	"homepage": "https://github.com/infinityfx-llc/lively#readme"
+	"homepage": "https://github.com/infinityfx-llc/lively#readme",
+	"keywords": [
+		"animation",
+		"react",
+		"transition",
+		"morph",
+		"animate"
+	],
+	"scripts": {
+		"build": "rollup -c",
+		"watch": "rollup -c -w"
+	},
+	"peerDependencies": {
+		"react": ">=16.0.0"
+	},
+	"devDependencies": {
+		"react": ">=16.0.0",
+		"rollup": "^2.75.7",
+		"@rollup/plugin-babel": "^5.3.1",
+		"@rollup/plugin-node-resolve": "^13.3.0",
+		"rollup-plugin-terser": "^7.0.2",
+		"@babel/cli": "^7.18.6",
+		"@babel/core": "^7.18.6",
+		"@babel/preset-env": "^7.18.6",
+		"@babel/preset-react": "^7.18.6"
+	},
+	"sideEffects": false
 }

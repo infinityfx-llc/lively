@@ -1,4 +1,5 @@
 import AnimationQueue from './queue';
+import { hexToRgba, strToRgba } from './utils';
 
 export default class Animation {
 
@@ -8,9 +9,9 @@ export default class Animation {
         position: { x: 0, y: 0 },
         clip: { left: 0, top: 0, right: 0, bottom: 0 },
         borderRadius: 0,
-        active: { value: true, at: 0 },
-        backgroundColor: 'initial',
-        color: 'initial'
+        active: { start: true },
+        backgroundColor: { r: 127, g: 127, b: 127, a: 255 },
+        color: { r: 127, g: 127, b: 127, a: 255 }
     }
 
     constructor({ delay = 0, duration = 1, loop = false, interpolate = 'ease', origin = { x: 0.5, y: 0.5 }, scaleCorrection = false, ...properties } = {}, initial = {}) {
@@ -24,12 +25,6 @@ export default class Animation {
         this.origin = this.originToStyle(origin);
 
         this.loop = loop;
-    }
-
-    static from(options, initial = {}, scaleCorrection = false) {
-        if (!options || typeof options === 'boolean') return null;
-
-        return new Animation({ ...options, scaleCorrection }, initial);
     }
 
     originToStyle(origin) {
@@ -52,10 +47,6 @@ export default class Animation {
                         break;
                     case 'bottom':
                         y = 1;
-                    case 'center':
-                        break;
-                    default:
-                        x = y = parseFloat(origin);
                 }
             } else {
                 x = y = origin;
@@ -65,53 +56,74 @@ export default class Animation {
     }
 
     getKeyframes(properties, initial = {}) {
+        let len = 0;
+
         for (const key in properties) {
             let first = key in initial ? initial[key] : Animation.initials[key];
 
-            if (Array.isArray(properties[key])) {
-                properties[key] = properties[key].length > 1 ? properties[key] : [first, ...properties[key]];
-            } else {
-                properties[key] = [first, properties[key]];
-            }
+            if (!Array.isArray(properties[key])) properties[key] = [properties[key]];
+            properties[key] = properties[key].length > 1 ? properties[key] : [first, ...properties[key]];
+            properties[key] = properties[key].map(keyframe => this.sanitize(key, keyframe));
+
+            len = properties[key].length > len ? properties[key].length : len;
         }
 
-        const len = Object.values(properties).reduce((len, arr) => arr.length > len ? arr.length : len, 0);
-        let keyframes = new Array(len).fill(0);
-
-        keyframes = keyframes.map((_, i) => {
+        return new Array(len).fill(0).map((_, i) => {
             const keyframe = {};
 
             for (const key in properties) {
+                if (!(key in Animation.initials)) continue;
+
                 keyframe[key] = this.interpolateKeyframe(properties[key], i, len);
             }
 
             return this.keyframeToStyle(keyframe);
         });
-
-        return keyframes;
     }
 
-    interpolate(from, to, n) { // when interpolating pure strings fix!!! (also bools)
-        let unit = typeof from === 'string' ? from.match(/[^0-9\.]*/i) : null;
-        if (typeof to === 'string' && !unit) unit = to.match(/[^0-9\.]*/i);
+    sanitize(property, keyframe, key = false) {
+        if (typeof keyframe === 'string') {
+            if (keyframe.match(/^#[0-9a-f]{3,8}$/i)) return hexToRgba(keyframe);
+            if (keyframe.match(/^rgba?\(.*\)$/i)) return strToRgba(keyframe);
+            let val = parseFloat(keyframe), unit = keyframe.match(/[^0-9\.]*$/i);
+            if (isNaN(val)) return Animation.initials[property];
 
-        from = parseFloat(from);
-        to = parseFloat(to);
+            if (unit === '%') val /= 100;
+            return unit ? [val, unit] : val;
+        }
+        if (typeof keyframe === 'object') {
+            let arr = Object.keys(keyframe);
+            if ('x' in keyframe || 'y' in keyframe) arr = ['x', 'y'];
+            if ('r' in keyframe || 'g' in keyframe || 'b' in keyframe || 'a' in keyframe) arr = ['r', 'g', 'b', 'a'];
+            if ('left' in keyframe || 'right' in keyframe || 'top' in keyframe || 'bottom' in keyframe) arr = ['left', 'right', 'top', 'bottom'];
+            arr.forEach(key => {
+                keyframe[key] = this.sanitize(property, keyframe[key], key);
+            });
+        }
+
+        return keyframe !== undefined ? keyframe : Animation.initials[property][key];
+    }
+
+    interpolate(from, to, n) {
+        if (typeof from === 'string' || typeof to === 'string') return n > 0.5 ? to : from;
+
+        let unit = false;
+        if (Array.isArray(from)) unit = from[1], from = from[0];
+        if (Array.isArray(to)) unit = to[1], to = to[0];
 
         const res = from * (1 - n) + to * n;
-        return unit ? res + unit : res;
+        return unit ? [res, unit] : res;
     }
 
     interpolateKeyframe(property, i, len) {
-        if (!property) return null;
         if (property.length === len) return property[i];
 
         const idx = i * ((property.length - 1) / (len - 1));
         const absIdx = Math.floor(idx);
 
         let from = property[absIdx];
-        let to = absIdx === property.length - 1 ? null : property[absIdx + 1];
-        if (!to) return from;
+        if (absIdx === property.length - 1) return from;
+        let to = property[absIdx + 1];
 
         if (typeof from === 'object') {
             const obj = {};
@@ -125,21 +137,18 @@ export default class Animation {
         return this.interpolate(from, to, idx - absIdx);
     }
 
-    propertyToString(property, value, key, unit) {
-        value = value[key];
-        if (typeof value === 'string') return value;
+    toString(val, unit) {
+        if (Array.isArray(val)) unit = val[1], val = val[0];
 
-        value = isNaN(value) ? Animation.initials[property][key] : value;
-        return `${value * (unit === '%' ? 100 : 1)}${unit}`;
+        return val * (unit === '%' ? 100 : 1) + unit;
     }
 
-    propertyToNumber(property, value, key) {
-        value = value[key];
-        if (typeof value === 'string') {
-            return value.match(/[^0-9\.]*/i) === '%' ? parseFloat(value) / 100 : value;
+    toLength(val) {
+        if (Array.isArray(val)) {
+            val = val[1] === 'px' ? val[0] + 'px' : val[0];
         }
-
-        return isNaN(value) ? Animation.initials[property][key] : value;
+        
+        return val;
     }
 
     keyframeToStyle(keyframe) {
@@ -148,39 +157,36 @@ export default class Animation {
         };
 
         Object.entries(keyframe).forEach(([key, val]) => {
-            if (val === null || val === undefined) return;
-
             switch (key) {
                 case 'position':
-                    properties.transform += `translate(${this.propertyToString(key, val, 'x', 'px')}, ${this.propertyToString(key, val, 'y', 'px')}) `;
+                    properties.transform += `translate(${this.toString(val.x, 'px')}, ${this.toString(val.y, 'px')}) `;
                     break;
                 case 'scale':
-                    val = typeof val !== 'object' ? { x: val, y: val } : val;
-
+                    if (typeof val === 'number') val = { x: val, y: val };
+                    
                     if (this.scaleCorrection) {
-                        properties.width = this.propertyToNumber(key, val, 'x');
-                        properties.height = this.propertyToNumber(key, val, 'y');
+                        properties.width = this.toLength(val.x);
+                        properties.height = this.toLength(val.y);
                         break;
                     }
 
-                    properties.transform += `scale(${this.propertyToString(key, val, 'x', '%')}, ${this.propertyToString(key, val, 'y', '%')}) `;
+                    properties.transform += `scale(${this.toString(val.x, '%')}, ${this.toString(val.y, '%')}) `;
                     break;
                 case 'rotation':
-                    properties.transform += `rotate(${parseFloat(val)}deg) `;
+                    properties.transform += `rotate(${this.toString(val), 'deg'}) `;
                     break;
                 case 'clip':
-                    const top = this.propertyToString(key, val, 'top', '%'), right = this.propertyToString(key, val, 'right', '%'),
-                        bottom = this.propertyToString(key, val, 'bottom', '%'), left = this.propertyToString(key, val, 'left', '%');
-
-                    properties.clipPath = `inset(${top} ${right} ${bottom} ${left})`;
+                    properties.clipPath = `inset(${this.toString(val.top, '%')} ${this.toString(val.right, '%')} ${this.toString(val.bottom, '%')} ${this.toString(val.left, '%')})`;
                     break;
                 case 'borderRadius':
-                    properties[key] = typeof val === 'string' ? val : val + 'px';
-                break;
-                case 'opacity':
-                case 'active':
+                    properties[key] = this.toString(val, 'px');
+                    break;
                 case 'backgroundColor':
                 case 'color':
+                    properties[key] = `rgba(${val.r}, ${val.g}, ${val.b}, ${val.a})`;
+                    break;
+                case 'opacity':
+                case 'active':
                     properties[key] = val;
             }
         });

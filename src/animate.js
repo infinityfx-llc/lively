@@ -1,7 +1,6 @@
-import { Children, cloneElement, Component, isValidElement } from 'react';
+import React, { Children, cloneElement, Component, isValidElement } from 'react';
 import Animatable from './animatable';
-import Move from './animations/move';
-import Pop from './animations/pop';
+import { Move, Pop } from './animations';
 
 export default class Animate extends Component {
 
@@ -20,13 +19,18 @@ export default class Animate extends Component {
         const { levels, animations, ...props } = this.props;
         const animation = this.animations[this.levels - level];
 
-        return <Animatable animation={animation} scaleCorrection={animation.scaleCorrection} {...props}>
+        if (level === this.levels) props.ref = el => this.animatable = el;
+        return <Animatable animate={animation} scaleCorrection={animation.scaleCorrection} {...props}>
             {Children.map(children, child => {
                 if (!isValidElement(child)) return child;
 
                 return cloneElement(child, {}, this.makeAnimatable(child.props.children, level - 1));
             })}
         </Animatable>;
+    }
+
+    play(animationName, options = {}) {
+        this.animatable?.play(animationName, { ...options, reverse: true });
     }
 
     render() {

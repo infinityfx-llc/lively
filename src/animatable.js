@@ -1,10 +1,11 @@
-import { Children, cloneElement, Component, isValidElement } from 'react';
+import React, { Children, cloneElement, Component, isValidElement } from 'react';
 import Animation from './animation';
+import AnimationQueue from './queue';
+import { addEventListener, removeEventListener } from './utils';
 
 // on window resize reset initial elements sizes
 // implement keyframe position (not all evenly spaced)
 // mabye split whileViewport up into onEnter and onLeave
-// animate things like background color
 // implement repeat argument (and maybe repeat delay)
 // cancel animationqueue delays
 
@@ -20,26 +21,20 @@ export default class Animatable extends Component {
         this.viewportMargin = props.viewportMargin;
 
         this.elements = [];
-        this.animations = {
-            animate: this.getAnimation(),
-            onMount: this.getAnimation('onMount'),
-            onUnmount: this.getAnimation('onUnmount'),
-            onClick: this.getAnimation('onClick'),
-            whileHover: this.getAnimation('whileHover'),
-            whileFocus: this.getAnimation('whileFocus'),
-            whileViewport: this.getAnimation('whileViewport')
-        };
+        this.animations = { default: this.toAnimation(this.props.animate) };
+        for (const key in this.props.animations) {
+            this.animations[key] = this.toAnimation(this.props.animations[key]);
+        }
 
         this.level = 0;
         this.children = [];
     }
 
-    getAnimation(name = 'animate') {
-        if (name === 'animate' && this.props.animation && (typeof this.props.animation === 'object' || typeof this.props.animation === 'function') && 'use' in this.props.animation) {
-            return this.props.animation.use();
-        }
+    toAnimation(animation) {
+        if (!animation || (typeof animation !== 'object' && typeof animation !== 'function')) return null;
+        if ('use' in animation) return animation.use();
 
-        return Animation.from(this.props[name], this.props.initial, this.props.scaleCorrection);
+        return new Animation({ ...animation, scaleCorrection: this.props.scaleCorrection }, this.props.initial);
     }
 
     countNestedLevels(children) {
@@ -57,50 +52,24 @@ export default class Animatable extends Component {
         return nested + count;
     }
 
-    addEvent(event, callback) {
-        if (!(callback instanceof Function)) return;
-
-        if (!window.UITools?.Events) window.UITools = { Events: {} };
-        if (!(event in window.UITools.Events)) {
-            window.UITools.Events[event] = { unique: 0 };
-            window.addEventListener(event, e => {
-                Object.values(window.UITools.Events[event]).forEach(cb => {
-                    if (cb instanceof Function) cb(e);
-                })
-            });
-        }
-
-        callback.UITools = { ListenerID: window.UITools.Events[event].unique };
-        window.UITools.Events[event][window.UITools.Events[event].unique] = callback;
-        window.UITools.Events[event].unique++;
-    }
-
-    removeEvent(event, callback) {
-        if (typeof window === 'undefined' || !window.UITools?.Events || !(event in window.UITools?.Events)) return;
-        if (!('ListenerID' in callback.UITools)) return;
-
-        delete window.UITools.Events[event][callback.UITools.ListenerID];
-    }
-
     componentDidMount() {
         this.elements.forEach(el => {
-            this.animations.animate?.setInitialStyles(el);
+            this.animations.default?.setInitialStyles(el);
         });
-
 
         if (this.props.parentLevel < 1 || this.props.noCascade) {
             this.scrollEventListener = this.onScroll.bind(this);
-            this.addEvent('scroll', this.scrollEventListener);
+            addEventListener('scroll', this.scrollEventListener);
 
-            if (this.props.onMount) this.play('onMount', { staggerDelay: 0.001 });
+            if (this.props.onMount) this.play(this.props.onMount, { staggerDelay: 0.001, immediate: true });
             if (this.props.whileViewport) this.onScroll();
         }
     }
 
     componentWillUnmount() {
-        this.removeEvent('scroll', this.scrollEventListener);
+        removeEventListener('scroll', this.scrollEventListener);
 
-        if (this.props.onUnmount && (this.props.parentLevel < 1 || this.props.noCascade)) this.play('onUnmount', { reverse: true, immediate: true });
+        if (this.props.onUnmount && (this.props.parentLevel < 1 || this.props.noCascade)) this.play(this.props.onUnmount, { reverse: true, immediate: true });
     }
 
     inViewport() {
@@ -131,18 +100,18 @@ export default class Animatable extends Component {
 
         if (!this.inView && entered) {
             this.inView = true;
-            if (this.props.whileViewport) this.play('whileViewport');
+            if (this.props.whileViewport) this.play(this.props.whileViewport);
         }
 
         if (this.inView && left) {
             this.inView = false;
-            if (this.props.whileViewport) this.play('whileViewport', { reverse: true, immediate: true });
+            if (this.props.whileViewport) this.play(this.props.whileViewport, { reverse: true, immediate: true });
         }
     }
 
     async onEnter(e, callback = false) {
         if (!this.hover) {
-            if (this.props.whileHover) this.play('whileHover');
+            if (this.props.whileHover) this.play(this.props.whileHover);
             this.hover = true;
         }
 
@@ -151,7 +120,7 @@ export default class Animatable extends Component {
 
     async onLeave(e, callback = false) {
         if (this.hover) {
-            if (this.props.whileHover) this.play('whileHover', { reverse: true });
+            if (this.props.whileHover) this.play(this.props.whileHover, { reverse: true });
             this.hover = false;
         }
 
@@ -160,7 +129,7 @@ export default class Animatable extends Component {
 
     async onFocus(e, callback = false) {
         if (!this.hasFocus) {
-            if (this.props.whileFocus) this.play('whileFocus');
+            if (this.props.whileFocus) this.play(this.props.whileFocus);
             this.hasFocus = true;
         }
 
@@ -169,7 +138,7 @@ export default class Animatable extends Component {
 
     async onBlur(e, callback = false) {
         if (this.hasFocus) {
-            if (this.props.whileFocus) this.play('whileFocus', { reverse: true });
+            if (this.props.whileFocus) this.play(this.props.whileFocus, { reverse: true });
             this.hasFocus = false;
         }
 
@@ -177,32 +146,34 @@ export default class Animatable extends Component {
     }
 
     async onClick(e, callback = false) {
-        if (this.props.onClick) this.play('onClick');
+        if (this.props.onClick) this.play(this.props.onClick);
 
         if (callback) callback(e);
     }
 
-    async play(animationName, { reverse = false, immediate = false, cascade = false, groupAdjust = 0, cascadeDelay = 0, staggerDelay = 0 } = {}) {
+    async play(animationName, { callback, reverse = false, immediate = false, cascade = false, groupAdjust = 0, cascadeDelay = 0, staggerDelay = 0 } = {}) {
         if (this.props.parentLevel > 0 && !cascade) return;
 
-        let animation = this.animations[animationName];
-        if (!animation) animation = this.animations.animate;
+        const animation = typeof animationName === 'string' ? this.animations[animationName] : this.animations.default;
         if (!animation) return;
 
+        let __delay = 0;
         this.elements.forEach((el, i) => {
             let offset = 'group' in this.props ? this.props.parentLevel - this.props.group : this.level + groupAdjust;
             cascadeDelay = reverse ? animation.duration : cascadeDelay; // NOT FULLY CORRECT (also take into account reverse staggering)
-            const delay = reverse ? offset * cascadeDelay : (this.props.parentLevel - offset) * cascadeDelay;
+            let delay = reverse ? offset * cascadeDelay : (this.props.parentLevel - offset) * cascadeDelay;
+            delay = this.props.stagger * i + delay + staggerDelay;
+            __delay = delay > __delay ? delay : __delay;
 
             animation.play(el, {
-                delay: this.props.stagger * i + delay + staggerDelay,
+                delay,
                 reverse,
                 immediate
             });
         });
 
         this.children.forEach(({ animatable, staggerIndex = -1 }) => {
-            animatable.play(animationName, {
+            animatable?.play(animationName, {
                 reverse,
                 immediate,
                 cascade: true,
@@ -211,12 +182,14 @@ export default class Animatable extends Component {
                 groupAdjust: staggerIndex < 0 ? 0 : 1
             });
         });
+        
+        if (callback) AnimationQueue.delay(callback, __delay + animation.duration);
     }
 
     style(inherited = {}) {
         const styles = {
             ...inherited,
-            transitionProperty: `transform, opacity, clip-path, border-radius, backgroundColor, color${this.props.scaleCorrection ? ', width, height, left, top' : ''}`,
+            transitionProperty: `transform, opacity, clip-path, border-radius, background-color, color, width, height, left, top`,
             willChange: 'transform'
         };
 
@@ -224,30 +197,17 @@ export default class Animatable extends Component {
     }
 
     mergeProperties(own = {}, passed = {}) {
-        const merged = {};
-        merged.initial = this.mergeProperty(passed.initial, own.initial);
-        merged.animate = this.mergeProperty(passed.animate, own.animate);
+        const merged = { ...passed, ...own };
 
-        merged.onMount = this.mergeProperty(passed.onMount, own.onMount);
-        merged.onUnmount = this.mergeProperty(passed.onUnmount, own.onUnmount);
-        merged.onClick = this.mergeProperty(passed.onClick, own.onClick);
-        merged.whileHover = this.mergeProperty(passed.whileHover, own.whileHover);
-        merged.whileFocus = this.mergeProperty(passed.whileFocus, own.whileFocus);
-        merged.whileViewport = this.mergeProperty(passed.whileViewport, own.whileViewport);
-
-        merged.viewportMargin = this.mergeProperty(passed.viewportMargin, own.viewportMargin);
-        merged.stagger = this.mergeProperty(passed.stagger, own.stagger);
+        for (const key in merged) {
+            if (['children', 'parentLevel', 'ref'].includes(key)) {
+                delete merged[key];
+                continue;
+            }
+            if (typeof own[key] === 'object' && typeof passed[key] === 'object') merged[key] = { ...passed[key], ...own[key] };
+        }
 
         return merged;
-    }
-
-    mergeProperty(a, b) {
-        if (!a) return b;
-        if (!b) return a;
-
-        if (typeof a === 'object' || typeof b === 'object') return { ...a, ...b };
-
-        return b;
     }
 
     deepClone(component, { index = 0, useElements = false, useEvents = false } = {}) {
@@ -275,7 +235,7 @@ export default class Animatable extends Component {
                 ...props,
                 ...this.mergeProperties(component.props, this.props),
                 parentLevel: this.parentLevel > 0 ? this.parentLevel : this.level,
-                ref: el => this.children[this.children.length] = { animatable: el, staggerIndex: useElements ? index : -1 }
+                ref: el => this.children[this.children.length] = { animatable: el, staggerIndex: useElements ? index : -1 } // on rerender this breaks (adds null to array)
             };
         }
 
@@ -295,7 +255,8 @@ export default class Animatable extends Component {
         parentLevel: 0,
         stagger: 0.1,
         viewportMargin: 0.25,
-        animate: {}
+        animate: {},
+        animations: {}
     }
 
 }

@@ -64,4 +64,10 @@ export default class AnimationQueue {
         return this.get().delay(callback, seconds);
     }
 
+    static sleep(seconds = 1) {
+        return new Promise((resolve) => {
+            this.delay(resolve, seconds);
+        });
+    }
+
 }

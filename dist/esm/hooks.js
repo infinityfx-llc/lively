@@ -1,0 +1,1 @@
+import{g as r}from"./_rollupPluginBabelHelpers-e1425fd3.js";import{useState as n,useRef as o,useEffect as t}from"react";function e(e){var u=n(e),c=r(u,2),l=c[0],p=c[1],a=o();return t((function(){e&&p(!0),!e&&a.current&&a.current.play(a.current.props.onUnmount,{callback:function(){p(!1)}})}),[e]),[l,a]}export{e as useUnmount};

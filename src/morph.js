@@ -63,20 +63,21 @@ export default class Morph extends Animatable {
     createResetAnimation() {
         const a = this.self.UITools?.initialStyles;
 
-        this.animations.transition = Animation.from({
+        this.animations.transition = new Animation({
             opacity: [0, 0, 1],
             scale: { x: 1, y: 1 },
             position: { x: 0, y: 0 },
             borderRadius: a.borderRadius,
-            backgroundColor: [a.backgroundColor, a.backgroundColor, a.backgroundColor]
-        }, {}, this.scaleCorrection);
+            backgroundColor: [a.backgroundColor, a.backgroundColor, a.backgroundColor],
+            scaleCorrection: this.scaleCorrection
+        }, {});
     }
 
     createMorphAnimation(target, index) {
         const a = this.self.UITools?.initialStyles;
         const b = target.UITools?.initialStyles;
 
-        this.animations.morphs[index] = Animation.from({
+        this.animations.morphs[index] = new Animation({
             position: [
                 { x: 0, y: 0 },
                 {
@@ -101,8 +102,9 @@ export default class Morph extends Animatable {
             ],
             opacity: [1, 1, 0],
             borderRadius: [a.borderRadius, b.borderRadius, b.borderRadius],
-            backgroundColor: [a.backgroundColor, b.backgroundColor, b.backgroundColor]
-        }, {}, this.scaleCorrection);
+            backgroundColor: [a.backgroundColor, b.backgroundColor, b.backgroundColor],
+            scaleCorrection: this.scaleCorrection
+        }, {});
     }
 
     static defaultProps = {

@@ -1,14 +1,29 @@
 {
 	"name": "@infinityfx/lively",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"description": "Zero configuration, performant react animation library",
-	"main": "dist/index.js",
-	"module": "dist/index.js",
+	"main": "dist/cjs/index.js",
+	"module": "dist/esm/index.js",
+	"exports": {
+		".": {
+			"import": "./dist/esm/index.js",
+			"require": "./dist/cjs/index.js"
+		},
+		"./animations": {
+			"import": "./dist/esm/animations.js",
+			"require": "./dist/cjs/animations.js"
+		},
+		"./hooks": {
+			"import": "./dist/esm/hooks.js",
+			"require": "./dist/cjs/hooks.js"
+		}
+	},
 	"repository": "infinityfx-llc/lively",
 	"author": "InfinityFX <contact@infinity-fx.com> (https://infinity-fx.com)",
 	"license": "GPL-3.0",
 	"bugs": "https://github.com/infinityfx-llc/lively/issues",
 	"homepage": "https://github.com/infinityfx-llc/lively#readme",
+	"funding": "https://ko-fi.com/infinityfx",
 	"keywords": [
 		"animation",
 		"react",
@@ -21,18 +36,17 @@
 		"watch": "rollup -c -w"
 	},
 	"peerDependencies": {
-		"react": ">=16.0.0"
+		"react": ">=16.0.0",
+		"react-dom": ">=16.0.0"
 	},
 	"devDependencies": {
-		"react": ">=16.0.0",
-		"rollup": "^2.75.7",
-		"@rollup/plugin-babel": "^5.3.1",
-		"@rollup/plugin-node-resolve": "^13.3.0",
-		"rollup-plugin-terser": "^7.0.2",
-		"@babel/cli": "^7.18.6",
 		"@babel/core": "^7.18.6",
 		"@babel/preset-env": "^7.18.6",
-		"@babel/preset-react": "^7.18.6"
+		"@babel/preset-react": "^7.18.6",
+		"@rollup/plugin-babel": "^5.3.1",
+		"@rollup/plugin-node-resolve": "^13.3.0",
+		"rollup": "^2.75.7",
+		"rollup-plugin-terser": "^7.0.2"
 	},
 	"sideEffects": false
 }

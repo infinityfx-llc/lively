@@ -23,27 +23,81 @@ export const strToRgba = (str) => {
 export const addEventListener = (event, callback) => {
     if (!(callback instanceof Function)) return;
 
-    if (!window.UITools?.Events) window.UITools = { Events: {} };
-    if (!(event in window.UITools.Events)) {
-        window.UITools.Events[event] = { unique: 0 };
+    if (!window.Lively?.Events) window.Lively = { Events: {} };
+    if (!(event in window.Lively.Events)) {
+        window.Lively.Events[event] = { unique: 0 };
         window.addEventListener(event, e => {
-            Object.values(window.UITools.Events[event]).forEach(cb => {
+            Object.values(window.Lively.Events[event]).forEach(cb => {
                 if (cb instanceof Function) cb(e);
-            })
+            });
         });
     }
 
-    callback.UITools = { ListenerID: window.UITools.Events[event].unique };
-    window.UITools.Events[event][window.UITools.Events[event].unique] = callback;
-    window.UITools.Events[event].unique++;
+    const e = window.Lively.Events[event];
+    callback.Lively = { ListenerID: e.unique };
+    e[e.unique++] = callback;
 };
 
 export const removeEventListener = (event, callback) => {
-    if (typeof window === 'undefined' || !window.UITools?.Events?.[event]) return;
-    if (!callback?.UITools?.ListenerID) return;
+    if (typeof window === 'undefined' || !window.Lively?.Events?.[event]) return;
+    if (!callback?.Lively?.ListenerID) return;
 
-    delete window.UITools.Events[event][callback.UITools.ListenerID];
-}
+    delete window.Lively.Events[event][callback.Lively.ListenerID];
+};
 
-const Utils = { hexToRgba, strToRgba };
+export const getStyles = (element) => {
+    const styles = {};
+    for (let i = 0; i < element.style.length; i++) {
+        styles[element.style[i]] = element.style[element.style[i]];
+    }
+
+    return styles;
+};
+
+export const setStyles = (element, styles) => {
+    for (const key in styles) {
+        element.style[key] = styles[key];
+    }
+};
+
+export const cacheElementStyles = (element) => {
+    if (!('Lively' in element)) element.Lively = { queue: [], initials: {} };
+    if (!element.Lively.style) {
+        element.Lively.style = getStyles(element);
+        element.Lively.style.transitionProperty = 'transform, opacity, clip-path, border-radius, background-color, color, width, height, left, top';
+        element.Lively.style.willChange = 'transform';
+    }
+
+    element.style = {};
+    setStyles(element, element.Lively.style);
+
+    const {
+        paddingLeft,
+        paddingRight,
+        paddingTop,
+        paddingBottom,
+        borderRadius,
+        boxSizing,
+        backgroundColor,
+        color
+    } = getComputedStyle(element);
+    const { x, y } = element.getBoundingClientRect();
+
+    element.Lively.initials = {
+        x,
+        y,
+        includePadding: boxSizing === 'border-box',
+        width: element.offsetWidth + 'px',
+        height: element.offsetHeight + 'px',
+        paddingLeft: parseInt(paddingLeft), // NOT CORRECT dont parse
+        paddingRight: parseInt(paddingRight),
+        paddingTop: parseInt(paddingTop),
+        paddingBottom: parseInt(paddingBottom),
+        borderRadius: parseInt(borderRadius.split(' ')[0]),
+        backgroundColor,
+        color
+    };
+};
+
+const Utils = { hexToRgba, strToRgba, addEventListener, removeEventListener, cacheElementStyles };
 export default Utils;

@@ -1,5 +1,5 @@
 import AnimationQueue from './queue';
-import { hexToRgba, strToRgba } from './utils';
+import { cacheElementStyles, hexToRgba, strToRgba } from './utils';
 
 export default class Animation {
 
@@ -9,22 +9,25 @@ export default class Animation {
         position: { x: 0, y: 0 },
         clip: { left: 0, top: 0, right: 0, bottom: 0 },
         borderRadius: 0,
-        active: { start: true },
+        padding: 0,
+        fontSize: '1em',
         backgroundColor: { r: 127, g: 127, b: 127, a: 255 },
-        color: { r: 127, g: 127, b: 127, a: 255 }
+        color: { r: 127, g: 127, b: 127, a: 255 },
+        active: { start: true },
+        interact: true
     }
 
-    constructor({ delay = 0, duration = 1, loop = false, interpolate = 'ease', origin = { x: 0.5, y: 0.5 }, scaleCorrection = false, ...properties } = {}, initial = {}) {
-        this.scaleCorrection = scaleCorrection;
+    constructor({ delay = 0, duration = 1, repeat = 1, interpolate = 'ease', origin = { x: 0.5, y: 0.5 }, useLayout = false, ...properties } = {}, initial = {}) {
+        this.useLayout = useLayout;
         this.keyframes = this.getKeyframes(properties, initial);
 
         this.delay = delay;
         this.duration = duration;
         this.delta = duration / (this.keyframes.length - 1);
-        this.interpolation = interpolate;
+        this.interpolation = interpolate === 'spring' ? 'cubic-bezier(0.65, 0.34, 0.7, 1.42)' : interpolate;
         this.origin = this.originToStyle(origin);
 
-        this.loop = loop;
+        this.repeat = repeat;
     }
 
     originToStyle(origin) {
@@ -101,11 +104,11 @@ export default class Animation {
             });
         }
 
-        return keyframe !== undefined ? keyframe : Animation.initials[property][key];
+        return keyframe !== undefined ? keyframe : key ? Animation.initials[property][key] : Animation.initials[property];
     }
 
     interpolate(from, to, n) {
-        if (typeof from === 'string' || typeof to === 'string') return n > 0.5 ? to : from;
+        if (typeof from !== 'number' || typeof to !== 'number') return n > 0.5 ? to : from;
 
         let unit = false;
         if (Array.isArray(from)) unit = from[1], from = from[0];
@@ -145,9 +148,9 @@ export default class Animation {
 
     toLength(val) {
         if (Array.isArray(val)) {
-            val = val[1] === 'px' ? val[0] + 'px' : val[0];
+            val = val[1] === 'px' ? val[0] + 'px' : val[0]; // maybe vw, etc..
         }
-        
+
         return val;
     }
 
@@ -163,8 +166,8 @@ export default class Animation {
                     break;
                 case 'scale':
                     if (typeof val === 'number') val = { x: val, y: val };
-                    
-                    if (this.scaleCorrection) {
+
+                    if (this.useLayout) {
                         properties.width = this.toLength(val.x);
                         properties.height = this.toLength(val.y);
                         break;
@@ -179,11 +182,16 @@ export default class Animation {
                     properties.clipPath = `inset(${this.toString(val.top, '%')} ${this.toString(val.right, '%')} ${this.toString(val.bottom, '%')} ${this.toString(val.left, '%')})`;
                     break;
                 case 'borderRadius':
+                case 'padding':
+                case 'fontSize':
                     properties[key] = this.toString(val, 'px');
                     break;
                 case 'backgroundColor':
                 case 'color':
                     properties[key] = `rgba(${val.r}, ${val.g}, ${val.b}, ${val.a})`;
+                    break;
+                case 'interact':
+                    properties.pointerEvents = val ? 'all' : 'none';
                     break;
                 case 'opacity':
                 case 'active':
@@ -195,127 +203,68 @@ export default class Animation {
         return properties;
     }
 
-    static setInitial(element) {
-        const {
-            width,
-            height,
-            paddingLeft,
-            paddingRight,
-            paddingTop,
-            paddingBottom,
-            borderRadius,
-            boxSizing,
-            backgroundColor,
-            color
-        } = getComputedStyle(element);
-        const { x, y } = element.getBoundingClientRect();
+    setInitial(element, reset = false) {
+        if (reset) cacheElementStyles(element);
 
-        if (!('UITools' in element)) element.UITools = {};
-        if (!('queue' in element.UITools)) element.UITools.queue = [];
-        if (!('initialStyles' in element.UITools)) element.UITools.initialStyles = {
-            x,
-            y,
-            includePadding: boxSizing === 'border-box',
-            clientWidth: element.clientWidth,
-            clientHeight: element.clientHeight,
-            width: parseInt(width),
-            height: parseInt(height),
-            paddingLeft: parseInt(paddingLeft),
-            paddingRight: parseInt(paddingRight),
-            paddingTop: parseInt(paddingTop),
-            paddingBottom: parseInt(paddingBottom),
-            borderRadius: parseInt(borderRadius.split(' ')[0]),
-            backgroundColor,
-            color
-        };
-    }
-
-    setInitialStyles(element) {
-        Animation.setInitial(element);
-
-        const keyframe = this.keyframes[0];
         element.style.transitionDuration = '0s';
+        element.style.transitionTimingFunction = this.interpolation;
+        element.style.transformOrigin = this.origin;
+        const keyframe = this.keyframes[0];
         this.apply(element, keyframe, true);
     }
 
-    test(scale, total, size, padStart, padEnd, includePadding) {
-        scale = typeof scale === 'string' ? parseInt(scale) / total : scale;
-        size = size - (total - scale * total);
+    setLength(element, keyframe, axis, padStart, padEnd) {
+        const size = element.Lively.initials[axis];
+        const paddingStart = element.Lively.initials[padStart];
+        const paddingEnd = element.Lively.initials[padEnd];
+        let val = keyframe[axis];
 
-        const pad = padStart + padEnd + (size < 0 ? size : 0);
-        const ratio = padStart / (padStart + padEnd);
-        padStart = includePadding ? scale * padStart : pad * ratio;
-        padEnd = includePadding ? scale * padEnd : pad * (1 - ratio);
-
-        return {
-            size: (size < 0 ? 0 : size) + 'px',
-            padStart: padStart + 'px',
-            padEnd: padEnd + 'px'
-        };
+        const ratio = keyframe.padding ? 1 : paddingStart / paddingEnd;
+        if (typeof val === 'string') val = `calc(${val} / ${size})`;
+        const padding = keyframe.padding ? keyframe.padding : paddingStart + paddingEnd + 'px';
+        
+        element.style[axis] = `max(calc(${size} * ${val} - ${element.style.boxSizing !== 'border-box' ? '0px' : padding}), 0px)`;
+        const padStyle = `calc(min(calc(${size} * ${val}), ${padding}) * `;
+        element.style[padStart] = padStyle + (ratio * 0.5);
+        element.style[padEnd] = padStyle + (1 / ratio * 0.5);
     }
 
-    apply(element, keyframe, initial = false) {
-        const applyStyles = () => {
-            const initialStyles = element.UITools.initialStyles;
-
-            Object.entries(keyframe).forEach(([key, val]) => {
-                if (key === 'width') {
-                    const { clientWidth, width, paddingLeft, paddingRight, includePadding } = initialStyles;
-                    const { size, padStart, padEnd } = this.test(val, clientWidth, width, paddingLeft, paddingRight, includePadding);
-
-                    element.style.width = size;
-                    element.style.paddingLeft = padStart;
-                    element.style.paddingRight = padEnd;
-                    return;
-                }
-
-                if (key === 'height') {
-                    const { clientHeight, height, paddingTop, paddingBottom, includePadding } = initialStyles;
-                    const { size, padStart, padEnd } = this.test(val, clientHeight, height, paddingTop, paddingBottom, includePadding);
-
-                    element.style.height = size;
-                    element.style.paddingTop = padStart;
-                    element.style.paddingBottom = padEnd;
-                    return;
-                }
-
-                if (key === 'active') return;
-                // if (val === 'initial') return element.style[key] = initialStyles[key];
-
-                element.style[key] = val;
-            });
-        };
-
+    async apply(element, keyframe, initial = false) {
         if ('active' in keyframe) {
             let when = Object.keys(keyframe.active)[0];
 
             if (when === 'start' || initial) {
                 element.style.display = keyframe.active[when] ? '' : 'none';
-                initial ? applyStyles() : AnimationQueue.delay(applyStyles, 0.01);
+                if (!initial) await AnimationQueue.sleep(0.001);
             } else {
                 AnimationQueue.delay(() => {
                     element.style.display = keyframe.active[when] ? '' : 'none';
                 }, this.delta);
-                applyStyles();
             }
-        } else {
-            applyStyles();
         }
+
+        Object.entries(keyframe).forEach(([key, val]) => {
+            if (key === 'width') return this.setLength(element, keyframe, 'width', 'paddingLeft', 'paddingRight');
+            if (key === 'height') return this.setLength(element, keyframe, 'height', 'paddingTop', 'paddingBottom');
+
+            if (key === 'active' || (key === 'padding' && (keyframe.width || keyframe.height))) return;
+
+            element.style[key] = val;
+        });
     }
 
-    start(element, { immediate = false, reverse = false } = {}) {
-        if (element.UITools.animating && !immediate) {
-            element.UITools.queue.push([this, { reverse }]);
+    start(element, { immediate = false, reverse = false, repeat = this.repeat } = {}) {
+        if (element.Lively.animating && !immediate) {
+            element.Lively.queue.push([this, { reverse, repeat }]);
             return;
         }
 
+        this.setInitial(element);
         element.style.transitionDuration = `${this.delta}s`;
-        element.style.transitionTimingFunction = this.interpolation;
-        element.style.transformOrigin = this.origin;
-        element.UITools.animating = true;
-        element.UITools.index = 1;
+        element.Lively.animating = true;
+        element.Lively.index = 1;
 
-        this.getNext(element, reverse);
+        this.getNext(element, reverse, repeat);
     }
 
     play(element, { delay = 0, immediate = false, reverse = false } = {}) {
@@ -324,27 +273,27 @@ export default class Animation {
         this.delay || delay ? AnimationQueue.delay(() => this.start(element, { immediate, reverse }), this.delay + delay) : this.start(element, { immediate, reverse });
     }
 
-    getNext(element, reverse = false) {
-        if (element.UITools.index === this.keyframes.length) {
-            element.UITools.animating = false;
+    getNext(element, reverse = false, repeat = 1) {
+        if (element.Lively.index === this.keyframes.length) {
+            element.Lively.animating = false;
 
-            const [next, options] = element.UITools.queue.shift() || [];
+            const [next, options] = element.Lively.queue.shift() || [];
             if (next) return next.start(element, options);
 
-            if (this.loop) this.start(element, options);
+            if (repeat > 1) this.start(element, { reverse, repeat: repeat - 1 });
             return;
         }
 
-        let idx = element.UITools.index;
+        let idx = element.Lively.index;
         if (reverse) idx = this.keyframes.length - 1 - idx;
 
 
         requestAnimationFrame(() => {
             this.apply(element, this.keyframes[idx]);
         });
-        element.UITools.index++;
+        element.Lively.index++;
 
-        AnimationQueue.delay(() => this.getNext(element, reverse), this.delta); // cancel this when using immediate
+        AnimationQueue.delay(() => this.getNext(element, reverse, repeat), this.delta); // cancel this when using immediate
     }
 
 }

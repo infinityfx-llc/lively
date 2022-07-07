@@ -1,13 +1,11 @@
 import Animation from '../animation';
 
 export default function Move(options = {}) {
-    return {
-        scaleCorrection: options.scaleCorrection,
-        use: Move.use.bind(this, options)
-    };
+    Move.use = Move.use.bind(Move, options);
+    return Move;
 }
 
-Move.use = ({ direction = 'up', scaleCorrection = false } = {}) => {
+Move.use = ({ direction = 'up', ...options } = {}) => {
 
     let x = '0px', y = '20px';
     switch (direction) {
@@ -19,5 +17,5 @@ Move.use = ({ direction = 'up', scaleCorrection = false } = {}) => {
         break;
     }
     
-    return new Animation({ position: { x: '0px', y: '0px' }, opacity: 1, scaleCorrection, duration: 0.5 }, { position: { x, y }, opacity: 0 });
+    return new Animation({ position: { x: '0px', y: '0px' }, opacity: 1, duration: 0.5, ...options }, { position: { x, y }, opacity: 0 });
 }

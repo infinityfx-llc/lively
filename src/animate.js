@@ -20,7 +20,7 @@ export default class Animate extends Component {
         const animation = this.animations[this.levels - level];
 
         if (level === this.levels) props.ref = el => this.animatable = el;
-        return <Animatable animate={animation} scaleCorrection={animation.scaleCorrection} {...props}>
+        return <Animatable animate={animation} {...props}>
             {Children.map(children, child => {
                 if (!isValidElement(child)) return child;
 
@@ -30,7 +30,7 @@ export default class Animate extends Component {
     }
 
     play(animationName, options = {}) {
-        this.animatable?.play(animationName, { ...options, reverse: true });
+        this.animatable?.play(animationName, { ...options });
     }
 
     render() {

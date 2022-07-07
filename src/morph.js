@@ -1,116 +1,221 @@
+import { Children, cloneElement, isValidElement } from 'react';
 import Animatable from './animatable';
 import Animation from './animation';
 import AnimationQueue from './queue';
+import { cacheElementStyles } from './utils';
 
 export default class Morph extends Animatable {
+
+    static properties = ['position', 'scale', 'opacity', 'backgroundColor', 'color', 'borderRadius', 'interact']
 
     constructor(props) {
         super(props);
 
-        this.animations.morphs = [];
-    }
-
-    componentDidMount() {
-        const element = this.elements[0];
-        if (!element) return;
-
-        Animation.setInitial(element);
-        element.setAttribute('uitools-morph-id', this.props.id);
-        element.setAttribute('uitools-morph-active', this.props.active);
-        this.self = element;
-        this.createResetAnimation();
-
-        AnimationQueue.delay(() => {
-            const targets = document.querySelectorAll(`[uitools-morph-id="${this.props.id}"]`);
-
-            for (let i = 0; i < targets.length; i++) {
-                if (targets[i] === element) continue;
-
-                this.createMorphAnimation(targets[i], i);
-                if (targets[i].getAttribute('uitools-morph-active') !== 'true') this.animations.transition.setInitialStyles(targets[i]);
+        this.group = this.props.parentGroup + this.props.group;
+        this.state = {
+            useContainer: false,
+            childStyles: {},
+            parentStyles: {
+                position: 'relative',
+                background: 'transparent',
+                border: 'none',
+                pointerEvents: 'none',
+                backdropFilter: 'none'
             }
-        }, 0.001);
+        };
     }
 
-    componentDidUpdate() {
-        const active = this.self.getAttribute('uitools-morph-active') === 'true';
-        this.self.setAttribute('uitools-morph-active', this.props.active);
+    setUniqueId() {
+        if (this.props.parentGroup.length) return;
 
-        AnimationQueue.delay(() => {
-            if (this.props.active && !active) {
-                this.animations.transition.setInitialStyles(this.self);
-                this.animations.transition.play(this.self);
-            } else
-                if (!this.props.active && active) {
+        if (!('Lively' in window)) window.Lively = {};
+        if (!('Morph' in window.Lively)) window.Lively.Morph = {};
+        if (!(this.group in window.Lively.Morph)) window.Lively.Morph[this.group] = 0;
+        this.id = window.Lively.Morph[this.group]++;
+        this.element.setAttribute('lively-morph-id', this.id);
 
-                    let index = 0;
-                    
-                    const targets = document.querySelectorAll(`[uitools-morph-id="${this.props.id}"]`);
-                    for (let i = 0; i < targets.length; i++) {
-                        if (targets[i] === this.self) continue;
-            
-                        if (targets[i].getAttribute('uitools-morph-active') === 'true') {
-                            index = i;
-                            break;
-                        }
-                    }
+        for (const { animatable } of this.children) {
+            if (animatable) animatable.id = this.id;
+            animatable?.element.setAttribute('lively-morph-id', this.id);
+        }
+    }
 
-                    this.animations.morphs[index].play(this.self);
-                }
-        }, 0.001);
+    reset() {
+        this.element = this.elements[0];
+        this.setUniqueId();
+
+        cacheElementStyles(this.element);
+        this.animations = {};
+        this.animations.default = this.createResetAnimation();
+        if (!this.props.active && !this.props.parentGroup.length) this.setInitial();
+    }
+
+    async componentDidMount() {
+        this.element = this.elements[0];
+        if (!this.element) return;
+
+        if (this.props.useLayout) {
+            const { position } = getComputedStyle(this.element);
+            if (position === 'absolute' || position === 'fixed') {
+                this.setState({ childStyles: { top: this.element.offsetTop, left: this.element.offsetLeft } });
+            } else {
+                this.setState({
+                    childStyles: { position: 'absolute', margin: 0, top: 0, left: 0, pointerEvents: 'initial' },
+                    parentStyles: {
+                        width: this.element.offsetWidth,
+                        height: this.element.offsetHeight,
+                        ...this.state.parentStyles
+                    },
+                    useContainer: true
+                });
+            }
+        }
+
+        this.reset();
+    }
+
+    async componentDidUpdate(prevProps, prevState) {
+        if (prevState.useContainer !== this.state.useContainer) {
+            this.reset();
+        }
+
+        if (prevProps.active === this.props.active) return;
+        if (this.props.active) this.element.setAttribute('lively-morph-target', true);
+
+        await AnimationQueue.sleep(0.001);
+
+        if (this.props.active) {
+            this.play('default');
+        } else {
+            const target = document.querySelector(`[lively-morph-group="${this.group}"][lively-morph-target="true"]`);
+            if (target) {
+                target.removeAttribute('lively-morph-target');
+                const id = target.getAttribute('lively-morph-id');
+                if (!(id in this.animations)) this.createAnimation(id);
+
+                this.play(id);
+            }
+        }
+    }
+
+    createAnimation(id) {
+        const target = document.querySelector(`[lively-morph-group="${this.group}"][lively-morph-id="${id}"]`);
+        if (!target) return;
+
+        this.animations[id] = this.createMorphAnimation(target);
+
+        this.children.forEach(({ animatable }) => animatable?.createAnimation(id));
+    }
+
+    getParentPosition(element) {
+        const parent = this.props.useLayout && this.state.useContainer ? element.parentElement?.parentElement : element.parentElement;
+        return parent?.getBoundingClientRect() || { x: 0, y: 0 };
+    }
+
+    positionKeyframes(target) {
+        const a = this.element.Lively?.initials;
+        const b = target.Lively?.initials;
+
+        let x = b.x - a.x, y = b.y - a.y;
+        if (this.props.parentGroup.length) {
+            let parentA = this.getParentPosition(this.element);
+            let parentB = this.getParentPosition(target);
+
+            x -= parentB.x - parentA.x;
+            y -= parentB.y - parentA.y;
+        }
+
+        if (!this.props.useLayout) {
+            x += (b.width - a.width) / 2;
+            y += (b.height - a.height) / 2;
+        }
+
+        return [{ x: 0, y: 0 }, { x, y }, { x, y }];
+    }
+
+    scaleKeyframes(a, b) {
+        const x = parseInt(b.width) / parseInt(a.width);
+        const y = parseInt(b.height) / parseInt(a.height);
+
+        return [{ x: 1, y: 1 }, { x, y }, { x, y }];
+    }
+
+    createMorphAnimation(target) {
+        const a = this.element.Lively?.initials;
+        const b = target.Lively?.initials;
+        const keys = { useLayout: this.props.useLayout, interpolate: this.props.interpolate };
+
+        for (const key of Morph.properties) {
+            if (this.props.ignore.includes(key)) continue;
+
+            switch (key) {
+                case 'position': keys[key] = this.positionKeyframes(target);
+                    break;
+                case 'scale': keys[key] = this.scaleKeyframes(a, b);
+                    break;
+                case 'opacity': keys[key] = [1, 1, 0];
+                    break;
+                case 'interact': keys[key] = [true, true, false];
+                    break;
+                default: keys[key] = [a[key], b[key], b[key]];
+            }
+        }
+
+        return new Animation(keys);
     }
 
     createResetAnimation() {
-        const a = this.self.UITools?.initialStyles;
+        const a = this.element.Lively?.initials;
+        const keys = { useLayout: this.props.useLayout, interpolate: this.props.interpolate };
 
-        this.animations.transition = new Animation({
-            opacity: [0, 0, 1],
-            scale: { x: 1, y: 1 },
-            position: { x: 0, y: 0 },
-            borderRadius: a.borderRadius,
-            backgroundColor: [a.backgroundColor, a.backgroundColor, a.backgroundColor],
-            scaleCorrection: this.scaleCorrection
-        }, {});
+        for (const key of Morph.properties) {
+            if (this.props.ignore.includes(key)) continue;
+
+            switch (key) {
+                case 'position': keys[key] = { x: 0, y: 0 };
+                    break;
+                case 'scale': keys[key] = { x: 1, y: 1 };
+                    break;
+                case 'opacity': keys[key] = [0, 0, 1];
+                    break;
+                case 'interact': keys[key] = [false, false, true];
+                    break;
+                default: keys[key] = [a[key], a[key], a[key]];
+            }
+        }
+
+        return new Animation(keys);
     }
 
-    createMorphAnimation(target, index) {
-        const a = this.self.UITools?.initialStyles;
-        const b = target.UITools?.initialStyles;
+    getChildren(children) {
+        return Children.map(children, child => {
+            if (!isValidElement(child)) return child;
 
-        this.animations.morphs[index] = new Animation({
-            position: [
-                { x: 0, y: 0 },
-                {
-                    x: b.x - a.x + (b.clientWidth - a.clientWidth) / 2,
-                    y: b.y - a.y + (b.clientHeight - a.clientHeight) / 2,
-                },
-                {
-                    x: b.x - a.x + (b.clientWidth - a.clientWidth) / 2,
-                    y: b.y - a.y + (b.clientHeight - a.clientHeight) / 2,
-                }
-            ],
-            scale: [
-                { x: 1, y: 1 },
-                {
-                    x: b.clientWidth / a.clientWidth,
-                    y: b.clientHeight / a.clientHeight,
-                },
-                {
-                    x: b.clientWidth / a.clientWidth,
-                    y: b.clientHeight / a.clientHeight,
-                }
-            ],
-            opacity: [1, 1, 0],
-            borderRadius: [a.borderRadius, b.borderRadius, b.borderRadius],
-            backgroundColor: [a.backgroundColor, b.backgroundColor, b.backgroundColor],
-            scaleCorrection: this.scaleCorrection
-        }, {});
+            const props = child.type !== Morph ? {} : { parentGroup: this.props.parentGroup + this.props.group };
+
+            return cloneElement(child, props, this.getChildren(child.props.children));
+        });
+    }
+
+    render() {
+        const element = this.props.children?.length ? this.props.children[0] : this.props.children;
+        if (!isValidElement(element)) return element;
+
+        const children = this.getChildren(element.props.children);
+        const props = { "lively-morph-group": this.group, style: this.state.childStyles };
+        const animatable = super.render(cloneElement(element, props, children));
+
+        return this.state.useContainer ? cloneElement(element, { style: this.state.parentStyles }, animatable) : animatable;
     }
 
     static defaultProps = {
-        id: 0,
+        id: null,
+        group: 0,
+        parentGroup: '',
         active: false,
-        scaleCorrection: false
+        useLayout: false,
+        interpolate: 'ease',
+        ignore: []
     }
 
 }

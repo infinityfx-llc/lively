@@ -1,13 +1,11 @@
 import Animation from '../animation';
 
 export default function Scale(options = {}) {
-    return {
-        scaleCorrection: options.scaleCorrection,
-        use: Scale.use.bind(this, options)
-    };
+    Scale.use = Scale.use.bind(Scale, options);
+    return Scale;
 }
 
-Scale.use = ({ direction = 'right', scaleCorrection = false } = {}) => {
+Scale.use = ({ direction = 'right', ...options } = {}) => {
     let x = 0, y = 1, origin = { x: 0, y: 0.5 };
     switch (direction) {
         case 'left': origin.x = 1;
@@ -18,5 +16,5 @@ Scale.use = ({ direction = 'right', scaleCorrection = false } = {}) => {
         break;
     }
 
-    return new Animation({ scale: { x: 1 }, scaleCorrection, origin, duration: 0.6 }, { scale: { x, y } });
+    return new Animation({ scale: { x: 1 }, origin, duration: 0.6, ...options }, { scale: { x, y } });
 }

@@ -7,10 +7,10 @@ export default class AnimationQueue {
     }
 
     static get() {
-        if (!('UITools' in window)) window.UITools = {};
-        if (!('AnimationLoop' in window.UITools)) window.UITools.AnimationQueue = new AnimationQueue();
+        if (!('Lively' in window)) window.Lively = {};
+        if (!('AnimationLoop' in window.Lively)) window.Lively.AnimationQueue = new AnimationQueue();
 
-        return window.UITools.AnimationQueue;
+        return window.Lively.AnimationQueue;
     }
 
     async tick() {

@@ -215,8 +215,8 @@ export default class Animation {
 
     setLength(element, keyframe, axis, padStart, padEnd) {
         const size = element.Lively.initials[axis];
-        const paddingStart = element.Lively.initials[padStart];
-        const paddingEnd = element.Lively.initials[padEnd];
+        const paddingStart = parseInt(element.Lively.initials[padStart]);
+        const paddingEnd = parseInt(element.Lively.initials[padEnd]);
         let val = keyframe[axis];
 
         const ratio = keyframe.padding ? 1 : paddingStart / paddingEnd;

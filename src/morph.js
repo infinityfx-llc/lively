@@ -6,11 +6,13 @@ import { cacheElementStyles } from './utils';
 
 export default class Morph extends Animatable {
 
-    static properties = ['position', 'scale', 'opacity', 'backgroundColor', 'color', 'borderRadius', 'interact']
+    static properties = ['position', 'scale', 'opacity', 'backgroundColor', 'color', 'interact']
+    static layoutProperties = ['borderRadius', 'fontSize']
 
     constructor(props) {
         super(props);
 
+        this.layoutOffset = false;
         this.group = this.props.parentGroup + this.props.group;
         this.state = {
             useContainer: false,
@@ -42,11 +44,12 @@ export default class Morph extends Animatable {
 
     reset() {
         this.element = this.elements[0];
+        this.layoutOffset = this.props.useLayout && this.state.useContainer;
         this.setUniqueId();
 
         cacheElementStyles(this.element);
         this.animations = {};
-        this.animations.default = this.createResetAnimation();
+        this.animations.default = this.createUnmorphAnimation();
         if (!this.props.active && !this.props.parentGroup.length) this.setInitial();
     }
 
@@ -91,24 +94,25 @@ export default class Morph extends Animatable {
             if (target) {
                 target.removeAttribute('lively-morph-target');
                 const id = target.getAttribute('lively-morph-id');
-                if (!(id in this.animations)) this.createAnimation(id);
+                if (!(id in this.animations)) this.createAnimations(id);
 
                 this.play(id);
             }
         }
     }
 
-    createAnimation(id) {
+    createAnimations(id) {
         const target = document.querySelector(`[lively-morph-group="${this.group}"][lively-morph-id="${id}"]`);
         if (!target) return;
 
         this.animations[id] = this.createMorphAnimation(target);
 
-        this.children.forEach(({ animatable }) => animatable?.createAnimation(id));
+        this.children.forEach(({ animatable }) => animatable?.createAnimations(id));
     }
 
     getParentPosition(element) {
-        const parent = this.props.useLayout && this.state.useContainer ? element.parentElement?.parentElement : element.parentElement;
+        let parent = this.layoutOffset ? element.parentElement?.parentElement : element.parentElement;
+        if (parent.getAttribute('lively-morph-layout') === 'true') parent = parent?.parentElement;
         return parent?.getBoundingClientRect() || { x: 0, y: 0 };
     }
 
@@ -125,11 +129,6 @@ export default class Morph extends Animatable {
             y -= parentB.y - parentA.y;
         }
 
-        if (!this.props.useLayout) {
-            x += (b.width - a.width) / 2;
-            y += (b.height - a.height) / 2;
-        }
-
         return [{ x: 0, y: 0 }, { x, y }, { x, y }];
     }
 
@@ -140,51 +139,46 @@ export default class Morph extends Animatable {
         return [{ x: 1, y: 1 }, { x, y }, { x, y }];
     }
 
-    createMorphAnimation(target) {
-        const a = this.element.Lively?.initials;
-        const b = target.Lively?.initials;
-        const keys = { useLayout: this.props.useLayout, interpolate: this.props.interpolate };
+    createAnimation(target, keyframe = {}) {
+        const from = this.element.Lively?.initials;
+        const to = target?.Lively?.initials;
 
-        for (const key of Morph.properties) {
+        const props = Morph.properties;
+        if (this.props.useLayout) props.push(...Morph.layoutProperties);
+        const keys = { useLayout: this.props.useLayout, interpolate: this.props.interpolate, origin: { x: 0, y: 0 } };
+
+        for (const key of props) {
             if (this.props.ignore.includes(key)) continue;
 
-            switch (key) {
-                case 'position': keys[key] = this.positionKeyframes(target);
-                    break;
-                case 'scale': keys[key] = this.scaleKeyframes(a, b);
-                    break;
-                case 'opacity': keys[key] = [1, 1, 0];
-                    break;
-                case 'interact': keys[key] = [true, true, false];
-                    break;
-                default: keys[key] = [a[key], b[key], b[key]];
+            if (key in keyframe) {
+                keys[key] = keyframe[key];
+            } else {
+                keys[key] = to ? [from[key], to[key], to[key]] : [from[key], from[key], from[key]];
             }
         }
 
         return new Animation(keys);
     }
 
-    createResetAnimation() {
+    createMorphAnimation(target) {
         const a = this.element.Lively?.initials;
-        const keys = { useLayout: this.props.useLayout, interpolate: this.props.interpolate };
+        const b = target.Lively?.initials;
 
-        for (const key of Morph.properties) {
-            if (this.props.ignore.includes(key)) continue;
+        return this.createAnimation(target, {
+            position: this.positionKeyframes(target),
+            scale: this.scaleKeyframes(a, b),
+            opacity: [1, 1, 0],
+            interact: [true, true, false]
+        });
+    }
 
-            switch (key) {
-                case 'position': keys[key] = { x: 0, y: 0 };
-                    break;
-                case 'scale': keys[key] = { x: 1, y: 1 };
-                    break;
-                case 'opacity': keys[key] = [0, 0, 1];
-                    break;
-                case 'interact': keys[key] = [false, false, true];
-                    break;
-                default: keys[key] = [a[key], a[key], a[key]];
-            }
-        }
-
-        return new Animation(keys);
+    createUnmorphAnimation() {
+        return this.createAnimation(null, {
+            position: { x: 0, y: 0 },
+            scale: { x: 1, y: 1 },
+            opacity: [0, 0, 1],
+            interact: [false, false, true]
+        });
     }
 
     getChildren(children) {
@@ -202,7 +196,11 @@ export default class Morph extends Animatable {
         if (!isValidElement(element)) return element;
 
         const children = this.getChildren(element.props.children);
-        const props = { "lively-morph-group": this.group, style: this.state.childStyles };
+        const props = {
+            "lively-morph-group": this.group,
+            "lively-morph-layout": this.layoutOffset.toString(),
+            style: { ...element.props.style, ...this.state.childStyles }
+        };
         const animatable = super.render(cloneElement(element, props, children));
 
         return this.state.useContainer ? cloneElement(element, { style: this.state.parentStyles }, animatable) : animatable;

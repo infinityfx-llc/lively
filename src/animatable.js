@@ -50,7 +50,7 @@ export default class Animatable extends Component {
         return nested + count;
     }
 
-    componentDidMount() {
+    async componentDidMount() {
         this.elements.forEach(el => {
             this.animations.default?.setInitial(el, true);
         });
@@ -70,8 +70,6 @@ export default class Animatable extends Component {
     componentWillUnmount() {
         removeEventListener('scroll', this.scrollEventListener);
         removeEventListener('resize', this.resizeEventListener);
-
-        if (this.props.onUnmount && (this.props.parentLevel < 1 || this.props.noCascade)) this.play(this.props.onUnmount, { reverse: true, immediate: true });
     }
 
     inViewport() {

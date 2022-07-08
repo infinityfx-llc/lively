@@ -45,7 +45,7 @@ export const removeEventListener = (event, callback) => {
     delete window.Lively.Events[event][callback.Lively.ListenerID];
 };
 
-export const getStyles = (element) => {
+const getStyles = (element) => {
     const styles = {};
     for (let i = 0; i < element.style.length; i++) {
         styles[element.style[i]] = element.style[element.style[i]];
@@ -54,7 +54,7 @@ export const getStyles = (element) => {
     return styles;
 };
 
-export const setStyles = (element, styles) => {
+const setStyles = (element, styles) => {
     for (const key in styles) {
         element.style[key] = styles[key];
     }
@@ -64,38 +64,21 @@ export const cacheElementStyles = (element) => {
     if (!('Lively' in element)) element.Lively = { queue: [], initials: {} };
     if (!element.Lively.style) {
         element.Lively.style = getStyles(element);
-        element.Lively.style.transitionProperty = 'transform, opacity, clip-path, border-radius, background-color, color, width, height, left, top';
+        element.Lively.style.transitionProperty = 'transform, opacity, clip-path, border-radius, font-size, background-color, color, width, height, padding';
         element.Lively.style.willChange = 'transform';
     }
 
     element.style = {};
     setStyles(element, element.Lively.style);
 
-    const {
-        paddingLeft,
-        paddingRight,
-        paddingTop,
-        paddingBottom,
-        borderRadius,
-        boxSizing,
-        backgroundColor,
-        color
-    } = getComputedStyle(element);
+    const { paddingLeft, paddingRight, paddingTop, paddingBottom, backgroundColor, color, borderRadius, padding, fontSize } = getComputedStyle(element);
     const { x, y } = element.getBoundingClientRect();
 
-    element.Lively.initials = {
-        x,
-        y,
-        includePadding: boxSizing === 'border-box',
+    element.Lively.initials = { x, y, paddingLeft, paddingRight, paddingTop, paddingBottom, backgroundColor, color, fontSize,
         width: element.offsetWidth + 'px',
         height: element.offsetHeight + 'px',
-        paddingLeft: parseInt(paddingLeft), // NOT CORRECT dont parse
-        paddingRight: parseInt(paddingRight),
-        paddingTop: parseInt(paddingTop),
-        paddingBottom: parseInt(paddingBottom),
-        borderRadius: parseInt(borderRadius.split(' ')[0]),
-        backgroundColor,
-        color
+        borderRadius: borderRadius.split(' ')[0],
+        padding: padding.split(' ')[0]
     };
 };
 

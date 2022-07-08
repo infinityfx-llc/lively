@@ -1,6 +1,6 @@
 {
 	"name": "@infinityfx/lively",
-	"version": "0.0.5",
+	"version": "0.0.6",
 	"description": "Zero configuration, performant react animation library",
 	"main": "dist/cjs/index.js",
 	"module": "dist/esm/index.js",

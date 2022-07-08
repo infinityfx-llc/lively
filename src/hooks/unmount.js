@@ -6,9 +6,10 @@ export default function useUnmount(state) {
 
     useEffect(() => {
         if (state) setMounted(true);
-        if (!state && ref.current) {
-            ref.current.play(ref.current.props.onUnmount, { // test if onUnmount is present
+        if (!state && ref.current?.props.onUnmount) {
+            ref.current.play(ref.current.props.onUnmount, {
                 reverse: true,
+                immediate: true,
                 callback: () => {
                     setMounted(false);
                 }

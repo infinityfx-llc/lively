@@ -4,6 +4,8 @@ import Animation from './animation';
 import AnimationQueue from './queue';
 import { cacheElementStyles } from './utils';
 
+// when fonts are loaded width/height changes
+
 export default class Morph extends Animatable {
 
     static properties = ['position', 'scale', 'opacity', 'backgroundColor', 'color', 'interact']
@@ -22,23 +24,25 @@ export default class Morph extends Animatable {
                 background: 'transparent',
                 border: 'none',
                 pointerEvents: 'none',
-                backdropFilter: 'none'
+                backdropFilter: 'none',
+                fontSize: 'unset'
             }
         };
     }
 
     setUniqueId() {
-        if (this.props.parentGroup.length) return;
+        if (!this.props.parentGroup.length && !('id' in this)) {
+            if (!('Lively' in window)) window.Lively = {};
+            if (!('Morph' in window.Lively)) window.Lively.Morph = {};
+            if (!(this.group in window.Lively.Morph)) window.Lively.Morph[this.group] = 0;
+            this.id = window.Lively.Morph[this.group]++;
+        }
 
-        if (!('Lively' in window)) window.Lively = {};
-        if (!('Morph' in window.Lively)) window.Lively.Morph = {};
-        if (!(this.group in window.Lively.Morph)) window.Lively.Morph[this.group] = 0;
-        this.id = window.Lively.Morph[this.group]++;
-        this.element.setAttribute('lively-morph-id', this.id);
+        if ('id' in this) this.element.setAttribute('lively-morph-id', this.id.toString());
 
         for (const { animatable } of this.children) {
             if (animatable) animatable.id = this.id;
-            animatable?.element.setAttribute('lively-morph-id', this.id);
+            animatable?.element.setAttribute('lively-morph-id', this.id.toString());
         }
     }
 
@@ -103,7 +107,6 @@ export default class Morph extends Animatable {
 
     createAnimations(id) {
         const target = document.querySelector(`[lively-morph-group="${this.group}"][lively-morph-id="${id}"]`);
-        if (!target) return;
 
         this.animations[id] = this.createMorphAnimation(target);
 
@@ -145,7 +148,7 @@ export default class Morph extends Animatable {
 
         const props = Morph.properties;
         if (this.props.useLayout) props.push(...Morph.layoutProperties);
-        const keys = { useLayout: this.props.useLayout, interpolate: this.props.interpolate, origin: { x: 0, y: 0 } };
+        const keys = { useLayout: this.props.useLayout, interpolate: this.props.interpolate, origin: { x: 0, y: 0 }, duration: this.props.duration };
 
         for (const key of props) {
             if (this.props.ignore.includes(key)) continue;
@@ -161,6 +164,8 @@ export default class Morph extends Animatable {
     }
 
     createMorphAnimation(target) {
+        if (!target) return this.createAnimation(null, { opacity: [1, 0, 0], interact: [true, false, false] });
+
         const a = this.element.Lively?.initials;
         const b = target.Lively?.initials;
 
@@ -213,6 +218,7 @@ export default class Morph extends Animatable {
         active: false,
         useLayout: false,
         interpolate: 'ease',
+        duration: 1.5,
         ignore: []
     }
 

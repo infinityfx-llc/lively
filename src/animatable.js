@@ -6,6 +6,7 @@ import { addEventListener, removeEventListener } from './utils';
 // on window resize reset initial elements sizes
 // mabye split whileViewport up into onEnter and onLeave
 // cancel animationqueue delays
+// parallax, value based animation (progress)
 
 export default class Animatable extends Component {
 

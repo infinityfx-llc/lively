@@ -219,7 +219,7 @@ export default class Animation {
         const paddingEnd = parseInt(element.Lively.initials[padEnd]);
         let val = keyframe[axis];
 
-        const ratio = keyframe.padding ? 1 : paddingStart / paddingEnd;
+        const ratio = keyframe.padding ? 1 : paddingStart / (paddingEnd === 0 ? 1e-6 : paddingEnd);
         if (typeof val === 'string') val = `calc(${val} / ${size})`;
         const padding = keyframe.padding ? keyframe.padding : paddingStart + paddingEnd + 'px';
         

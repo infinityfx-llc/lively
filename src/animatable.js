@@ -1,9 +1,9 @@
 import React, { Children, cloneElement, Component, isValidElement } from 'react';
 import Animation from './animation';
 import AnimationQueue from './queue';
-import { addEventListener, removeEventListener } from './utils';
+import { addEventListener, cacheElementStyles, removeEventListener } from './utils';
 
-// on window resize reset initial elements sizes
+// optimize forEach
 // mabye split whileViewport up into onEnter and onLeave
 // cancel animationqueue delays
 // parallax, value based animation (progress)
@@ -19,14 +19,22 @@ export default class Animatable extends Component {
         this.scrollDelta = 0;
         this.viewportMargin = props.viewportMargin;
 
-        this.elements = [];
         this.animations = { default: this.toAnimation(this.props.animate) };
         for (const key in this.props.animations) {
             this.animations[key] = this.toAnimation(this.props.animations[key]);
         }
 
-        this.level = 0;
+        this.elements = [];
         this.children = [];
+        this.level = 0;
+    }
+
+    update() {
+        this.elements.forEach(el => {
+            cacheElementStyles(el);
+
+            this.animations.default?.setInitial(el);
+        });
     }
 
     toAnimation(animation) {
@@ -42,7 +50,7 @@ export default class Animatable extends Component {
         let count = 0, nested = 0;
         Children.forEach(children, (child) => {
             if (!isValidElement(child)) return;
-            if (child.type === Animatable) count = 1;
+            if (child.type === Animatable || child.type.prototype instanceof Animatable) count = 1;
 
             const n = this.countNestedLevels(child.props?.children);
             nested = nested < n ? n : nested;
@@ -51,10 +59,15 @@ export default class Animatable extends Component {
         return nested + count;
     }
 
-    async componentDidMount() {
-        this.elements.forEach(el => {
-            this.animations.default?.setInitial(el, true);
-        });
+    async componentDidMount(initialState = {}) {
+        this.resizeEventListener = this.onResize.bind(this);
+        addEventListener('resize', this.resizeEventListener);
+
+        this.update(initialState);
+        if ('fonts' in document && document.fonts.status !== 'loaded') {
+            await document.fonts.ready;
+            this.update(true);
+        }
 
         if (this.props.parentLevel < 1 || this.props.noCascade) {
             this.scrollEventListener = this.onScroll.bind(this);
@@ -63,9 +76,6 @@ export default class Animatable extends Component {
             if (this.props.onMount) this.play(this.props.onMount, { staggerDelay: 0.001, immediate: true });
             if (this.props.whileViewport) this.onScroll();
         }
-        
-        this.resizeEventListener = this.onResize.bind(this);
-        addEventListener('resize', this.resizeEventListener);
     }
 
     componentWillUnmount() {
@@ -111,9 +121,9 @@ export default class Animatable extends Component {
     }
 
     async onResize() {
-        // this.elements.forEach(el => {
-        //     this.animations.default?.setInitial(el, true);
-        // });
+        if (this.nextResize?.cancel) this.nextResize.cancel();
+
+        this.nextResize = AnimationQueue.delay(this.update.bind(this), 0.25);
     }
 
     async onEnter(e, callback = false) {
@@ -158,19 +168,6 @@ export default class Animatable extends Component {
         if (callback) callback(e);
     }
 
-    async setInitial(animationName, reset = false) {
-        const animation = typeof animationName === 'string' ? this.animations[animationName] : this.animations.default;
-        if (!animation) return;
-
-        this.elements.forEach(el => {
-            animation.setInitial(el, reset);
-        });
-
-        this.children.forEach(({ animatable }) => {
-            animatable?.setInitial(animationName, reset);
-        });
-    }
-
     async play(animationName, { callback, reverse = false, immediate = false, cascade = false, groupAdjust = 0, cascadeDelay = 0, staggerDelay = 0 } = {}) {
         if (this.props.parentLevel > 0 && !cascade) return;
 
@@ -202,7 +199,7 @@ export default class Animatable extends Component {
                 groupAdjust: staggerIndex < 0 ? 0 : 1
             });
         });
-        
+
         if (callback) AnimationQueue.delay(callback, __delay + animation.duration);
     }
 

@@ -4,8 +4,6 @@ import Animation from './animation';
 import AnimationQueue from './queue';
 import { cacheElementStyles } from './utils';
 
-// when fonts are loaded width/height changes
-
 export default class Morph extends Animatable {
 
     static properties = ['position', 'scale', 'opacity', 'backgroundColor', 'color', 'interact']
@@ -17,7 +15,8 @@ export default class Morph extends Animatable {
         this.layoutOffset = false;
         this.group = this.props.parentGroup + this.props.group;
         this.state = {
-            useContainer: false,
+            useLayout: false,
+            layoutUpdate: false,
             childStyles: {},
             parentStyles: {
                 position: 'relative',
@@ -30,8 +29,47 @@ export default class Morph extends Animatable {
         };
     }
 
-    setUniqueId() {
-        if (!this.props.parentGroup.length && !('id' in this)) {
+    update(withState = false) {
+        this.element = this.elements[0];
+        if (!this.element) return;
+
+        if (withState) {
+            if (typeof withState !== 'object') withState = {};
+
+            return this.setState({
+                ...withState,
+                parentStyles: {
+                    ...this.state.parentStyles,
+                    width: this.element.offsetWidth,
+                    height: this.element.offsetHeight
+                },
+                layoutUpdate: !this.state.layoutUpdate
+            });
+        }
+
+        this.layoutOffset = this.props.useLayout && this.state.useLayout;
+
+        if (this.props.parentGroup.length) return;
+
+        this.setUniqueId();
+        cacheElementStyles(this.element);
+        this.animations = { default: this.createUnmorphAnimation() };
+        if (!this.props.active) this.animations.default.setInitial(this.element);
+
+        for (const { animatable } of this.children) {
+            if (!animatable) continue;
+
+            animatable.setUniqueId(this.id);
+            cacheElementStyles(animatable.element);
+            animatable.animations = { default: animatable.createUnmorphAnimation() };
+
+            if (!this.props.active) animatable.animations.default.setInitial(animatable.element);
+        }
+    }
+
+    setUniqueId(id = null) {
+        if (id !== null) this.id = id;
+        if (!('id' in this)) {
             if (!('Lively' in window)) window.Lively = {};
             if (!('Morph' in window.Lively)) window.Lively.Morph = {};
             if (!(this.group in window.Lively.Morph)) window.Lively.Morph[this.group] = 0;
@@ -39,52 +77,30 @@ export default class Morph extends Animatable {
         }
 
         if ('id' in this) this.element.setAttribute('lively-morph-id', this.id.toString());
-
-        for (const { animatable } of this.children) {
-            if (animatable) animatable.id = this.id;
-            animatable?.element.setAttribute('lively-morph-id', this.id.toString());
-        }
-    }
-
-    reset() {
-        this.element = this.elements[0];
-        this.layoutOffset = this.props.useLayout && this.state.useContainer;
-        this.setUniqueId();
-
-        cacheElementStyles(this.element);
-        this.animations = {};
-        this.animations.default = this.createUnmorphAnimation();
-        if (!this.props.active && !this.props.parentGroup.length) this.setInitial();
     }
 
     async componentDidMount() {
         this.element = this.elements[0];
         if (!this.element) return;
 
+        let state;
         if (this.props.useLayout) {
             const { position } = getComputedStyle(this.element);
             if (position === 'absolute' || position === 'fixed') {
-                this.setState({ childStyles: { top: this.element.offsetTop, left: this.element.offsetLeft } });
+                state = { childStyles: { top: this.element.offsetTop, left: this.element.offsetLeft } };
             } else {
-                this.setState({
+                state = {
                     childStyles: { position: 'absolute', margin: 0, top: 0, left: 0, pointerEvents: 'initial' },
-                    parentStyles: {
-                        width: this.element.offsetWidth,
-                        height: this.element.offsetHeight,
-                        ...this.state.parentStyles
-                    },
-                    useContainer: true
-                });
+                    useLayout: true
+                };
             }
         }
 
-        this.reset();
+        super.componentDidMount(state);
     }
 
     async componentDidUpdate(prevProps, prevState) {
-        if (prevState.useContainer !== this.state.useContainer) {
-            this.reset();
-        }
+        if (prevState.layoutUpdate !== this.state.layoutUpdate) this.update();
 
         if (prevProps.active === this.props.active) return;
         if (this.props.active) this.element.setAttribute('lively-morph-target', true);
@@ -208,7 +224,7 @@ export default class Morph extends Animatable {
         };
         const animatable = super.render(cloneElement(element, props, children));
 
-        return this.state.useContainer ? cloneElement(element, { style: this.state.parentStyles }, animatable) : animatable;
+        return this.state.useLayout ? cloneElement(element, { style: this.state.parentStyles }, animatable) : animatable;
     }
 
     static defaultProps = {

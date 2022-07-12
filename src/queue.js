@@ -13,6 +13,10 @@ export default class AnimationQueue {
         return window.Lively.AnimationQueue;
     }
 
+    uuid() {    
+        return Math.floor(Math.random() * 1e6).toString(16).padStart('0', 6);
+    }
+
     async tick() {
         const tick = Date.now();
 
@@ -54,13 +58,26 @@ export default class AnimationQueue {
         this.queue.splice(idx, 0, item);
     }
 
+    cancel(timestamp, id) {
+        const idx = this.search({ timestamp });
+        if (this.queue[idx].id === id) this.queue.splice(idx, 1);
+    }
+
     delay(callback, seconds) {
         if (!(callback instanceof Function)) return;
 
-        this.insert({ callback, timestamp: Date.now() + seconds * 1000 });
+        const id = this.uuid();
+        const timestamp = Date.now() + seconds * 1000;
+        const timeout = { cancel: () => this.cancel(timestamp, id) };
+        this.insert({ callback: () => {
+            delete timeout.cancel;
+            callback();
+        }, timestamp, id });
+
+        return timeout;
     }
 
-    static async delay(callback, seconds) {
+    static delay(callback, seconds) {
         return this.get().delay(callback, seconds);
     }
 

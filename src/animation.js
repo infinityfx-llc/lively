@@ -1,5 +1,5 @@
 import AnimationQueue from './queue';
-import { cacheElementStyles, hexToRgba, strToRgba } from './utils';
+import { hexToRgba, strToRgba } from './utils';
 
 export default class Animation {
 
@@ -203,9 +203,7 @@ export default class Animation {
         return properties;
     }
 
-    setInitial(element, reset = false) {
-        if (reset) cacheElementStyles(element);
-
+    setInitial(element) {
         element.style.transitionDuration = '0s';
         element.style.transitionTimingFunction = this.interpolation;
         element.style.transformOrigin = this.origin;

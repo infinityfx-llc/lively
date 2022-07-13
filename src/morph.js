@@ -1,4 +1,4 @@
-import { Children, cloneElement, isValidElement } from 'react';
+import React, { Children, cloneElement, isValidElement } from 'react';
 import Animatable from './animatable';
 import Animation from './animation';
 import AnimationQueue from './queue';
@@ -16,7 +16,6 @@ export default class Morph extends Animatable {
         this.group = this.props.parentGroup + this.props.group;
         this.state = {
             useLayout: false,
-            layoutUpdate: false,
             childStyles: {},
             parentStyles: {
                 position: 'relative',
@@ -29,23 +28,33 @@ export default class Morph extends Animatable {
         };
     }
 
-    update(withState = false) {
+    layoutUpdate() {
+        const { position } = getComputedStyle(this.element);
+        let childStyles, useLayout = false;
+
+        if (position === 'absolute' || position === 'fixed') {
+            childStyles = { top: this.element.offsetTop, left: this.element.offsetLeft };
+        } else {
+            childStyles = { position: 'absolute', margin: 0, top: 0, left: 0, pointerEvents: 'initial' };
+            useLayout = true;
+        }
+
+        this.setState({
+            childStyles,
+            parentStyles: {
+                ...this.state.parentStyles,
+                width: this.element.offsetWidth,
+                height: this.element.offsetHeight
+            },
+            useLayout
+        });
+    }
+
+    update(layout = false) {
         this.element = this.elements[0];
         if (!this.element) return;
 
-        if (withState) {
-            if (typeof withState !== 'object') withState = {};
-
-            return this.setState({
-                ...withState,
-                parentStyles: {
-                    ...this.state.parentStyles,
-                    width: this.element.offsetWidth,
-                    height: this.element.offsetHeight
-                },
-                layoutUpdate: !this.state.layoutUpdate
-            });
-        }
+        if (layout && this.props.useLayout) return this.layoutUpdate();
 
         this.layoutOffset = this.props.useLayout && this.state.useLayout;
 
@@ -79,36 +88,26 @@ export default class Morph extends Animatable {
         if ('id' in this) this.element.setAttribute('lively-morph-id', this.id.toString());
     }
 
-    async componentDidMount() {
-        this.element = this.elements[0];
-        if (!this.element) return;
-
-        let state;
-        if (this.props.useLayout) {
-            const { position } = getComputedStyle(this.element);
-            if (position === 'absolute' || position === 'fixed') {
-                state = { childStyles: { top: this.element.offsetTop, left: this.element.offsetLeft } };
-            } else {
-                state = {
-                    childStyles: { position: 'absolute', margin: 0, top: 0, left: 0, pointerEvents: 'initial' },
-                    useLayout: true
-                };
-            }
+    shouldComponentUpdate(nextProps) {
+        if (nextProps.active !== this.props.active) {
+            this.morph(nextProps.active);
+            return false;
         }
 
-        super.componentDidMount(state);
+        return true;
     }
 
-    async componentDidUpdate(prevProps, prevState) {
-        if (prevState.layoutUpdate !== this.state.layoutUpdate) this.update();
+    async componentDidUpdate() {
+        this.update();
+    }
 
-        if (prevProps.active === this.props.active) return;
-        if (this.props.active) this.element.setAttribute('lively-morph-target', true);
+    async morph(active) {
+        if (active) this.element.setAttribute('lively-morph-target', true);
 
         await AnimationQueue.sleep(0.001);
 
-        if (this.props.active) {
-            this.play('default');
+        if (active) {
+            this.play('default', { immediate: true });
         } else {
             const target = document.querySelector(`[lively-morph-group="${this.group}"][lively-morph-target="true"]`);
             if (target) {
@@ -116,7 +115,7 @@ export default class Morph extends Animatable {
                 const id = target.getAttribute('lively-morph-id');
                 if (!(id in this.animations)) this.createAnimations(id);
 
-                this.play(id);
+                this.play(id, { immediate: true });
             }
         }
     }

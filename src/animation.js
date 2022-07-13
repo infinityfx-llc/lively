@@ -259,8 +259,8 @@ export default class Animation {
 
         this.setInitial(element);
         element.style.transitionDuration = `${this.delta}s`;
-        element.Lively.animating = true;
         element.Lively.index = 1;
+        if (element.Lively.next?.cancel) element.Lively.next.cancel();
 
         this.getNext(element, reverse, repeat);
     }
@@ -268,7 +268,12 @@ export default class Animation {
     play(element, { delay = 0, immediate = false, reverse = false } = {}) {
         if (!element.style) return;
 
-        this.delay || delay ? AnimationQueue.delay(() => this.start(element, { immediate, reverse }), this.delay + delay) : this.start(element, { immediate, reverse });
+        if (this.delay || delay) {
+            element.next = AnimationQueue.delay(this.start.bind(this, element, { immediate, reverse }), this.delay + delay);
+        } else {
+            this.start(element, { immediate, reverse });
+        }
+        element.Lively.animating = true;
     }
 
     getNext(element, reverse = false, repeat = 1) {
@@ -291,7 +296,7 @@ export default class Animation {
         });
         element.Lively.index++;
 
-        AnimationQueue.delay(() => this.getNext(element, reverse, repeat), this.delta); // cancel this when using immediate
+        element.Lively.next = AnimationQueue.delay(() => this.getNext(element, reverse, repeat), this.delta);
     }
 
 }

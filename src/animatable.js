@@ -4,8 +4,8 @@ import AnimationQueue from './queue';
 import { addEventListener, cacheElementStyles, removeEventListener } from './utils';
 
 // optimize forEach
+// implement on animation end
 // mabye split whileViewport up into onEnter and onLeave
-// cancel animationqueue delays
 // parallax, value based animation (progress)
 
 export default class Animatable extends Component {
@@ -59,11 +59,11 @@ export default class Animatable extends Component {
         return nested + count;
     }
 
-    async componentDidMount(initialState = {}) {
+    async componentDidMount() {
         this.resizeEventListener = this.onResize.bind(this);
         addEventListener('resize', this.resizeEventListener);
 
-        this.update(initialState);
+        this.update(true);
         if ('fonts' in document && document.fonts.status !== 'loaded') {
             await document.fonts.ready;
             this.update(true);

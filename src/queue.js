@@ -58,9 +58,10 @@ export default class AnimationQueue {
         this.queue.splice(idx, 0, item);
     }
 
-    cancel(timestamp, id) {
-        const idx = this.search({ timestamp });
-        if (this.queue[idx].id === id) this.queue.splice(idx, 1);
+    cancel(timeout) {
+        const idx = this.search(timeout);
+        if (this.queue[idx].id === timeout.id) this.queue.splice(idx, 1);
+        delete timeout.cancel;
     }
 
     delay(callback, seconds) {
@@ -68,7 +69,7 @@ export default class AnimationQueue {
 
         const id = this.uuid();
         const timestamp = Date.now() + seconds * 1000;
-        const timeout = { cancel: () => this.cancel(timestamp, id) };
+        const timeout = { timestamp, id, cancel: () => this.cancel(timeout) };
         this.insert({ callback: () => {
             delete timeout.cancel;
             callback();

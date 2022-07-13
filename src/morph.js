@@ -97,10 +97,6 @@ export default class Morph extends Animatable {
         return true;
     }
 
-    async componentDidUpdate() {
-        this.update();
-    }
-
     async morph(active) {
         if (active) this.element.setAttribute('lively-morph-target', true);
 

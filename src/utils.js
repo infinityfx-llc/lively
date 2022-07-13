@@ -40,7 +40,7 @@ export const addEventListener = (event, callback) => {
 
 export const removeEventListener = (event, callback) => {
     if (typeof window === 'undefined' || !window.Lively?.Events?.[event]) return;
-    if (!callback?.Lively?.ListenerID) return;
+    if (!callback?.Lively || !('ListenerID' in callback.Lively)) return;
 
     delete window.Lively.Events[event][callback.Lively.ListenerID];
 };

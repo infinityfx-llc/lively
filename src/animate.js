@@ -9,14 +9,14 @@ export default class Animate extends Component {
 
         this.levels = this.props.levels;
         this.animations = new Array(this.levels).fill(0).map((_, i) => {
-            return i  < this.props.animations.length ? this.props.animations[i] : this.props.animations[this.props.animations.length - 1];
+            return i < this.props.animations.length ? this.props.animations[i] : this.props.animations[this.props.animations.length - 1];
         });
     }
 
     makeAnimatable(children, level = 1) {
         if (level < 1 || Children.count(children) < 1) return children;
 
-        const { levels, animations, ...props } = this.props;
+        const { levels, animations, children: _, ...props } = this.props;
         const animation = this.animations[this.levels - level];
 
         if (level === this.levels) props.ref = el => this.animatable = el;
@@ -31,6 +31,12 @@ export default class Animate extends Component {
 
     play(animationName, options = {}) {
         this.animatable?.play(animationName, { ...options });
+    }
+
+    shouldComponentUpdate(nextProps) {
+        if (nextProps.animations !== this.props.animations) return false;
+
+        return true;
     }
 
     render() {

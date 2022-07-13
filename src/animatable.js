@@ -5,8 +5,8 @@ import { addEventListener, cacheElementStyles, removeEventListener } from './uti
 
 // optimize forEach
 // implement on animation end
-// mabye split whileViewport up into onEnter and onLeave
 // parallax, value based animation (progress)
+// reactive animation animate based on reactive values / elements
 
 export default class Animatable extends Component {
 
@@ -33,7 +33,7 @@ export default class Animatable extends Component {
         this.elements.forEach(el => {
             cacheElementStyles(el);
 
-            this.animations.default?.setInitial(el);
+            this.animations.default?.setInitial(el); // when calling .update apply current keyframe again
         });
     }
 
@@ -76,6 +76,10 @@ export default class Animatable extends Component {
             if (this.props.onMount) this.play(this.props.onMount, { staggerDelay: 0.001, immediate: true });
             if (this.props.whileViewport) this.onScroll();
         }
+    }
+
+    async componentDidUpdate() {
+        this.update();
     }
 
     componentWillUnmount() {

@@ -267,9 +267,9 @@ export default class Animation {
 
     play(element, { delay = 0, immediate = false, reverse = false } = {}) {
         if (!element.style) return;
-
+        
         if (this.delay || delay) {
-            element.next = AnimationQueue.delay(this.start.bind(this, element, { immediate, reverse }), this.delay + delay);
+            element.next = AnimationQueue.delay(() => this.start(element, { immediate, reverse }), this.delay + delay);
         } else {
             this.start(element, { immediate, reverse });
         }

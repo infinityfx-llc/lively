@@ -31,17 +31,20 @@ export default class Animatable extends Component {
 
     update() {
         this.elements.forEach(el => {
-            cacheElementStyles(el);
+            cacheElementStyles(el); // get previous cached styles and transition between the 2
 
-            this.animations.default?.setInitial(el); // when calling .update apply current keyframe again
+            this.animations.default?.setInitial(el);
         });
+
+        // animate on children that have just mounted
+        // if ((this.props.parentLevel < 1 || this.props.noCascade) && this.props.onMount) this.play(this.props.onMount, { staggerDelay: 0.001, immediate: true });
     }
 
     toAnimation(animation) {
         if (!animation || (typeof animation !== 'object' && typeof animation !== 'function')) return null;
         if ('use' in animation) return animation.use();
 
-        return new Animation({ ...animation }, this.props.initial);
+        return Object.keys(animation).length ? new Animation({ ...animation }, this.props.initial) : null;
     }
 
     countNestedLevels(children) {

@@ -54,7 +54,9 @@ const getStyles = (element) => {
     return styles;
 };
 
-const setStyles = (element, styles) => {
+export const setStyles = (element, styles) => {
+    element.style = {};
+
     for (const key in styles) {
         element.style[key] = styles[key];
     }
@@ -68,7 +70,6 @@ export const cacheElementStyles = (element) => {
         element.Lively.style.willChange = 'transform';
     }
 
-    element.style = {};
     setStyles(element, element.Lively.style);
 
     const { paddingLeft, paddingRight, paddingTop, paddingBottom, backgroundColor, color, borderRadius, padding, fontSize } = getComputedStyle(element);
@@ -82,5 +83,5 @@ export const cacheElementStyles = (element) => {
     };
 };
 
-const Utils = { hexToRgba, strToRgba, addEventListener, removeEventListener, cacheElementStyles };
+const Utils = { hexToRgba, strToRgba, addEventListener, removeEventListener, setStyles, cacheElementStyles };
 export default Utils;

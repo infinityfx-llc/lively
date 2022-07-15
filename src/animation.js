@@ -207,7 +207,7 @@ export default class Animation {
         element.style.transitionDuration = '0s';
         element.style.transitionTimingFunction = this.interpolation;
         element.style.transformOrigin = this.origin;
-        const keyframe = this.keyframes[0];
+        const keyframe = element.Lively?.keyframe || this.keyframes[0];
         this.apply(element, keyframe, true);
     }
 
@@ -249,6 +249,8 @@ export default class Animation {
 
             element.style[key] = val;
         });
+
+        element.Lively.keyframe = keyframe;
     }
 
     start(element, { immediate = false, reverse = false, repeat = this.repeat } = {}) {

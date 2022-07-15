@@ -16,7 +16,7 @@ export default class Animate extends Component {
     makeAnimatable(children, level = 1) {
         if (level < 1 || Children.count(children) < 1) return children;
 
-        const { levels, animations, children: _, ...props } = this.props;
+        const { levels, animations, ...props } = this.props;
         const animation = this.animations[this.levels - level];
 
         if (level === this.levels) props.ref = el => this.animatable = el;
@@ -34,7 +34,7 @@ export default class Animate extends Component {
     }
 
     shouldComponentUpdate(nextProps) {
-        if (nextProps.animations !== this.props.animations) return false;
+        if (nextProps.animations !== this.props.animations) return false; // incorrect doesn't work for Animatable component (maybe use pure-component)
 
         return true;
     }

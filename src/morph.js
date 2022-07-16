@@ -29,10 +29,11 @@ export default class Morph extends Animatable {
     }
 
     layoutUpdate() {
+        delete this.element.Lively;
         const { position } = getComputedStyle(this.element);
-        let childStyles, useLayout = false;
+        let childStyles, useLayout = this.state.useLayout;
 
-        if (position === 'absolute' || position === 'fixed') {
+        if ((position === 'absolute' || position === 'fixed') && !useLayout) {
             childStyles = { top: this.element.offsetTop, left: this.element.offsetLeft };
         } else {
             childStyles = { position: 'absolute', margin: 0, top: 0, left: 0, pointerEvents: 'initial' };
@@ -57,7 +58,7 @@ export default class Morph extends Animatable {
 
         if (layout && this.props.useLayout) return this.layoutUpdate();
 
-        if (previous) {
+        if (previous && !layout) { // DOESN'T WORK TOGETHER WITH RESIZE AND ON DEMAND MORPH GENERATION
             this.element.Lively = previous;
             setStyles(this.element, previous.style);
         } else {
@@ -69,13 +70,12 @@ export default class Morph extends Animatable {
 
         this.setUniqueId();
         this.animations = { default: this.createUnmorphAnimation() };
-        if (!active) this.animations.default.setInitial(this.element);
+        this.animations.default.setToLast(this.element, !active);
 
         this.children.forEach(({ animatable }) => {
-            if (!animatable) return;
             animatable.setUniqueId();
             animatable.animations = { default: animatable.createUnmorphAnimation() };
-            if (!active) animatable.animations.default.setInitial(animatable.element);
+            animatable.animations.default.setToLast(animatable.element, !active);
         });
     }
 
@@ -94,7 +94,7 @@ export default class Morph extends Animatable {
     async componentDidUpdate(prevProps) {
         await this.update(false, prevProps.active);
 
-        if (prevProps.active !== this.props.active && !this.parent.props) {
+        if (prevProps.active !== this.props.active) {
             this.morph(this.props.active);
         }
     }
@@ -123,7 +123,7 @@ export default class Morph extends Animatable {
 
         this.animations[id] = this.createMorphAnimation(target);
 
-        this.children.forEach(({ animatable }) => animatable?.createAnimations(id));
+        this.children.forEach(({ animatable }) => animatable.createAnimations(id));
     }
 
     createAnimation(target, keyframe = {}) {
@@ -184,7 +184,7 @@ export default class Morph extends Animatable {
         return Children.map(children, child => {
             if (!isValidElement(child)) return child;
 
-            const props = child.type !== Morph ? {} : { parent: () => this };
+            const props = child.type !== Morph ? {} : { parent: () => this, duration: this.props.duration };
 
             return cloneElement(child, props, this.getChildren(child.props.children));
         });

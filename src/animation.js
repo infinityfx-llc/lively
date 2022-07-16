@@ -10,7 +10,7 @@ export default class Animation {
         clip: { left: 0, top: 0, right: 0, bottom: 0 },
         borderRadius: 0,
         padding: 0,
-        fontSize: '1em',
+        fontSize: '1rem',
         backgroundColor: { r: 127, g: 127, b: 127, a: 255 },
         color: { r: 127, g: 127, b: 127, a: 255 },
         active: { start: true },
@@ -203,12 +203,15 @@ export default class Animation {
         return properties;
     }
 
-    setInitial(element) {
+    setInitial(element, keyframe = this.keyframes[0]) {
         element.style.transitionDuration = '0s';
         element.style.transitionTimingFunction = this.interpolation;
         element.style.transformOrigin = this.origin;
-        const keyframe = element.Lively?.keyframe || this.keyframes[0];
         this.apply(element, keyframe, true);
+    }
+
+    setToLast(element, fallback = false) {
+        if (fallback || element.Lively?.keyframe) this.setInitial(element, element.Lively?.keyframe);
     }
 
     setLength(element, keyframe, axis, padStart, padEnd) {

@@ -34,7 +34,7 @@ export default class Animate extends Component {
     }
 
     shouldComponentUpdate(nextProps) {
-        if (nextProps.animations !== this.props.animations) return false; // incorrect doesn't work for Animatable component (maybe use pure-component)
+        if (nextProps.animations !== this.props.animations) return false; // incorrect doesn't work for Animatable component (maybe use pure-component) (root cause is unnecessary update in unmount hook)
 
         return true;
     }

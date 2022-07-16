@@ -3,7 +3,7 @@ import Animation from './animation';
 import AnimationQueue from './queue';
 import { addEventListener, cacheElementStyles, removeEventListener } from './utils';
 
-// optimize forEach
+// optimize forEach and Morph component not so many re-renders
 // implement on animation end
 // parallax, value based animation (progress)
 // reactive animation animate based on reactive values / elements
@@ -33,7 +33,7 @@ export default class Animatable extends Component {
         this.elements.forEach(el => {
             cacheElementStyles(el); // get previous cached styles and transition between the 2
 
-            this.animations.default?.setInitial(el);
+            this.animations.default?.setToLast(el, true);
         });
 
         // animate on children that have just mounted
@@ -47,27 +47,12 @@ export default class Animatable extends Component {
         return Object.keys(animation).length ? new Animation({ ...animation }, this.props.initial) : null;
     }
 
-    countNestedLevels(children) {
-        if (!children) return 0;
-
-        let count = 0, nested = 0;
-        Children.forEach(children, (child) => {
-            if (!isValidElement(child)) return;
-            if (child.type === Animatable || child.type.prototype instanceof Animatable) count = 1;
-
-            const n = this.countNestedLevels(child.props?.children);
-            nested = nested < n ? n : nested;
-        });
-
-        return nested + count;
-    }
-
     async componentDidMount() {
         this.resizeEventListener = this.onResize.bind(this);
         addEventListener('resize', this.resizeEventListener);
 
         this.update(true);
-        if ('fonts' in document && document.fonts.status !== 'loaded') {
+        if ('fonts' in document) {
             await document.fonts.ready;
             this.update(true);
         }
@@ -197,7 +182,7 @@ export default class Animatable extends Component {
         });
 
         this.children.forEach(({ animatable, staggerIndex = -1 }) => {
-            animatable?.play(animationName, {
+            animatable.play(animationName, {
                 reverse,
                 immediate,
                 cascade: true,
@@ -225,7 +210,7 @@ export default class Animatable extends Component {
         return merged;
     }
 
-    deepClone(component, { index = 0, useElements = false, useEvents = false } = {}) {
+    deepClone(component, { index = 0, useElements = false, useEvents = true } = {}) {
         if (!isValidElement(component)) return component;
 
         let props = {};
@@ -246,11 +231,12 @@ export default class Animatable extends Component {
         }
 
         if ((component.type === Animatable || component.type.prototype instanceof Animatable) && !component.props?.noCascade) {
+            const idx = this.childrenIndex++;
             props = {
                 ...props,
                 ...this.mergeProperties(component.props, this.props),
                 parentLevel: this.parentLevel > 0 ? this.parentLevel : this.level,
-                ref: el => this.children[this.childrenIndex++] = { animatable: el, staggerIndex: useElements ? index : -1 }
+                ref: el => this.children[idx] = { animatable: el, staggerIndex: useElements ? index : -1 }
             };
         }
 
@@ -259,11 +245,26 @@ export default class Animatable extends Component {
         return cloneElement(component, props, children);
     }
 
+    countNestedLevels(children) {
+        if (!children) return 0;
+
+        let count = 0, nested = 0;
+        Children.forEach(children, (child) => {
+            if (!isValidElement(child)) return;
+            if (child.type === Animatable || child.type.prototype instanceof Animatable) count = 1;
+
+            const n = this.countNestedLevels(child.props?.children);
+            nested = nested < n ? n : nested;
+        });
+
+        return nested + count;
+    }
+
     render(children = this.props.children) {
         this.level = this.countNestedLevels(children);
 
         this.childrenIndex = 0;
-        return Children.map(children, (child, i) => this.deepClone(child, { index: i, useElements: true, useEvents: true }));
+        return Children.map(children, (child, i) => this.deepClone(child, { index: i, useElements: true }));
     }
 
     static defaultProps = {

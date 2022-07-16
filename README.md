@@ -13,6 +13,12 @@ Lightweight, zero-configuration react animation library.
     - [Installation](#installation)
     - [Usage](#usage)
 - [Components](#components)
+    - [Animatable](#animatable)
+    - [Animate](#animate)
+    - [Morph](#morph)
+- [Build-in animations](#build-in-animations)
+    - [`<WriteOn />`](#writeon)
+    - [`<ColorWipe />`](#colorwipe)
 
 ## Get started
 
@@ -31,14 +37,58 @@ import { Animate } from '@infinityfx/lively';
 
 <Animate onMount>
     <div class="my-class">
-        Ullamco Lorem ipsum enim amet consequat ut reprehenderit cupidatat et incididunt qui minim culpa. Dolor do laborum nulla pariatur tempor excepteur duis et ipsum. Eu commodo et esse exercitation laborum cupidatat incididunt elit reprehenderit id.
+        Lorem ipsum enim amet consequat ut reprehenderit cupidatat et incididunt qui minim culpa. Dolor do laborum nulla pariatur tempor excepteur duis et ipsum. Eu commodo et esse exercitation laborum cupidatat incididunt elit reprehenderit id.
     </div>
 </Animate>
 ```
 
 ## Components
-- Animatable
-- Animate
-- Morph
 
-More documentation coming soon!
+### Animatable `<Animatable />`
+
+Base animation component that allows for fully customizable animations.
+
+```jsx
+import { Animatable } from '@infinityfx/lively';
+
+...
+
+<Animatable
+    onMount
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}>
+    <div>...</div>
+</Animatable>
+```
+
+### Animate `<Animate />`
+
+Automatic animation based on pre-fab animations.
+
+### Morph `<Morph />`
+
+Morphs one element into another.
+
+## Build-in animations
+
+### `<WriteOn />`
+
+```jsx
+import { WriteOn } from '@infinityfx/lively/prebuild';
+
+...
+
+<WriteOn>Lorem ipsum dolor sit amet</WriteOn>
+```
+
+### `<ColorWipe />`
+
+```jsx
+import { ColorWipe } from '@infinityfx/lively/prebuild';
+
+...
+
+<ColorWipe>
+    <div class="my-class">...</div>
+</ColorWipe>
+```

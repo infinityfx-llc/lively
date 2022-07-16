@@ -16,13 +16,15 @@ declare interface Animatable {
 
 export class Animatable extends React.Component<Animatable> {
 
-    private toAnimation;
+    private update;
 
-    private countNestedLevels;
+    private toAnimation;
 
     private inViewport;
 
     private onScroll;
+
+    private onResize;
 
     private onEnter;
 
@@ -34,8 +36,6 @@ export class Animatable extends React.Component<Animatable> {
 
     private onClick;
 
-    setInitial(animationName: string, reset?: boolean): Promise<void>;
-
     play(animationName: string, { callback, reverse, immediate, cascade, groupAdjust, cascadeDelay, staggerDelay }?: {
         callback?: Function;
         reverse?: boolean;
@@ -46,10 +46,10 @@ export class Animatable extends React.Component<Animatable> {
         staggerDelay?: number;
     }): Promise<void>;
 
-    private style;
-
     private mergeProperties;
 
     private deepClone;
+    
+    private countNestedLevels;
 
 }

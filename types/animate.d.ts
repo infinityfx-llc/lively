@@ -9,6 +9,7 @@ declare interface Animate {
     whileViewport?: string | boolean;
     whileHover?: string | boolean;
     whileFocus?: string | boolean;
+    levels?: number;
 }
 
 export class Animate extends React.Component<Animate> {

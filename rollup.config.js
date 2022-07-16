@@ -18,7 +18,7 @@ if (process.env.NODE_ENV === 'production') plugins.push(
 );
 
 export default {
-    input: ['src/index.js', 'src/animations.js', 'src/hooks.js'],
+    input: ['src/index.js', 'src/animations.js', 'src/hooks.js', 'src/prebuild.js'],
     external: ['react', 'react-dom', /@babel\/runtime/],
     output: [
         {

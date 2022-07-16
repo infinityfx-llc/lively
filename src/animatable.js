@@ -7,6 +7,7 @@ import { addEventListener, cacheElementStyles, removeEventListener } from './uti
 // implement on animation end
 // parallax, value based animation (progress)
 // reactive animation animate based on reactive values / elements
+// add support for webkit clip-path
 
 export default class Animatable extends Component {
 
@@ -62,7 +63,7 @@ export default class Animatable extends Component {
             addEventListener('scroll', this.scrollEventListener);
 
             if (this.props.onMount) this.play(this.props.onMount, { staggerDelay: 0.001, immediate: true });
-            if (this.props.whileViewport) this.onScroll();
+            if (this.props.whileViewport) AnimationQueue.delay(() => this.onScroll(), 0.001);
         }
     }
 
@@ -85,11 +86,11 @@ export default class Animatable extends Component {
         });
 
         if (!this.elements.length) {
-            this.children.forEach(({ animatable }) => {
+            for (const { animatable } of this.children) {
                 const [nestedEntered, nestedLeft] = animatable.inViewport();
                 entered = entered && nestedEntered;
                 left = left && nestedLeft;
-            });
+            }
         }
 
         return [entered, left];
@@ -181,7 +182,7 @@ export default class Animatable extends Component {
             });
         });
 
-        this.children.forEach(({ animatable, staggerIndex = -1 }) => {
+        for (const { animatable, staggerIndex } of this.children) {
             animatable.play(animationName, {
                 reverse,
                 immediate,
@@ -190,7 +191,7 @@ export default class Animatable extends Component {
                 cascadeDelay: animation.duration,
                 groupAdjust: staggerIndex < 0 ? 0 : 1
             });
-        });
+        }
 
         if (callback) AnimationQueue.delay(callback, __delay + animation.duration);
     }

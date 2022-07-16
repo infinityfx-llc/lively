@@ -72,7 +72,7 @@ export default class Morph extends Animatable {
         this.animations = { default: this.createUnmorphAnimation() };
         this.animations.default.setToLast(this.element, !active);
 
-        this.children.forEach(({ animatable }) => {
+        this.children.forEach(({ animatable }) => { // DOESNT WORK FOR MULTI NESTED CHILDREN
             animatable.setUniqueId();
             animatable.animations = { default: animatable.createUnmorphAnimation() };
             animatable.animations.default.setToLast(animatable.element, !active);

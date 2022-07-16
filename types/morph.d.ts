@@ -4,23 +4,31 @@ declare interface Morph {
     active?: boolean;
     group?: number;
     useLayout?: boolean;
+    interpolate?: string;
+    duration?: number;
+    ignore?: string[];
 }
 
 export class Morph extends React.Component<Morph> {
 
-    private getParentPosition;
+    private static properties;
+    private static layoutProperties;
 
-    private positionKeyframes;
+    private layoutUpdate;
 
-    private scaleKeyframes;
+    private update;
+
+    private setUniqueId;
+
+    private morph;
+
+    private createAnimations;
+
+    private createAnimation;
 
     private createMorphAnimation;
 
-    private createResetAnimation;
-
-    private parentStyle;
-
-    private childStyle;
+    private createUnmorphAnimation;
 
     private getChildren;
 

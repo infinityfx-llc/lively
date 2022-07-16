@@ -7,6 +7,7 @@ export default class Animation {
         opacity: 1,
         scale: { x: 1, y: 1 },
         position: { x: 0, y: 0 },
+        rotation: 0,
         clip: { left: 0, top: 0, right: 0, bottom: 0 },
         borderRadius: 0,
         padding: 0,
@@ -88,19 +89,21 @@ export default class Animation {
         if (typeof keyframe === 'string') {
             if (keyframe.match(/^#[0-9a-f]{3,8}$/i)) return hexToRgba(keyframe);
             if (keyframe.match(/^rgba?\(.*\)$/i)) return strToRgba(keyframe);
-            let val = parseFloat(keyframe), unit = keyframe.match(/[^0-9\.]*$/i);
+            let val = parseFloat(keyframe), unit = (keyframe.match(/[^0-9\.]*$/i) || ['px'])[0];
             if (isNaN(val)) return Animation.initials[property];
 
             if (unit === '%') val /= 100;
             return unit ? [val, unit] : val;
         }
         if (typeof keyframe === 'object') {
-            let arr = Object.keys(keyframe);
+            let arr = Object.keys(keyframe), values = keyframe;
             if ('x' in keyframe || 'y' in keyframe) arr = ['x', 'y'];
             if ('r' in keyframe || 'g' in keyframe || 'b' in keyframe || 'a' in keyframe) arr = ['r', 'g', 'b', 'a'];
             if ('left' in keyframe || 'right' in keyframe || 'top' in keyframe || 'bottom' in keyframe) arr = ['left', 'right', 'top', 'bottom'];
+
+            keyframe = {};
             arr.forEach(key => {
-                keyframe[key] = this.sanitize(property, keyframe[key], key);
+                keyframe[key] = this.sanitize(property, values[key], key);
             });
         }
 
@@ -176,7 +179,7 @@ export default class Animation {
                     properties.transform += `scale(${this.toString(val.x, '%')}, ${this.toString(val.y, '%')}) `;
                     break;
                 case 'rotation':
-                    properties.transform += `rotate(${this.toString(val), 'deg'}) `;
+                    properties.transform += `rotate(${this.toString(val, 'deg')}) `;
                     break;
                 case 'clip':
                     properties.clipPath = `inset(${this.toString(val.top, '%')} ${this.toString(val.right, '%')} ${this.toString(val.bottom, '%')} ${this.toString(val.left, '%')})`;
@@ -223,7 +226,7 @@ export default class Animation {
         const ratio = keyframe.padding ? 1 : paddingStart / (paddingEnd === 0 ? 1e-6 : paddingEnd);
         if (typeof val === 'string') val = `calc(${val} / ${size})`;
         const padding = keyframe.padding ? keyframe.padding : paddingStart + paddingEnd + 'px';
-        
+
         element.style[axis] = `max(calc(${size} * ${val} - ${element.style.boxSizing !== 'border-box' ? '0px' : padding}), 0px)`;
         const padStyle = `calc(min(calc(${size} * ${val}), ${padding}) * `;
         element.style[padStart] = padStyle + (ratio * 0.5);
@@ -265,20 +268,21 @@ export default class Animation {
         this.setInitial(element);
         element.style.transitionDuration = `${this.delta}s`;
         element.Lively.index = 1;
+        element.Lively.animating = true;
         if (element.Lively.next?.cancel) element.Lively.next.cancel();
 
-        this.getNext(element, reverse, repeat);
+        requestAnimationFrame(() => this.getNext(element, reverse, repeat));
     }
 
     play(element, { delay = 0, immediate = false, reverse = false } = {}) {
         if (!element.style) return;
-        
+
         if (this.delay || delay) {
             element.next = AnimationQueue.delay(() => this.start(element, { immediate, reverse }), this.delay + delay);
         } else {
             this.start(element, { immediate, reverse });
         }
-        element.Lively.animating = true;
+        // element.Lively.animating = true; //CHECK THIS!!!
     }
 
     getNext(element, reverse = false, repeat = 1) {
@@ -295,10 +299,7 @@ export default class Animation {
         let idx = element.Lively.index;
         if (reverse) idx = this.keyframes.length - 1 - idx;
 
-
-        requestAnimationFrame(() => {
-            this.apply(element, this.keyframes[idx]);
-        });
+        this.apply(element, this.keyframes[idx]);
         element.Lively.index++;
 
         element.Lively.next = AnimationQueue.delay(() => this.getNext(element, reverse, repeat), this.delta);

@@ -1,6 +1,6 @@
 {
 	"name": "@infinityfx/lively",
-	"version": "0.0.13",
+	"version": "0.0.14",
 	"description": "Zero configuration, performant react animation library",
 	"main": "dist/cjs/index.js",
 	"module": "dist/esm/index.js",
@@ -16,6 +16,10 @@
 		"./hooks": {
 			"import": "./dist/esm/hooks.js",
 			"require": "./dist/cjs/hooks.js"
+		},
+		"./prebuild": {
+			"import": "./dist/esm/prebuild.js",
+			"require": "./dist/cjs/prebuild.js"
 		}
 	},
     "types": "./types/index.d.ts",

@@ -1,3 +1,7 @@
+export const isObject = (val) => val && typeof val === 'object' && !Array.isArray(val);
+
+export const padArray = (arr, len) => new Array(len).fill(0).map((_, i) => i < arr.length ? arr[i] : arr[arr.length - 1]);
+
 export const hexToRgba = (hex) => {
     const [_, r, g, b, a] = hex.match(/^#([\da-f]{1,2})([\da-f]{1,2})([\da-f]{1,2})([\da-f]{2})?/i);
 
@@ -54,7 +58,7 @@ const getStyles = (element) => {
     return styles;
 };
 
-export const setStyles = (element, styles) => {
+const setStyles = (element, styles) => {
     element.style = {};
 
     for (const key in styles) {
@@ -63,7 +67,7 @@ export const setStyles = (element, styles) => {
 };
 
 export const cacheElementStyles = (element) => {
-    if (!('Lively' in element)) element.Lively = { queue: [], initials: {} };
+    if (!('Lively' in element)) element.Lively = { queue: [] };
     if (!element.Lively.style) {
         element.Lively.style = getStyles(element);
         element.Lively.style.transitionProperty = 'transform, opacity, clip-path, border-radius, font-size, background-color, color, width, height, padding';
@@ -72,16 +76,17 @@ export const cacheElementStyles = (element) => {
 
     setStyles(element, element.Lively.style);
 
-    const { paddingLeft, paddingRight, paddingTop, paddingBottom, backgroundColor, color, borderRadius, padding, fontSize } = getComputedStyle(element);
-    const { x, y } = element.getBoundingClientRect();
+    const { paddingLeft, paddingRight, paddingTop, paddingBottom, backgroundColor, color, borderRadius, padding, fontSize, zIndex } = getComputedStyle(element);
+    const { x, y, width, height } = element.getBoundingClientRect();
 
-    element.Lively.initials = { x, y, paddingLeft, paddingRight, paddingTop, paddingBottom, backgroundColor, color, fontSize,
-        width: element.offsetWidth + 'px',
-        height: element.offsetHeight + 'px',
+    element.Lively.initials = {
+        x, y, paddingLeft, paddingRight, paddingTop, paddingBottom, backgroundColor, color, fontSize, zIndex,
+        width: width + 'px',
+        height: height + 'px',
         borderRadius: borderRadius.split(' ')[0],
         padding: padding.split(' ')[0]
     };
 };
 
-const Utils = { hexToRgba, strToRgba, addEventListener, removeEventListener, setStyles, cacheElementStyles };
+const Utils = { isObject, padArray, hexToRgba, strToRgba, addEventListener, removeEventListener, cacheElementStyles };
 export default Utils;

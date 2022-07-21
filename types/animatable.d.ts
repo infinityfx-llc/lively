@@ -9,6 +9,7 @@ declare interface Animatable {
     noCascade?: boolean;
     onMount?: string | boolean;
     onUnmount?: string | boolean;
+    onClick?: string | boolean;
     whileViewport?: string | boolean;
     whileHover?: string | boolean;
     whileFocus?: string | boolean;

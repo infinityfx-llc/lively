@@ -1,6 +1,7 @@
 import React, { Children, cloneElement, Component, isValidElement } from 'react';
 import Animatable from './animatable';
 import { Move, Pop } from './animations';
+import { padArray } from './utils';
 
 export default class Animate extends Component {
 
@@ -8,9 +9,7 @@ export default class Animate extends Component {
         super(props);
 
         this.levels = this.props.levels;
-        this.animations = new Array(this.levels).fill(0).map((_, i) => {
-            return i < this.props.animations.length ? this.props.animations[i] : this.props.animations[this.props.animations.length - 1];
-        });
+        this.animations = padArray(this.props.animations, this.levels);
     }
 
     makeAnimatable(children, level = 1) {

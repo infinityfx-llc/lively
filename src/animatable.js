@@ -3,11 +3,9 @@ import Animation from './animation';
 import AnimationQueue from './queue';
 import { addEventListener, cacheElementStyles, removeEventListener } from './utils';
 
-// optimize forEach and Morph component not so many re-renders
 // implement on animation end
 // parallax, value based animation (progress)
 // reactive animation animate based on reactive values / elements
-// add support for webkit clip-path
 
 export default class Animatable extends Component {
 
@@ -31,11 +29,11 @@ export default class Animatable extends Component {
     }
 
     update() {
-        this.elements.forEach(el => {
+        for (const el of this.elements) {
             cacheElementStyles(el); // get previous cached styles and transition between the 2
 
             this.animations.default?.setToLast(el, true);
-        });
+        }
 
         // animate on children that have just mounted
         // if ((this.props.parentLevel < 1 || this.props.noCascade) && this.props.onMount) this.play(this.props.onMount, { staggerDelay: 0.001, immediate: true });
@@ -52,10 +50,10 @@ export default class Animatable extends Component {
         this.resizeEventListener = this.onResize.bind(this);
         addEventListener('resize', this.resizeEventListener);
 
-        this.update(true);
+        this.update();
         if ('fonts' in document) {
             await document.fonts.ready;
-            this.update(true);
+            this.update({ mount: true });
         }
 
         if (this.props.parentLevel < 1 || this.props.noCascade) {
@@ -68,7 +66,7 @@ export default class Animatable extends Component {
     }
 
     async componentDidUpdate() {
-        this.update();
+        this.update(); //maybe use mount = true
     }
 
     componentWillUnmount() {
@@ -116,7 +114,7 @@ export default class Animatable extends Component {
     async onResize() {
         if (this.nextResize?.cancel) this.nextResize.cancel();
 
-        this.nextResize = AnimationQueue.delay(this.update.bind(this), 0.25);
+        this.nextResize = AnimationQueue.delay(this.update.bind(this, { mount: true }), 0.25);
     }
 
     async onEnter(e, callback = false) {

@@ -2,11 +2,15 @@ import React, { Children, cloneElement, isValidElement } from 'react';
 import Animatable from './animatable';
 import Animation from './animation';
 import AnimationQueue from './queue';
-import { cacheElementStyles, setStyles } from './utils';
+import { cacheElementStyles, isObject } from './utils';
+
+// fontsize animation is broken
+// add padding morph
+// delay layout updating when mid animation
 
 export default class Morph extends Animatable {
 
-    static properties = ['position', 'scale', 'opacity', 'backgroundColor', 'color', 'interact']
+    static properties = ['position', 'scale', 'opacity', 'backgroundColor', 'color', 'interact', 'zIndex']
     static layoutProperties = ['borderRadius', 'fontSize']
 
     constructor(props) {
@@ -14,69 +18,64 @@ export default class Morph extends Animatable {
 
         this.parent = this.props.parent?.() || { group: '' };
         this.group = this.parent.group + this.props.group;
-        this.state = {
-            useLayout: false,
-            childStyles: {},
-            parentStyles: {
-                position: 'relative',
-                background: 'transparent',
-                border: 'none',
-                pointerEvents: 'none',
-                backdropFilter: 'none',
-                fontSize: 'unset'
-            }
+
+        this.useLayout = false;
+        this.childStyles = { pointerEvents: 'initial' };
+        this.parentStyles = {
+            background: 'transparent',
+            border: 'none',
+            padding: 0,
+            pointerEvents: 'none',
+            backdropFilter: 'none',
+            boxShadow: 'unset',
+            fontSize: 'unset'
         };
     }
 
-    layoutUpdate() {
-        delete this.element.Lively;
-        const { position } = getComputedStyle(this.element);
-        let childStyles, useLayout = this.state.useLayout;
+    layout() {
+        this.position = this.position || getComputedStyle(this.element).position;
+        let parentStyles = {
+            ...this.parentStyles,
+            width: this.element.offsetWidth, // recalc
+            height: this.element.offsetHeight
+        };
 
-        if ((position === 'absolute' || position === 'fixed') && !useLayout) {
-            childStyles = { top: this.element.offsetTop, left: this.element.offsetLeft };
+        if (this.position === 'absolute' || this.position === 'fixed') { // Maybe use contain css prop
+            parentStyles.position = 'absolute';
         } else {
-            childStyles = { position: 'absolute', margin: 0, top: 0, left: 0, pointerEvents: 'initial' };
-            useLayout = true;
+            parentStyles.position = 'relative';
+            this.childStyles = { ...this.childStyles, position: 'absolute', margin: 0, top: 0, left: 0 };
         }
 
-        this.setState({
-            childStyles,
-            parentStyles: {
-                ...this.state.parentStyles,
-                width: this.element.offsetWidth,
-                height: this.element.offsetHeight
-            },
-            useLayout
-        });
+        this.parentStyles = parentStyles;
+        this.useLayout = true;
+        this.hasUpdated = true;
+
+        this.forceUpdate();
     }
 
-    async update(layout = false, active = this.props.active) {
-        const previous = this.element?.Lively;
+    async update({ mount = !this.useLayout, active = this.props.active } = {}) {
         this.element = this.elements[0];
         if (!this.element) return;
 
-        if (layout && this.props.useLayout) return this.layoutUpdate();
+        if (this.props.useLayout && mount) return this.layout();
 
-        if (previous && !layout) { // DOESN'T WORK TOGETHER WITH RESIZE AND ON DEMAND MORPH GENERATION
-            this.element.Lively = previous;
-            setStyles(this.element, previous.style);
-        } else {
-            cacheElementStyles(this.element);
-        }
+        if (this.element.Lively && !this.hasUpdated) return;
+        cacheElementStyles(this.element); // Doesn't quite work 100% yet
+        this.hasUpdated = false;
 
         if (this.parent.props) return;
         await AnimationQueue.sleep(0.001);
 
         this.setUniqueId();
-        this.animations = { default: this.createUnmorphAnimation() };
-        this.animations.default.setToLast(this.element, !active);
+        this.animations = { default: this.animationFromKeyframes(...this.unmorphKeyframes()) };
+        this.animations.default.setToLast(this.element, !active); // might also be unnecessary??
 
-        this.children.forEach(({ animatable }) => { // DOESNT WORK FOR MULTI NESTED CHILDREN
+        for (const { animatable } of this.children) { // DOESNT WORK FOR MULTI NESTED CHILDREN
             animatable.setUniqueId();
-            animatable.animations = { default: animatable.createUnmorphAnimation() };
+            animatable.animations = { default: animatable.animationFromKeyframes(...animatable.unmorphKeyframes()) };
             animatable.animations.default.setToLast(animatable.element, !active);
-        });
+        }
     }
 
     setUniqueId() {
@@ -92,11 +91,11 @@ export default class Morph extends Animatable {
     }
 
     async componentDidUpdate(prevProps) {
-        await this.update(false, prevProps.active);
+        const updated = Object.keys(prevProps).reduce((arr, key) => prevProps[key] != this.props[key] ? [...arr, key] : arr, []); // check to see when mount needs to be true
 
-        if (prevProps.active !== this.props.active) {
-            this.morph(this.props.active);
-        }
+        await this.update({ mount: false, active: prevProps.active });
+
+        if (prevProps.active !== this.props.active) this.morph(this.props.active);
     }
 
     async morph(active) {
@@ -121,63 +120,88 @@ export default class Morph extends Animatable {
     createAnimations(id) {
         const target = document.querySelector(`[lively-morph-group="${this.group}"][lively-morph-id="${id}"]`);
 
-        this.animations[id] = this.createMorphAnimation(target);
+        this.animations[id] = this.animationFromKeyframes(...this.morphKeyframes(this.element, target));
 
-        this.children.forEach(({ animatable }) => animatable.createAnimations(id));
+        for (const { animatable } of this.children) {
+            animatable.createAnimations(id);
+        }
     }
 
-    createAnimation(target, keyframe = {}) {
-        const from = this.element.Lively?.initials;
-        const to = target?.Lively?.initials;
-
-        const props = Morph.properties;
+    animationFromKeyframes(keyframes, reference = {}) {
+        const props = [...Morph.properties];
         if (this.props.useLayout) props.push(...Morph.layoutProperties);
         const keys = { useLayout: this.props.useLayout, interpolate: this.props.interpolate, origin: { x: 0, y: 0 }, duration: this.props.duration };
 
-        for (const key of props) {
-            if (this.props.ignore.includes(key)) continue;
+        for (const prop of props) {
+            if (this.props.ignore.includes(prop)) continue;
 
-            if (key in keyframe) {
-                keys[key] = keyframe[key];
-            } else {
-                keys[key] = to ? [from[key], to[key], to[key]] : [from[key], from[key], from[key]];
-            }
+            let arrKey = 'auto';
+            if (prop in keyframes) arrKey = prop;
+            if (!(arrKey in keyframes)) continue;
+
+            keys[prop] = keyframes[arrKey].map(entry => {
+                if (!isObject(entry)) {
+                    return entry in reference ? reference[entry][prop] : entry;
+                }
+
+                const keys = {};
+                for (const key in entry) {
+                    if (entry[key] in reference) {
+                        keys[key] = reference[entry[key]][prop];
+                    } else {
+                        keys[key] = entry[key];
+                    }
+                }
+                return keys;
+            });
         }
 
         return new Animation(keys);
     }
 
-    createMorphAnimation(target) {
-        if (!target) return this.createAnimation(null, { opacity: [1, 0, 0], interact: [true, false, false] });
+    morphKeyframes(from, to) {
+        if (!to) return [{ opacity: [1, 0, 0], interact: [true, false, false] }];
 
-        const a = this.element.Lively?.initials;
-        const b = target.Lively?.initials;
+        from = from.Lively?.initials;
+        to = to.Lively?.initials;
 
-        this.x = b.x - a.x;
-        this.y = b.y - a.y;
+        this.x = to.x - from.x;
+        this.y = to.y - from.y;
         if (this.parent.props) {
             this.x -= this.parent.x;
             this.y -= this.parent.y;
         }
 
-        const x = parseInt(b.width) / parseInt(a.width);
-        const y = parseInt(b.height) / parseInt(a.height);
+        const x = parseInt(to.width) / parseInt(from.width); // also base scale off of parent when no uselayout (do in Animatable)
+        const y = parseInt(to.height) / parseInt(from.height);
 
-        return this.createAnimation(target, {
-            position: [{ x: 0, y: 0 }, { x: this.x, y: this.y }, { x: this.x, y: this.y }],
-            scale: [{ x: 1, y: 1 }, { x, y }, { x, y }],
-            opacity: [1, 1, 0],
-            interact: [true, true, false]
-        });
+        return [
+            {
+                auto: ['from', 'to', { set: 'to', end: 'from' }],
+                position: ['from', 'to', { set: 'to', end: 'from' }],
+                scale: ['from', 'to', { set: 'to', end: 'from' }],
+                opacity: [1, 1, 0], interact: [true, true, false]
+            },
+            {
+                from: {
+                    ...from,
+                    position: { x: 0, y: 0 },
+                    scale: { x: 1, y: 1 }
+                },
+                to: {
+                    ...to,
+                    position: { x: this.x, y: this.y },
+                    scale: { x, y }
+                }
+            }
+        ];
     }
 
-    createUnmorphAnimation() {
-        return this.createAnimation(null, {
-            position: { x: 0, y: 0 },
-            scale: { x: 1, y: 1 },
-            opacity: [0, 0, 1],
-            interact: [false, false, true]
-        });
+    unmorphKeyframes() {
+        return [
+            { auto: ['from', 'from', 'from'], position: [{ x: 0, y: 0 }], scale: [{ x: 1, y: 1 }], opacity: [0, 0, 1], interact: [false, false, true] },
+            { from: this.element.Lively.initials }
+        ];
     }
 
     getChildren(children) {
@@ -197,15 +221,14 @@ export default class Morph extends Animatable {
         const children = this.getChildren(element.props.children);
         const props = {
             "lively-morph-group": this.group,
-            style: { ...element.props.style, ...this.state.childStyles }
+            style: { ...element.props.style, ...this.childStyles }
         };
         const animatable = super.render(cloneElement(element, props, children));
 
-        return this.state.useLayout ? cloneElement(element, { style: this.state.parentStyles }, animatable) : animatable;
+        return this.useLayout ? cloneElement(element, { style: this.parentStyles }, animatable) : animatable;
     }
 
     static defaultProps = {
-        id: null,
         group: 0,
         active: false,
         useLayout: false,

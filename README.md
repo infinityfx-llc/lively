@@ -12,13 +12,18 @@ Lightweight, zero-configuration react animation library.
 - [Get started](#get-started)
     - [Installation](#installation)
     - [Usage](#usage)
-- [Components](#components)
-    - [Animatable](#animatable)
-    - [Animate](#animate)
-    - [Morph](#morph)
-- [Build-in animations](#build-in-animations)
-    - [`<WriteOn />`](#writeon)
-    - [`<ColorWipe />`](#colorwipe)
+- [Base components](#base-components)
+    - [Animatable](#animatable-animatable)
+    - [Morph](#morph-morph)
+- [Auto-animation](#auto-animation)
+    - [Animate `<Animate />`](#animate-animate)
+    - [`WriteOn <WriteOn />`](#writeon-writeon)
+    - [`ColorWipe <ColorWipe />`](#colorwipe-colorwipe)
+- [Animations](#animations)
+    - [Overview](#overview)
+    - [Create your own](#create-your-own)
+- [Hooks](#hooks)
+    - [useUnmount](#useunmount)
 
 ## Get started
 
@@ -31,7 +36,7 @@ $ npm i @infinityfx/lively
 ### Usage
 
 ```jsx
-import { Animate } from '@infinityfx/lively';
+import { Animate } from '@infinityfx/lively/animate';
 
 ...
 
@@ -42,7 +47,7 @@ import { Animate } from '@infinityfx/lively';
 </Animate>
 ```
 
-## Components
+## Base components
 
 ### Animatable `<Animatable />`
 
@@ -61,30 +66,48 @@ import { Animatable } from '@infinityfx/lively';
 </Animatable>
 ```
 
-### Animate `<Animate />`
-
-Automatic animation based on pre-fab animations.
-
 ### Morph `<Morph />`
 
 Morphs one element into another.
 
-## Build-in animations
+```jsx
+import { Morph } from '@infinityfx/lively';
 
-### `<WriteOn />`
+...
+
+<Morph active={state}>
+    <div onClick={() => setState(!state)}>
+        ...
+    </div>
+</Morph>
+
+<Morph active={!state}>
+    <div onClick={() => setState(!state)}>
+        ...
+    </div>
+</Morph>
+```
+
+## Auto-animation
+
+### Animate `<Animate />`
+
+Automatic animation based on pre-fab animations.
+
+### WriteOn `<WriteOn />`
 
 ```jsx
-import { WriteOn } from '@infinityfx/lively/prebuild';
+import { WriteOn } from '@infinityfx/lively/animate';
 
 ...
 
 <WriteOn>Lorem ipsum dolor sit amet</WriteOn>
 ```
 
-### `<ColorWipe />`
+### ColorWipe `<ColorWipe />`
 
 ```jsx
-import { ColorWipe } from '@infinityfx/lively/prebuild';
+import { ColorWipe } from '@infinityfx/lively/animate';
 
 ...
 
@@ -92,3 +115,70 @@ import { ColorWipe } from '@infinityfx/lively/prebuild';
     <div class="my-class">...</div>
 </ColorWipe>
 ```
+
+## Animations
+
+### Overview
+
+Lively exports a submodule called animations which contains various pre-fab animations that can be used in tandem with the `<Animate />` component. These animations can be used as is, or can be configured with extra options by calling the respective animation as a function which takes as an argument the options object.
+
+```jsx
+import { Move } from '@infinityfx/lively/animations';
+
+// configure the animation
+Move({ direction: 'down' }); // default = 'up'
+```
+
+These pre-fab can be used as followed with either an `<Animate />` or `<Animatable />` component:
+
+```jsx
+import { Move } from '@infinityfx/lively/animations';
+import { Animate } from '@infinityfx/lively/animate';
+
+...
+
+<Animate animations={[Move, Move({ ... })]}>...</Animate>
+```
+
+```jsx
+import { Move } from '@infinityfx/lively/animations';
+import { Animatable } from '@infinityfx/lively';
+
+...
+
+<Animatable animations={{
+    myAnimationName: Move,
+    myOtherAnimation: Move({ ... })
+}}>...</Animatable>
+
+// or
+
+<Animatable animate={Move}>...</Animatable>
+```
+
+### Create your own
+
+If you whish to create your own pre-fab animation, you can do so by creating a function with the static method `use` attached to it. Furthmore adding support for extra configuration options, leads to the following structure:
+
+```js
+import { Animation } from '@infinityfx/lively';
+
+export default function myAnimation(options = {}) {
+    myAnimation.use = myAnimation.use.bind(myAnimation, options);
+    return myAnimation;
+}
+
+myAnimation.use = (options = {}) => {
+
+    // do whatever you want here
+
+    // A new Animation takes two arguments, an object with values/keyframes to animate to and an object of initial values.
+    return new Animation({ ... }, { ... });
+}
+```
+
+## Hooks
+
+### useUnmount
+
+The useUnmount hook can be used to animate components that are being unmounted.

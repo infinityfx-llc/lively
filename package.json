@@ -1,13 +1,15 @@
 {
 	"name": "@infinityfx/lively",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Zero configuration, performant react animation library",
 	"main": "dist/cjs/index.js",
 	"module": "dist/esm/index.js",
+	"types": "./types/index.d.ts",
 	"exports": {
 		".": {
 			"import": "./dist/esm/index.js",
-			"require": "./dist/cjs/index.js"
+			"require": "./dist/cjs/index.js",
+			"types": "./types/index.d.ts"
 		},
 		"./animations": {
 			"import": "./dist/esm/animations.js",
@@ -17,12 +19,17 @@
 			"import": "./dist/esm/hooks.js",
 			"require": "./dist/cjs/hooks.js"
 		},
-		"./prebuild": {
-			"import": "./dist/esm/prebuild.js",
-			"require": "./dist/cjs/prebuild.js"
+		"./animate": {
+			"import": "./dist/esm/animate.js",
+			"require": "./dist/cjs/animate.js",
+			"types": "./types/animate.d.ts"
 		}
 	},
-    "types": "./types/index.d.ts",
+	"typesVersions": {
+		"*": {
+			"animate": ["./types/animate.d.ts"]
+		}
+	},
 	"repository": "infinityfx-llc/lively",
 	"author": "InfinityFX <contact@infinity-fx.com> (https://infinity-fx.com)",
 	"license": "GPL-3.0",

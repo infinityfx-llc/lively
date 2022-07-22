@@ -133,11 +133,11 @@ export default class Animation {
             return obj;
         }
 
-        if (typeof from !== 'number' || typeof to !== 'number') return n > 0.5 ? to : from;
-
         let unit = false;
         if (Array.isArray(from)) unit = from[1], from = from[0];
         if (Array.isArray(to)) unit = to[1], to = to[0];
+
+        if (typeof from !== 'number' || typeof to !== 'number') return n > 0.5 ? to : from;
 
         const res = from * (1 - n) + to * n;
         return unit ? [res, unit] : res;
@@ -151,9 +151,8 @@ export default class Animation {
 
         let from = property[absIdx];
         if (absIdx === property.length - 1) return from;
-        let to = property[absIdx + 1];
 
-        return this.interpolate(from, to, idx - absIdx);
+        return this.interpolate(from, property[absIdx + 1], idx - absIdx);
     }
 
     toString(val, unit) {
@@ -253,11 +252,12 @@ export default class Animation {
                     this.setLength(element, keyframe, 'height', 'paddingTop', 'paddingBottom');
                     continue;
                 }
-                if (key === 'padding' && (keyframe.width || keyframe.height)) continue;
-                if (key === 'start' || key === 'end') continue;
+                if ((key === 'padding' && (keyframe.width || keyframe.height)) || key === 'start' || key === 'end') continue;
 
                 element.style[key] = val;
             }
+            
+            element.Lively.keyframe = keyframe;
         };
 
         if (('start' in keyframe && !reverse) || ('end' in keyframe && reverse)) {

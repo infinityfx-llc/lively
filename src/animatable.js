@@ -6,6 +6,7 @@ import { addEventListener, cacheElementStyles, removeEventListener } from './uti
 // implement on animation end
 // parallax, value based animation (progress)
 // reactive animation animate based on reactive values / elements
+// implement onAnimationEnd and onAnimationStart events
 
 export default class Animatable extends Component {
 

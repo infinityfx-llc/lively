@@ -1,9 +1,9 @@
 import Animatable from './animatable';
-import Animate from './animate';
 import Morph from './morph';
+import Animation from './animation';
 
 export {
     Animatable,
-    Animate,
-    Morph
+    Morph,
+    Animation
 };

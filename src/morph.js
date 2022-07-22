@@ -68,13 +68,13 @@ export default class Morph extends Animatable {
         await AnimationQueue.sleep(0.001);
 
         this.setUniqueId();
-        this.animations = { default: this.animationFromKeyframes(...this.unmorphKeyframes()) };
-        this.animations.default.setToLast(this.element, !active); // might also be unnecessary??
+        this.animations = { default: this.unmorphAnimation() };
+        if (!active) this.animations.default.setInitial(this.element);
 
         for (const { animatable } of this.children) { // DOESNT WORK FOR MULTI NESTED CHILDREN
             animatable.setUniqueId();
-            animatable.animations = { default: animatable.animationFromKeyframes(...animatable.unmorphKeyframes()) };
-            animatable.animations.default.setToLast(animatable.element, !active);
+            animatable.animations = { default: animatable.unmorphAnimation() };
+            if (!active) animatable.animations.default.setInitial(animatable.element);
         }
     }
 
@@ -91,7 +91,7 @@ export default class Morph extends Animatable {
     }
 
     async componentDidUpdate(prevProps) {
-        const updated = Object.keys(prevProps).reduce((arr, key) => prevProps[key] != this.props[key] ? [...arr, key] : arr, []); // check to see when mount needs to be true
+        // const updated = Object.keys(prevProps).reduce((arr, key) => prevProps[key] != this.props[key] ? [...arr, key] : arr, []); // check to see when mount needs to be true
 
         await this.update({ mount: false, active: prevProps.active });
 
@@ -120,7 +120,7 @@ export default class Morph extends Animatable {
     createAnimations(id) {
         const target = document.querySelector(`[lively-morph-group="${this.group}"][lively-morph-id="${id}"]`);
 
-        this.animations[id] = this.animationFromKeyframes(...this.morphKeyframes(this.element, target));
+        this.animations[id] = this.morphAnimation(this.element, target);
 
         for (const { animatable } of this.children) {
             animatable.createAnimations(id);
@@ -128,15 +128,14 @@ export default class Morph extends Animatable {
     }
 
     animationFromKeyframes(keyframes, reference = {}) {
-        const props = [...Morph.properties];
+        const props = Morph.properties.slice();
         if (this.props.useLayout) props.push(...Morph.layoutProperties);
         const keys = { useLayout: this.props.useLayout, interpolate: this.props.interpolate, origin: { x: 0, y: 0 }, duration: this.props.duration };
 
         for (const prop of props) {
             if (this.props.ignore.includes(prop)) continue;
 
-            let arrKey = 'auto';
-            if (prop in keyframes) arrKey = prop;
+            const arrKey = prop in keyframes ? prop : 'auto';
             if (!(arrKey in keyframes)) continue;
 
             keys[prop] = keyframes[arrKey].map(entry => {
@@ -159,8 +158,8 @@ export default class Morph extends Animatable {
         return new Animation(keys);
     }
 
-    morphKeyframes(from, to) {
-        if (!to) return [{ opacity: [1, 0, 0], interact: [true, false, false] }];
+    morphAnimation(from, to) {
+        if (!to) return this.animationFromKeyframes({ opacity: [1, 0, 0], interact: [true, false, false] });
 
         from = from.Lively?.initials;
         to = to.Lively?.initials;
@@ -172,10 +171,7 @@ export default class Morph extends Animatable {
             this.y -= this.parent.y;
         }
 
-        const x = parseInt(to.width) / parseInt(from.width); // also base scale off of parent when no uselayout (do in Animatable)
-        const y = parseInt(to.height) / parseInt(from.height);
-
-        return [
+        return this.animationFromKeyframes(
             {
                 auto: ['from', 'to', { set: 'to', end: 'from' }],
                 position: ['from', 'to', { set: 'to', end: 'from' }],
@@ -191,17 +187,17 @@ export default class Morph extends Animatable {
                 to: {
                     ...to,
                     position: { x: this.x, y: this.y },
-                    scale: { x, y }
+                    scale: { x: parseInt(to.width) / parseInt(from.width), y: parseInt(to.height) / parseInt(from.height) } // also base scale off of parent when no uselayout (do in Animatable)
                 }
             }
-        ];
+        );
     }
 
-    unmorphKeyframes() {
-        return [
+    unmorphAnimation() {
+        return this.animationFromKeyframes(
             { auto: ['from', 'from', 'from'], position: [{ x: 0, y: 0 }], scale: [{ x: 1, y: 1 }], opacity: [0, 0, 1], interact: [false, false, true] },
             { from: this.element.Lively.initials }
-        ];
+        );
     }
 
     getChildren(children) {

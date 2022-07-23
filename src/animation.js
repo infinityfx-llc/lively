@@ -66,13 +66,13 @@ export default class Animation {
         let len = 0;
 
         for (const key in properties) {
-            let first = key in initial ? initial[key] : Animation.initials[key];
+            const first = key in initial ? initial[key] : Animation.initials[key];
 
             if (!Array.isArray(properties[key])) properties[key] = [properties[key]];
-            properties[key] = properties[key].length > 1 ? properties[key] : [first, ...properties[key]];
+            if (properties[key].length < 2) properties[key].unshift(first);
             properties[key] = properties[key].map(keyframe => this.sanitize(key, keyframe));
 
-            len = properties[key].length > len ? properties[key].length : len;
+            len = Math.max(properties[key].length, len);
         }
 
         return new Array(len).fill(0).map((_, i) => {

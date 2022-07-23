@@ -2,7 +2,7 @@ import React, { Children, cloneElement, isValidElement } from 'react';
 import Animatable from './animatable';
 import Animation from './animation';
 import AnimationQueue from './queue';
-import { cacheElementStyles, isObject } from './utils';
+import { cacheElementStyles, isObject, livelyProperty } from './utils';
 
 // fontsize animation is broken
 // add padding morph
@@ -81,8 +81,7 @@ export default class Morph extends Animatable {
     setUniqueId() {
         if (this.parent.id) this.id = this.parent.id;
         if (!('id' in this)) {
-            if (!('Lively' in window)) window.Lively = {};
-            if (!('Morph' in window.Lively)) window.Lively.Morph = {};
+            livelyProperty('Morph', {});
             if (!(this.group in window.Lively.Morph)) window.Lively.Morph[this.group] = 0;
             this.id = window.Lively.Morph[this.group]++;
         }

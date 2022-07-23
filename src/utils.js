@@ -1,3 +1,8 @@
+export const livelyProperty = (prop, val, object = window) => {
+    if (!('Lively' in object)) object.Lively = {};
+    if (!(prop in object.Lively)) object.Lively[prop] = val;
+};
+
 export const isObject = (val) => val && typeof val === 'object' && !Array.isArray(val);
 
 export const padArray = (arr, len) => new Array(len).fill(0).map((_, i) => i < arr.length ? arr[i] : arr[arr.length - 1]);
@@ -27,7 +32,7 @@ export const strToRgba = (str) => {
 export const addEventListener = (event, callback) => {
     if (!(callback instanceof Function)) return;
 
-    if (!window.Lively?.Events) window.Lively = { Events: {} };
+    livelyProperty('Events', {});
     if (!(event in window.Lively.Events)) {
         window.Lively.Events[event] = { unique: 0 };
         window.addEventListener(event, e => {
@@ -67,7 +72,7 @@ const setStyles = (element, styles) => {
 };
 
 export const cacheElementStyles = (element) => {
-    if (!('Lively' in element)) element.Lively = { queue: [] };
+    livelyProperty('queue', [], element);
     if (!element.Lively.style) {
         element.Lively.style = getStyles(element);
         element.Lively.style.transitionProperty = 'transform, opacity, clip-path, border-radius, font-size, background-color, color, width, height, padding';
@@ -88,5 +93,5 @@ export const cacheElementStyles = (element) => {
     };
 };
 
-const Utils = { isObject, padArray, hexToRgba, strToRgba, addEventListener, removeEventListener, cacheElementStyles };
+const Utils = { livelyProperty, isObject, padArray, hexToRgba, strToRgba, addEventListener, removeEventListener, cacheElementStyles };
 export default Utils;

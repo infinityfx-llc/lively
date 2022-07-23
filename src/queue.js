@@ -1,3 +1,5 @@
+import { livelyProperty } from "./utils";
+
 export default class AnimationQueue {
 
     constructor() {
@@ -7,8 +9,7 @@ export default class AnimationQueue {
     }
 
     static get() {
-        if (!('Lively' in window)) window.Lively = {};
-        if (!('AnimationLoop' in window.Lively)) window.Lively.AnimationQueue = new AnimationQueue();
+        livelyProperty('AnimationQueue', new AnimationQueue());
 
         return window.Lively.AnimationQueue;
     }

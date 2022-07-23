@@ -6,19 +6,20 @@ export default function ColorWipe({ children, color, duration }) {
     let subChildren = children.props?.children || [];
     if (!Array.isArray(subChildren)) subChildren = [subChildren];
 
-    subChildren.unshift(
+    const childrenArray = [
         <Animatable key={0} initial={{ clip: { right: 0 } }} animate={{ clip: { left: 1 }, duration: duration / 2 }}>
             <div style={{
                 position: 'absolute',
                 inset: 0,
                 backgroundColor: color
             }}></div>
-        </Animatable>
-    );
+        </Animatable>,
+        ...subChildren
+    ];
 
     return (
         <Animatable whileViewport animate={{ clip: { right: 0 }, duration: duration / 2 }} initial={{ clip: { right: 1 } }}>
-            {cloneElement(children, {}, subChildren)}
+            {cloneElement(children, {}, childrenArray)}
         </Animatable>
     );
 

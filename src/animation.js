@@ -22,12 +22,13 @@ export default class Animation {
     }
 
     constructor({ delay = 0, duration = 1, repeat = 1, interpolate = 'ease', origin = { x: 0.5, y: 0.5 }, useLayout = false, ...properties } = {}, initial = {}) {
+        this.length = 0;
         this.useLayout = useLayout;
         this.keyframes = this.getKeyframes(properties, initial);
 
         this.delay = delay;
         this.duration = duration;
-        this.delta = duration / (this.keyframes.length - 1);
+        this.delta = duration / (this.length - 1);
         this.interpolation = interpolate === 'spring' ? 'cubic-bezier(0.65, 0.34, 0.7, 1.42)' : interpolate;
         this.origin = this.originToStyle(origin);
 
@@ -63,8 +64,6 @@ export default class Animation {
     }
 
     getKeyframes(properties, initial = {}) {
-        let len = 0;
-
         for (const key in properties) {
             const first = key in initial ? initial[key] : Animation.initials[key];
 
@@ -72,16 +71,16 @@ export default class Animation {
             if (properties[key].length < 2) properties[key].unshift(first);
             properties[key] = properties[key].map(keyframe => this.sanitize(key, keyframe));
 
-            len = Math.max(properties[key].length, len);
+            this.length = Math.max(properties[key].length, this.length);
         }
 
-        return new Array(len).fill(0).map((_, i) => {
+        return new Array(this.length).fill(0).map((_, i) => {
             const keyframe = { start: {}, end: {} };
 
             for (const key in properties) {
                 if (!(key in Animation.initials)) continue;
 
-                const interpolated = this.interpolateKeyframe(properties[key], i, len);
+                const interpolated = this.interpolateKeyframe(properties[key], i, this.length);
 
                 if (!isObject(interpolated) || !('start' in interpolated || 'end' in interpolated || 'set' in interpolated)) {
                     keyframe[key] = interpolated;
@@ -268,7 +267,7 @@ export default class Animation {
         }
 
         if (('end' in keyframe && !reverse) || ('start' in keyframe && reverse)) {
-            AnimationQueue.delay(this.apply.bind(this, element, keyframe[reverse ? 'start' : 'end'], { duration: 0 }), this.delta);
+            element.Lively.end = AnimationQueue.delay(this.apply.bind(this, element, keyframe[reverse ? 'start' : 'end'], { duration: 0 }), this.delta);
         }
     }
 
@@ -276,6 +275,9 @@ export default class Animation {
         element.style.transitionTimingFunction = this.interpolation;
         element.style.transformOrigin = this.origin;
         this.apply(element, keyframe, { duration: 0 });
+
+        element.Lively.index = 1;
+        element.Lively.animating = true;
     }
 
     setToLast(element, fallback = false) {
@@ -288,27 +290,28 @@ export default class Animation {
             return;
         }
 
-        this.setInitial(element, reverse ? this.keyframes[this.keyframes.length - 1] : this.keyframes[0]); // OPTIMIZE
-        element.Lively.index = 1;
-        element.Lively.animating = true;
-        if (element.Lively.next?.cancel) element.Lively.next.cancel();
+        this.setInitial(element, reverse ? this.keyframes[this.length - 1] : this.keyframes[0]);
 
         requestAnimationFrame(() => this.getNext(element, reverse, repeat));
     }
 
     play(element, { delay = 0, immediate = false, reverse = false } = {}) {
-        if (!element.style) return;
+        if (!element.style || !this.length) return;
+        if (immediate) {
+            element.Lively.queue = [];
+            element.Lively.next?.cancel?.();
+            element.Lively.end?.cancel?.();
+        }
 
         if (this.delay || delay) {
-            element.next = AnimationQueue.delay(() => this.start(element, { immediate, reverse }), this.delay + delay);
+            element.Lively.next = AnimationQueue.delay(() => this.start(element, { immediate, reverse }), this.delay + delay); // add to array of timeouts instead
         } else {
             this.start(element, { immediate, reverse });
         }
-        // element.Lively.animating = true; //CHECK THIS!!!
     }
 
     getNext(element, reverse = false, repeat = 1) {
-        if (element.Lively.index === this.keyframes.length) {
+        if (element.Lively.index === this.length) {
             element.Lively.animating = false;
 
             const [next, options] = element.Lively.queue.shift() || [];
@@ -319,7 +322,7 @@ export default class Animation {
         }
 
         let idx = element.Lively.index;
-        if (reverse) idx = this.keyframes.length - 1 - idx;
+        if (reverse) idx = this.length - 1 - idx;
 
         this.apply(element, this.keyframes[idx], { reverse });
         element.Lively.index++;

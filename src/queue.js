@@ -14,7 +14,7 @@ export default class AnimationQueue {
         return window.Lively.AnimationQueue;
     }
 
-    uuid() {    
+    uuid() {  
         return Math.floor(Math.random() * 1e6).toString(16).padStart('0', 6);
     }
 
@@ -28,6 +28,7 @@ export default class AnimationQueue {
             }
 
             this.queue[i].callback();
+            delete this.queue[i].cancel;
         }
 
         requestAnimationFrame(this.tick.bind(this));
@@ -60,21 +61,28 @@ export default class AnimationQueue {
     }
 
     cancel(timeout) {
-        const idx = this.search(timeout);
-        if (this.queue[idx].id === timeout.id) this.queue.splice(idx, 1);
+        let idx = this.search(timeout);
+        while (idx > 0 && this.queue[idx].timestamp >= timeout.timestamp) idx--;
+        while (idx < this.queue.length && this.queue[idx].timestamp <= timeout.timestamp) {
+            if (this.queue[idx].id === timeout.id) {
+                this.queue.splice(idx, 1);
+                break;
+            }
+            idx++;
+        }
         delete timeout.cancel;
     }
 
     delay(callback, seconds) {
         if (!(callback instanceof Function)) return;
 
-        const id = this.uuid();
-        const timestamp = Date.now() + seconds * 1000;
-        const timeout = { timestamp, id, cancel: () => this.cancel(timeout) };
-        this.insert({ callback: () => {
-            delete timeout.cancel;
-            callback();
-        }, timestamp, id });
+        const timeout = { 
+            timestamp: Date.now() + seconds * 1000, 
+            id: this.uuid(), 
+            cancel: () => this.cancel(timeout), 
+            callback
+        };
+        this.insert(timeout);
 
         return timeout;
     }

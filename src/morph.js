@@ -10,11 +10,11 @@ import { cacheElementStyles, isObject, livelyProperty } from './utils';
 
 export default class Morph extends Animatable {
 
-    static properties = ['position', 'scale', 'opacity', 'backgroundColor', 'color', 'interact', 'zIndex']
-    static layoutProperties = ['borderRadius', 'fontSize']
-
     constructor(props) {
         super(props);
+
+        this.properties = this.props.properties || ['position', 'scale', 'opacity', 'backgroundColor', 'color', 'interact', 'zIndex'];
+        if (!this.props.properties && this.props.useLayout) this.properties.push('borderRadius', 'fontSize');
 
         this.parent = this.props.parent?.() || { group: '' };
         this.group = this.parent.group + this.props.group;
@@ -28,7 +28,8 @@ export default class Morph extends Animatable {
             pointerEvents: 'none',
             backdropFilter: 'none',
             boxShadow: 'unset',
-            fontSize: 'unset'
+            fontSize: 'unset',
+            zIndex: 'unset'
         };
     }
 
@@ -127,11 +128,9 @@ export default class Morph extends Animatable {
     }
 
     animationFromKeyframes(keyframes, reference = {}) {
-        const props = Morph.properties.slice();
-        if (this.props.useLayout) props.push(...Morph.layoutProperties);
         const keys = { useLayout: this.props.useLayout, interpolate: this.props.interpolate, origin: { x: 0, y: 0 }, duration: this.props.duration };
 
-        for (const prop of props) {
+        for (const prop of this.properties) {
             if (this.props.ignore.includes(prop)) continue;
 
             const arrKey = prop in keyframes ? prop : 'auto';
@@ -175,7 +174,8 @@ export default class Morph extends Animatable {
                 auto: ['from', 'to', { set: 'to', end: 'from' }],
                 position: ['from', 'to', { set: 'to', end: 'from' }],
                 scale: ['from', 'to', { set: 'to', end: 'from' }],
-                opacity: [1, 1, 0], interact: [true, true, false]
+                opacity: [1, 1, { end: 0 }], 
+                interact: [true, true, { end: false }]
             },
             {
                 from: {
@@ -193,9 +193,10 @@ export default class Morph extends Animatable {
     }
 
     unmorphAnimation() {
+        const from = this.element.Lively.initials;
         return this.animationFromKeyframes(
-            { auto: ['from', 'from', 'from'], position: [{ x: 0, y: 0 }], scale: [{ x: 1, y: 1 }], opacity: [0, 0, 1], interact: [false, false, true] },
-            { from: this.element.Lively.initials }
+            { auto: ['from', 'from', 'from'], position: [{ x: 0, y: 0 }], scale: [{ x: 1, y: 1 }], opacity: [0, 0, 1], interact: [false, false, true], zIndex: ['from', from.zIndex + 1, { set: from.zIndex + 1, end: 'from' }] }, // FIXXXX!!!
+            { from }
         );
     }
 

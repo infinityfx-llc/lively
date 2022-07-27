@@ -85,7 +85,12 @@ export const cacheElementStyles = (element) => {
     const { x, y, width, height } = element.getBoundingClientRect();
 
     element.Lively.initials = {
-        x, y, paddingLeft, paddingRight, paddingTop, paddingBottom, backgroundColor, color, fontSize, zIndex,
+        x, y, 
+        paddingLeft, paddingRight, 
+        paddingTop, paddingBottom, 
+        backgroundColor, color, 
+        fontSize, 
+        zIndex: zIndex === 'auto' ? 0 : parseInt(zIndex),
         width: width + 'px',
         height: height + 'px',
         borderRadius: borderRadius.split(' ')[0],

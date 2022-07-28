@@ -267,7 +267,7 @@ export default class Animation {
         }
 
         if (('end' in keyframe && !reverse) || ('start' in keyframe && reverse)) {
-            element.Lively.end = AnimationQueue.delay(this.apply.bind(this, element, keyframe[reverse ? 'start' : 'end'], { duration: 0 }), this.delta);
+            AnimationQueue.delay(this.apply.bind(this, element, keyframe[reverse ? 'start' : 'end'], { duration: 0 }), this.delta, element.Lively.timeouts);
         }
     }
 
@@ -275,9 +275,6 @@ export default class Animation {
         element.style.transitionTimingFunction = this.interpolation;
         element.style.transformOrigin = this.origin;
         this.apply(element, keyframe, { duration: 0 });
-
-        element.Lively.index = 1;
-        element.Lively.animating = true;
     }
 
     setToLast(element, fallback = false) {
@@ -291,22 +288,25 @@ export default class Animation {
         }
 
         this.setInitial(element, reverse ? this.keyframes[this.length - 1] : this.keyframes[0]);
+        element.Lively.index = 1;
+        element.Lively.animating = true;
 
         requestAnimationFrame(() => this.getNext(element, reverse, repeat));
     }
 
     play(element, { delay = 0, immediate = false, reverse = false } = {}) {
         if (!element.style || !this.length) return;
+
         if (immediate) {
             element.Lively.queue = [];
-            element.Lively.next?.cancel?.();
-            element.Lively.end?.cancel?.();
+            AnimationQueue.cancelAll(element.Lively.timeouts);
         }
 
+        const func = this.start.bind(this, element, { immediate, reverse });
         if (this.delay || delay) {
-            element.Lively.next = AnimationQueue.delay(() => this.start(element, { immediate, reverse }), this.delay + delay); // add to array of timeouts instead
+            AnimationQueue.delay(func, this.delay + delay, element.Lively.timeouts);
         } else {
-            this.start(element, { immediate, reverse });
+            func();
         }
     }
 
@@ -327,7 +327,7 @@ export default class Animation {
         this.apply(element, this.keyframes[idx], { reverse });
         element.Lively.index++;
 
-        element.Lively.next = AnimationQueue.delay(() => this.getNext(element, reverse, repeat), this.delta);
+        AnimationQueue.delay(() => this.getNext(element, reverse, repeat), this.delta, element.Lively.timeouts);
     }
 
 }

@@ -22,13 +22,15 @@ export default class AnimationQueue {
         const tick = Date.now();
 
         for (let i = 0; i < this.queue.length + 1; i++) {
-            if (this.queue.length === i || this.queue[i].timestamp > tick) {
+            const item = this.queue[i];
+            if (this.queue.length === i || item.timestamp > tick) {
                 this.queue.splice(0, i);
                 break;
             }
 
-            this.queue[i].callback();
-            delete this.queue[i].cancel;
+            item.callback();
+            delete item.cancel;
+            delete item.store[item.id + item.timestamp];
         }
 
         requestAnimationFrame(this.tick.bind(this));
@@ -70,25 +72,35 @@ export default class AnimationQueue {
             }
             idx++;
         }
+
         delete timeout.cancel;
     }
 
-    delay(callback, seconds) {
+    static cancelAll(store) {
+        for (const key in store) {
+            store[key].cancel();
+            delete store[key];
+        }
+    }
+
+    delay(callback, seconds, store = {}) {
         if (!(callback instanceof Function)) return;
 
-        const timeout = { 
+        const timeout = {
             timestamp: Date.now() + seconds * 1000, 
-            id: this.uuid(), 
-            cancel: () => this.cancel(timeout), 
-            callback
+            id: this.uuid(),
+            cancel: () => this.cancel(timeout),
+            callback,
+            store
         };
         this.insert(timeout);
+        store[timeout.id + timeout.timestamp] = timeout;
 
         return timeout;
     }
 
-    static delay(callback, seconds) {
-        return this.get().delay(callback, seconds);
+    static delay(callback, seconds, store) {
+        return this.get().delay(callback, seconds, store);
     }
 
     static sleep(seconds = 1) {

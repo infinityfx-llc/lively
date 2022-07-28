@@ -73,6 +73,8 @@ const setStyles = (element, styles) => {
 
 export const cacheElementStyles = (element) => {
     livelyProperty('queue', [], element);
+    livelyProperty('timeouts', {}, element);
+    
     if (!element.Lively.style) {
         element.Lively.style = getStyles(element);
         element.Lively.style.transitionProperty = 'transform, opacity, clip-path, border-radius, font-size, background-color, color, width, height, padding';

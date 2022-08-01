@@ -1,7 +1,7 @@
 import React, { Children, cloneElement, Component, isValidElement } from 'react';
 import Animatable from '../animatable';
 import { Move, Pop } from '../animations';
-import { padArray } from '../utils';
+import { padArray } from '../core/utils/helper';
 
 export default class Animate extends Component {
 
@@ -30,12 +30,6 @@ export default class Animate extends Component {
 
     play(animationName, options = {}) {
         this.animatable?.play(animationName, { ...options });
-    }
-
-    shouldComponentUpdate(nextProps) {
-        if (nextProps.animations !== this.props.animations) return false; // incorrect doesn't work for Animatable component (maybe use pure-component) (root cause is unnecessary update in unmount hook)
-
-        return true;
     }
 
     render() {

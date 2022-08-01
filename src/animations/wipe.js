@@ -1,4 +1,5 @@
-import Animation from '../animation';
+// import Animation from '../animation';
+import Animation from '../core/animation';
 
 export default function Wipe(options = {}) {
     Wipe.use = Wipe.use.bind(Wipe, options);

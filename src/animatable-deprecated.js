@@ -1,9 +1,11 @@
 import React, { Children, cloneElement, Component, isValidElement } from 'react';
-import Animation from './core/animation';
-import Keyframe from './core/keyframe';
-import AnimationQueue from './core/queue';
-import { addEventListener, cacheElementStyles, isObject, removeEventListener } from './core/utils/helper';
+import Animation from './animation';
+import AnimationQueue from './queue';
+import { addEventListener, cacheElementStyles, removeEventListener } from './utils';
 
+// implement on animation end
+// parallax, value based animation (progress)
+// reactive animation animate based on reactive values / elements
 // implement onAnimationEnd and onAnimationStart events
 
 export default class Animatable extends Component {
@@ -17,68 +19,42 @@ export default class Animatable extends Component {
         this.scrollDelta = 0;
         this.viewportMargin = props.viewportMargin;
 
-        const { duration, interpolate, origin, useLayout } = this.props.animate || {}; //OPTIMIZE
-        this.links = { duration, interpolate, origin, useLayout }; //OPTIMIZE
-
-        this.animations = { default: this.parse(this.props.animate) };
+        this.animations = { default: this.toAnimation(this.props.animate) };
         for (const key in this.props.animations) {
-            this.animations[key] = this.parse(this.props.animations[key]);
+            this.animations[key] = this.toAnimation(this.props.animations[key]);
         }
-
-        this.links = new Keyframe(this.links);
 
         this.elements = [];
         this.children = [];
         this.level = 0;
     }
 
-    parse(properties) {
-        if (properties instanceof Function && 'use' in properties) return properties.use();
-        if (!isObject(properties)) return null;
-
-        const props = {};
-        for (const prop in properties) {
-            const val = properties[prop];
-            if (val instanceof Function && 'link' in val) {
-                this.links[prop] = val.link(this.style.bind(this));
-                continue;
-            }
-
-            props[prop] = val;
-        }
-
-        return new Animation(props, this.props.initial);
-    }
-
-    style() {
-        cancelAnimationFrame(this.frame);
-
-        this.frame = requestAnimationFrame(() => {
-            for (const el of this.elements) {
-                this.links.update(el);
-            }
-        });
-    }
-
     update() {
         for (const el of this.elements) {
             cacheElementStyles(el); // get previous cached styles and transition between the 2
 
-            this.animations.default.restore(el, true);
-            this.links.update(el);
+            this.animations.default?.setToLast(el, true);
         }
 
         // animate on children that have just mounted
         // if ((this.props.parentLevel < 1 || this.props.noCascade) && this.props.onMount) this.play(this.props.onMount, { staggerDelay: 0.001, immediate: true });
     }
 
-    componentDidMount() {
+    toAnimation(animation) {
+        if (!animation || (typeof animation !== 'object' && typeof animation !== 'function')) return null;
+        if ('use' in animation) return animation.use();
+
+        return Object.keys(animation).length ? new Animation({ ...animation }, this.props.initial) : null;
+    }
+
+    async componentDidMount() {
         this.resizeEventListener = this.onResize.bind(this);
         addEventListener('resize', this.resizeEventListener);
 
         this.update();
         if ('fonts' in document) {
-            document.fonts.ready.then(() => this.update({ mount: true }));
+            await document.fonts.ready;
+            this.update({ mount: true });
         }
 
         if (this.props.parentLevel < 1 || this.props.noCascade) {

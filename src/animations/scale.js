@@ -1,4 +1,5 @@
-import Animation from '../animation';
+// import Animation from '../animation';
+import Animation from '../core/animation';
 
 export default function Scale(options = {}) {
     Scale.use = Scale.use.bind(Scale, options);

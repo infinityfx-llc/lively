@@ -1,4 +1,5 @@
-import Animation from '../animation';
+// import Animation from '../animation';
+import Animation from '../core/animation';
 
 export default function Move(options = {}) {
     Move.use = Move.use.bind(Move, options);

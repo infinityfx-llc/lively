@@ -1,4 +1,5 @@
-import Animation from '../animation';
+// import Animation from '../animation';
+import Animation from '../core/animation';
 
 export default function Fade(options = {}) {
     Fade.use = Fade.use.bind(Fade, options);

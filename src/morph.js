@@ -1,8 +1,8 @@
 import React, { Children, cloneElement, isValidElement } from 'react';
 import Animatable from './animatable';
-import Animation from './animation';
-import AnimationQueue from './queue';
-import { cacheElementStyles, isObject, livelyProperty } from './utils';
+import Animation from './core/animation';
+import AnimationQueue from './core/queue';
+import { cacheElementStyles, isObject, livelyProperty } from './core/utils/helper';
 
 // fontsize animation is broken
 // add padding morph
@@ -70,12 +70,12 @@ export default class Morph extends Animatable {
 
         this.setUniqueId();
         this.animations = { default: this.unmorphAnimation() };
-        if (!active) this.animations.default.setInitial(this.element);
+        if (!active) this.animations.default.initial(this.element);
 
         for (const { animatable } of this.children) { // DOESNT WORK FOR MULTI NESTED CHILDREN
             animatable.setUniqueId();
             animatable.animations = { default: animatable.unmorphAnimation() };
-            if (!active) animatable.animations.default.setInitial(animatable.element);
+            if (!active) animatable.animations.default.initial(animatable.element);
         }
     }
 

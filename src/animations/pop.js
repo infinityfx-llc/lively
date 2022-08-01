@@ -1,4 +1,5 @@
-import Animation from '../animation';
+// import Animation from '../animation';
+import Animation from '../core/animation';
 
 export default function Pop(options = {}) {
     Pop.use = Pop.use.bind(Pop, options);

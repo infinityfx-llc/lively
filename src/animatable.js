@@ -93,8 +93,7 @@ export default class Animatable extends Component {
 
             if (isParent) {
                 if (this.props.onMount) this.play(this.props.onMount, { staggerDelay: 0.001, immediate: true });
-                // AnimationQueue.delay(() => this.onScroll(), 0.001);
-                this.onScroll();
+                AnimationQueue.delay(() => this.onScroll(), 0.001);
             }
         })();
     }

@@ -6,7 +6,7 @@
 ![NPM weekly downloads](https://img.shields.io/npm/dw/@infinityfx/lively)
 ![NPM downloads](https://img.shields.io/npm/dt/@infinityfx/lively)
 
-Lightweight, zero-configuration react animation library.
+Feature complete, lightweight react animation library. Lively lets u create performant animations without the hassle.
 
 ## Table of contents
 - [Get started](#get-started)
@@ -15,8 +15,10 @@ Lightweight, zero-configuration react animation library.
 - [Base components](#base-components)
     - [Animatable](#animatable-animatable)
     - [Morph](#morph-morph)
+- [Reactivity](#reactivity)
 - [Auto-animation](#auto-animation)
     - [Animate `<Animate />`](#animate-animate)
+    - [Parallax `<Parallax />`](#parallax-parallax)
     - [`WriteOn <WriteOn />`](#writeon-writeon)
     - [`ColorWipe <ColorWipe />`](#colorwipe-colorwipe)
 - [Animations](#animations)
@@ -24,6 +26,8 @@ Lightweight, zero-configuration react animation library.
     - [Create your own](#create-your-own)
 - [Hooks](#hooks)
     - [useUnmount](#useunmount)
+    - [useAnimation](#useanimation)
+    - [useScroll](#usescroll)
 
 ## Get started
 
@@ -42,7 +46,7 @@ import { Animate } from '@infinityfx/lively/animate';
 
 <Animate onMount>
     <div class="my-class">
-        Lorem ipsum enim amet consequat ut reprehenderit cupidatat et incididunt qui minim culpa. Dolor do laborum nulla pariatur tempor excepteur duis et ipsum. Eu commodo et esse exercitation laborum cupidatat incididunt elit reprehenderit id.
+        Lorem ipsum enim amet consequat ut reprehenderit cupidatat et incididunt qui minim culpa. Dolor do laborum nulla pariatur tempor excepteur duis et ipsum.
     </div>
 </Animate>
 ```
@@ -88,11 +92,44 @@ import { Morph } from '@infinityfx/lively';
 </Morph>
 ```
 
+## Reactivity
+
+Lively implements fully reactive animations using the [`useAnimation()`](#useanimation) and [`useScroll()`](#usescroll) hooks.
+
 ## Auto-animation
 
 ### Animate `<Animate />`
 
-Automatic animation based on pre-fab animations.
+Fully automatic animation based on pre-fab animations.
+
+```jsx
+import { Animate } from '@infinityfx/lively/animate';
+import { Scale, Fade } from '@infinityfx/lively/animations';
+
+...
+
+<Animate onMount animations={[Scale({ useLayout: true }), Fade]}>
+    <div class="my-class">
+        ...
+    </div>
+</Animate>
+```
+
+#### Parallax `<Parallax />`
+
+Easily create parallax motion based on page scroll position.
+
+```jsx
+import { Parallax } from '@infinityfx/lively/animate';
+
+...
+
+<Parallax amount={0.5}> // default amount = 0.5
+    <div class="my-class">
+        ...
+    </div>
+</Parallax>
+```
 
 ### WriteOn `<WriteOn />`
 
@@ -120,7 +157,7 @@ import { ColorWipe } from '@infinityfx/lively/animate';
 
 ### Overview
 
-Lively exports a submodule called animations which contains various pre-fab animations that can be used in tandem with the `<Animate />` component. These animations can be used as is, or can be configured with extra options by calling the respective animation as a function which takes as an argument the options object.
+Lively exports a submodule called animations which contains various pre-fab animations that can be used in tandem with the `<Animate />` and `<Animatable />` components. These animations can be used as is, or can be configured with extra options by calling the respective animation as a function which takes as an argument the options object.
 
 ```jsx
 import { Move } from '@infinityfx/lively/animations';
@@ -158,27 +195,90 @@ import { Animatable } from '@infinityfx/lively';
 
 ### Create your own
 
-If you whish to create your own pre-fab animation, you can do so by creating a function with the static method `use` attached to it. Furthmore adding support for extra configuration options, leads to the following structure:
+If you whish to create your own pre-fab animation, you can do so using the `.create()` method of the Animation class. This method takes a function which gets the animation configuration options passed as an argument. The function must return the animation properties/keyframes.
 
 ```js
-import { Animation } from '@infinityfx/lively';
+import { Animation } from '@infinityfx/lively/animations';
 
-export default function myAnimation(options = {}) {
-    myAnimation.use = myAnimation.use.bind(myAnimation, options);
-    return myAnimation;
-}
+const myCustomAnimation = Animation.create((options) => {
 
-myAnimation.use = (options = {}) => {
+    // do whatever you want here.
 
-    // do whatever you want here
+    // This function must return an Array with 2 Objects, containing the animation properties and/or keyframes and the initial values for the animation respectively.
+    return [{ ... }, { ... }];
+});
 
-    // A new Animation takes two arguments, an object with values/keyframes to animate to and an object of initial values.
-    return new Animation({ ... }, { ... });
-}
+export default myCustomAnimation;
 ```
 
 ## Hooks
 
+Lively comes with a set of hooks that allow for the creation of complex reactive animations.
+
 ### useUnmount
 
-The useUnmount hook can be used to animate components that are being unmounted.
+The useUnmount hook can be used to animate out components that are being unmounted. It can be used in tandem with the `<Animatable />` and `<Animate />` components.
+
+```jsx
+import { useUnmount } from '@infinityfx/lively/hooks';
+import { Animatable } from '@infinityfx/lively';
+
+export default function Page() {
+
+    const [mounted, setMounted, ref] = useUnmount(true /* initial mounted value */);
+
+    return mounted &&
+        <Animatable ref={ref} onMount onUnmount>...</Animatable>;
+
+}
+```
+
+### useAnimation
+
+The useAnimation hook can be used to create a reactive value, which can be linked to animation components to animate different properties based on the value.
+
+```jsx
+import { useEffect } from 'react';
+import { useAnimation } from '@infinityfx/lively/hooks';
+import { Animatable } from '@infinityfx/lively';
+
+export default function Page() {
+
+    const [value, setValue] = useAnimation(0 /* initial value */);
+
+    useEffect(() => {
+        setTimeout(() => setValue(1), 1000); // set the animation value to 1, 1 second after the component has mounted.
+    }, []);
+
+    return <Animatable animate={{
+        opacity: value
+    }}>...</Animatable>;
+
+}
+```
+
+Additionally you can provide an animation value with a function to transform the value to a more usable format for certain animation properties.
+
+```jsx
+const [value, setValue] = useAnimation(0 /* initial value */);
+
+return <Animatable animate={{
+    position: value(input => {
+        input /= 100; // example where the input value needs to be divided for the correct output format.
+
+        return { x: input, y: input }; // we return an object instead of a number for the position property.
+    })
+}}>...</Animatable>;
+```
+
+### useScroll
+
+The useScroll hook is an extension of the useAnimation hook which returns a reactive value that gives the current scroll position of the window.
+
+```jsx
+const value = useScroll();
+
+return <Animatable animate={{
+    opacity: value(val => val / document.body.scrollHeight) // gradually fade in element when scrolling the window
+}}>...</Animatable>;
+```

@@ -1,7 +1,7 @@
 {
 	"name": "@infinityfx/lively",
-	"version": "1.0.0",
-	"description": "Zero configuration, performant react animation library",
+	"version": "1.0.1",
+	"description": "Feature complete, lightweight react animation library.",
 	"main": "dist/cjs/index.js",
 	"module": "dist/esm/index.js",
 	"types": "./types/index.d.ts",
@@ -38,10 +38,14 @@
 	"funding": "https://ko-fi.com/infinityfx",
 	"keywords": [
 		"animation",
+		"keyframe",
 		"react",
 		"transition",
 		"morph",
-		"animate"
+		"animate",
+		"reactive",
+		"lightweight",
+		"performant"
 	],
 	"scripts": {
 		"build": "rollup -c --environment NODE_ENV:production",

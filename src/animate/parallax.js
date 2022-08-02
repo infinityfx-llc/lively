@@ -2,19 +2,22 @@ import React, { useRef } from 'react';
 import Animatable from '../animatable';
 import { useScroll } from '../hooks';
 
+// maybe check if overflow needs to be fixed for larger parallax values (body scrollheight increases unintentionally)
+
 export default function Parallax({ children, amount }) {
     const scroll = useScroll();
-    // const ref = useRef();
-    // const offset = useRef();
+    const ref = useRef();
+    let offset;
 
     return (
-        <Animatable animate={{
+        <Animatable ref={ref} animate={{
             position: scroll(val => {
-                // const y = ref.current?.elements[0]?.getBoundingClientRect().y;
-                // if (offset.current === undefined && y !== undefined) offset.current = y;
+                if (offset === undefined) {
+                    const el = ref.current?.elements[0];
+                    if (el) offset = Math.max(el.getBoundingClientRect().y + window.scrollY - window.innerHeight / 2, 0);
+                }
 
-                // return { x: 0, y: (val - (offset.current || 0)) * amount };
-                return { x: 0, y: val * amount };
+                return { x: 0, y: (val - (offset || 0)) * amount };
             })
         }}>
             {children}

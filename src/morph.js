@@ -1,6 +1,6 @@
 import React, { Children, cloneElement, isValidElement } from 'react';
 import Animatable from './animatable';
-import Animation from './core/animation';
+import AnimationClip from './core/animation-clip';
 import AnimationQueue from './core/queue';
 import { cacheElementStyles, isObject, livelyProperty } from './core/utils/helper';
 
@@ -153,7 +153,7 @@ export default class Morph extends Animatable {
             });
         }
 
-        return new Animation(keys);
+        return new AnimationClip(keys);
     }
 
     morphAnimation(from, to) {

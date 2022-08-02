@@ -32,3 +32,5 @@ Link.construct = (context, ...args) => {
 Link.create = function (initial) {
     return Link.construct({ value: initial, linked: [] });
 };
+
+Link.isLink = val => val instanceof Function && 'link' in val;

@@ -39,8 +39,7 @@ export default class Keyframe {
         for (const key in properties) {
             let val = properties[key];
             if (val instanceof Function) {
-                val = val();
-                if (val === null) continue;
+                if ((val = val()) === null) continue;
                 val = sanitize(key, val);
             }
 

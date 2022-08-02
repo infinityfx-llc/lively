@@ -1,6 +1,8 @@
 import React, { Children, cloneElement, Component, isValidElement } from 'react';
-import Animation from './core/animation';
+import Animation from './animations/animation';
+import AnimationClip from './core/animation-clip';
 import Keyframe from './core/keyframe';
+import Link from './core/link';
 import AnimationQueue from './core/queue';
 import { addEventListener, cacheElementStyles, isObject, removeEventListener } from './core/utils/helper';
 
@@ -33,13 +35,13 @@ export default class Animatable extends Component {
     }
 
     parse(properties) {
-        if (properties instanceof Function && 'use' in properties) return properties.use();
+        if (Animation.isAnimation(properties)) return properties.use();
         if (!isObject(properties)) return null;
 
         const props = {};
         for (const prop in properties) {
             const val = properties[prop];
-            if (val instanceof Function && 'link' in val) {
+            if (Link.isLink(val)) {
                 this.links[prop] = val.link(this.style.bind(this));
                 continue;
             }
@@ -47,7 +49,7 @@ export default class Animatable extends Component {
             props[prop] = val;
         }
 
-        return new Animation(props, this.props.initial);
+        return new AnimationClip(props, this.props.initial);
     }
 
     style() {
@@ -73,21 +75,28 @@ export default class Animatable extends Component {
     }
 
     componentDidMount() {
+        const isParent = this.props.parentLevel < 1 || this.props.noCascade;
         this.resizeEventListener = this.onResize.bind(this);
         addEventListener('resize', this.resizeEventListener);
-
-        this.update();
-        if ('fonts' in document) {
-            document.fonts.ready.then(() => this.update({ mount: true }));
-        }
-
-        if (this.props.parentLevel < 1 || this.props.noCascade) {
+        if (isParent) {
             this.scrollEventListener = this.onScroll.bind(this);
             addEventListener('scroll', this.scrollEventListener);
-
-            if (this.props.onMount) this.play(this.props.onMount, { staggerDelay: 0.001, immediate: true });
-            if (this.props.whileViewport) AnimationQueue.delay(() => this.onScroll(), 0.001);
         }
+
+        this.update();
+
+        (async () => {
+            if ('fonts' in document) {
+                await document.fonts.ready;
+                this.update({ mount: true });
+            }
+
+            if (isParent) {
+                if (this.props.onMount) this.play(this.props.onMount, { staggerDelay: 0.001, immediate: true });
+                // AnimationQueue.delay(() => this.onScroll(), 0.001);
+                this.onScroll();
+            }
+        })();
     }
 
     async componentDidUpdate() {
@@ -120,7 +129,7 @@ export default class Animatable extends Component {
     }
 
     async onScroll() {
-        if (Date.now() - this.scrollDelta < 350) return;
+        if (!this.props.whileViewport || Date.now() - this.scrollDelta < 350) return;
         this.scrollDelta = Date.now();
 
         let [entered, left] = this.inViewport();

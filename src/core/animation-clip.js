@@ -4,7 +4,7 @@ import { interpolateProperty } from './utils/interpolate';
 import AnimationQueue from './queue';
 import Keyframe from './keyframe';
 
-export default class Animation { //rename to animationclip
+export default class AnimationClip {
 
     constructor({ delay = 0, duration = 1, repeat = 1, ...properties } = {}, initial = {}) {
         this.length = 0;

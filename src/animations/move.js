@@ -1,22 +1,17 @@
-// import Animation from '../animation';
-import Animation from '../core/animation';
+import Animation from './animation';
 
-export default function Move(options = {}) {
-    Move.use = Move.use.bind(Move, options);
-    return Move;
-}
-
-Move.use = ({ direction = 'up', ...options } = {}) => {
-
+const Move = Animation.create(({ direction = 'up', ...options }) => {
     let x = '0px', y = '20px';
     switch (direction) {
         case 'down': y = '-20px';
-        break;
+            break;
         case 'left': x = '20px', y = '0px';
-        break;
+            break;
         case 'right': x = '-20px', y = '0px';
-        break;
+            break;
     }
-    
-    return new Animation({ position: { x: '0px', y: '0px' }, opacity: 1, duration: 0.5, ...options }, { position: { x, y }, opacity: 0 });
-}
+
+    return [{ position: { x: 0, y: 0 }, opacity: 1, duration: 0.5, ...options }, { position: { x, y }, opacity: 0 }];
+});
+
+export default Move;

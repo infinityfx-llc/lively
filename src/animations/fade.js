@@ -1,11 +1,7 @@
-// import Animation from '../animation';
-import Animation from '../core/animation';
+import Animation from './animation';
 
-export default function Fade(options = {}) {
-    Fade.use = Fade.use.bind(Fade, options);
-    return Fade;
-}
+const Fade = Animation.create(options => {
+    return [{ opacity: 1, duration: 0.65, ...options }, { opacity: 0 }];
+});
 
-Fade.use = (options = {}) => {
-    return new Animation({ opacity: 1, duration: 0.65, ...options }, { opacity: 0 });
-}
+export default Fade;

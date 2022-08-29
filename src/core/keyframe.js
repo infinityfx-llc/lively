@@ -67,7 +67,7 @@ export default class Keyframe {
                     style.webkitClipPath = style.clipPath;
                     break;
                 case 'interact':
-                    style.pointerEvents = val ? '' : 'none';
+                    style.pointerEvents = val ? 'all' : 'none';
                     break;
                 case 'active':
                     style.display = val ? '' : 'none';
@@ -118,7 +118,7 @@ export default class Keyframe {
         element.style.transformOrigin = this.origin;
 
         const style = this.interpret(this.style);
-        Keyframe.setStyle(element, style, this.duration);
+        if (style) Keyframe.setStyle(element, style, this.duration);
     }
 
     static setStyle(element, style = {}, transition = 0) {

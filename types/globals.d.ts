@@ -44,7 +44,7 @@ export interface AnimationInitials extends React.CSSProperties {
 
     /**
      * Whether to allow mouse interactions with the `element`. 
-     * An alias for the `pointerEvents` property which maps `true` to `""` and `false` to `"none"`.
+     * An alias for the `pointerEvents` property which maps `true` to `"all"` and `false` to `"none"`.
      * 
      * @default true
      */

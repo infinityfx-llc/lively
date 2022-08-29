@@ -11,5 +11,10 @@ export const ANIMATION_PROPERTIES = {
     color: { r: 127, g: 127, b: 127, a: 255 },
     active: true,
     interact: true,
-    zIndex: 0
+    zIndex: 0,
+    strokeLength: 1
 };
+
+export const DEFAULT_UNIT = 'px';
+
+export const UNITLESS = ['opacity', 'active', 'zIndex', 'lineHeight', 'fontWeight'];

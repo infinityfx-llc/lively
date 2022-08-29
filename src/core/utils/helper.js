@@ -54,9 +54,12 @@ export const cacheElementStyles = (element) => {
     livelyProperty('timeouts', {}, element);
 
     if (!element.Lively.style) {
-        element.Lively.style = getStyles(element);
-        element.Lively.style.transitionProperty = 'transform, opacity, clip-path, border-radius, font-size, background-color, color, width, height, padding';
-        element.Lively.style.willChange = 'transform';
+        element.Lively.style = {
+            ...getStyles(element),
+            transitionProperty: 'all',
+            willChange: 'transform',
+            strokeDasharray: 1
+        };
     }
 
     setStyles(element, element.Lively.style);

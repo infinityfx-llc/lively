@@ -1,6 +1,6 @@
 import React from 'react';
 
-declare interface Morph {
+interface MorphProps {
     active?: boolean;
     group?: number;
     useLayout?: boolean;
@@ -9,7 +9,7 @@ declare interface Morph {
     ignore?: string[];
 }
 
-export class Morph extends React.Component<Morph> {
+export class Morph extends React.Component<MorphProps> {
 
     private static properties;
     private static layoutProperties;

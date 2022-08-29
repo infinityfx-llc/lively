@@ -1,3 +1,4 @@
+import { DEFAULT_UNIT, UNITLESS } from './globals';
 import AnimationQueue from './queue';
 import { originToStyle, sanitize, toLength, toString } from './utils/convert';
 import { isObject } from './utils/helper';
@@ -65,22 +66,25 @@ export default class Keyframe {
                     style.clipPath = `inset(${toString(val.top, '%')} ${toString(val.right, '%')} ${toString(val.bottom, '%')} ${toString(val.left, '%')})`;
                     style.webkitClipPath = style.clipPath;
                     break;
-                case 'borderRadius':
-                case 'padding':
-                case 'fontSize':
-                    style[key] = toString(val, 'px');
-                    break;
-                case 'backgroundColor':
-                case 'color':
-                    style[key] = `rgba(${val.r}, ${val.g}, ${val.b}, ${val.a})`;
-                    break;
                 case 'interact':
-                    style.pointerEvents = val ? 'all' : 'none';
+                    style.pointerEvents = val ? '' : 'none';
                     break;
-                case 'opacity':
                 case 'active':
-                case 'zIndex':
-                    style[key] = val;
+                    style.display = val ? '' : 'none';
+                    break;
+                case 'strokeLength':
+                    style.strokeDashoffset = 1 - val;
+                    break;
+                default:
+                    if (isObject(val) && 'r' in val) {
+                        style[key] = `rgba(${val.r}, ${val.g}, ${val.b}, ${val.a})`;
+                    } else
+                        if (UNITLESS.includes(key)) {
+                            style[key] = val;
+                        } else {
+                            style[key] = toString(val, DEFAULT_UNIT);
+                        }
+
             }
         }
 

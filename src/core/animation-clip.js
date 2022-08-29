@@ -6,11 +6,12 @@ import Keyframe from './keyframe';
 
 export default class AnimationClip {
 
-    constructor({ delay = 0, duration = 1, repeat = 1, ...properties } = {}, initial = {}) {
+    constructor({ delay = 0, duration = 1, repeat = 1, alternate = false, ...properties } = {}, initial = {}) {
         this.length = 0;
         this.delay = delay;
         this.duration = duration;
         this.repeat = repeat;
+        this.alternate = alternate;
 
         this.keyframes = this.parse(properties, initial);
     }
@@ -41,8 +42,6 @@ export default class AnimationClip {
             const keyframe = new Keyframe({ interpolate, origin, useLayout, duration: this.duration / (this.length - 1) }); //OPTIMIZE
 
             for (const prop in props) {
-                if (!(prop in ANIMATION_PROPERTIES)) continue;
-
                 keyframe.addProperty(prop, interpolateProperty(props[prop], i, this.length));
             }
 
@@ -86,7 +85,7 @@ export default class AnimationClip {
             const [next, options] = element.Lively.queue.shift() || [];
             if (next) return next.start(element, options);
 
-            if (repeat > 1) this.start(element, { reverse, repeat: repeat - 1 });
+            if (repeat > 1) this.start(element, { reverse: this.alternate ? !reverse : reverse, repeat: repeat - 1 });
             return;
         }
 

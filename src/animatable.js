@@ -6,7 +6,8 @@ import Link from './core/link';
 import AnimationQueue from './core/queue';
 import { addEventListener, cacheElementStyles, isObject, removeEventListener } from './core/utils/helper';
 
-// implement onAnimationEnd and onAnimationStart events
+// useReducedMotion
+// allow for links to be used in objects such as link per scale component { x: link, y: link }
 
 export default class Animatable extends Component {
 
@@ -110,11 +111,11 @@ export default class Animatable extends Component {
     inViewport() {
         let entered = true, left = true;
 
-        this.elements.forEach(el => {
+        for (const el of this.elements) {
             const { y } = el.getBoundingClientRect();
-            entered = entered && y + el.clientHeight * (1 - this.viewportMargin) < window.innerHeight;
-            left = left && y > window.innerHeight + el.clientHeight * this.viewportMargin;
-        });
+            entered = entered && y + el.clientHeight * this.viewportMargin < window.innerHeight;
+            left = left && y > window.innerHeight + el.clientHeight * (1 - this.viewportMargin);
+        }
 
         if (!this.elements.length) {
             for (const { animatable } of this.children) {
@@ -136,11 +137,13 @@ export default class Animatable extends Component {
         if (!this.inView && entered) {
             this.inView = true;
             if (this.props.whileViewport) this.play(this.props.whileViewport);
+            this.props.onEnterViewport?.();
         }
 
         if (this.inView && left) {
             this.inView = false;
             if (this.props.whileViewport) this.play(this.props.whileViewport, { reverse: true, immediate: true });
+            this.props.onLeaveViewport?.();
         }
     }
 
@@ -197,21 +200,22 @@ export default class Animatable extends Component {
 
         const animation = typeof animationName === 'string' ? this.animations[animationName] : this.animations.default;
         if (!animation) return;
+        this.props.onAnimationStart?.();
 
-        let __delay = 0;
-        this.elements.forEach((el, i) => {
+        let aggregate_delay = 0;
+        for (let i = 0; i < this.elements.length; i++) {
             let offset = 'group' in this.props ? this.props.parentLevel - this.props.group : this.level + groupAdjust;
-            cascadeDelay = reverse ? animation.duration : cascadeDelay; // NOT FULLY CORRECT (also take into account reverse staggering)
-            let delay = reverse ? offset * cascadeDelay : (this.props.parentLevel - offset) * cascadeDelay;
+            // NOT FULLY CORRECT (also take into account reverse staggering)
+            let delay = reverse ? offset * animation.duration : (this.props.parentLevel - offset) * cascadeDelay;
             delay = this.props.stagger * i + delay + staggerDelay;
-            __delay = delay > __delay ? delay : __delay;
+            aggregate_delay = Math.max(delay, aggregate_delay);
 
-            animation.play(el, {
+            animation.play(this.elements[i], {
                 delay,
                 reverse,
                 immediate
             });
-        });
+        };
 
         for (const { animatable, staggerIndex } of this.children) {
             animatable.play(animationName, {
@@ -224,7 +228,10 @@ export default class Animatable extends Component {
             });
         }
 
-        if (callback) AnimationQueue.delay(callback, __delay + animation.duration);
+        AnimationQueue.delay(() => {
+            callback?.();
+            this.props.onAnimationEnd?.();
+        }, aggregate_delay + animation.duration);
     }
 
     mergeProperties(own = {}, passed = {}) {
@@ -245,9 +252,9 @@ export default class Animatable extends Component {
     deepClone(component, { index = 0, useElements = false, useEvents = true } = {}) {
         if (!isValidElement(component)) return component;
 
-        let props = {};
+        let props = { pathLength: 1 };
         if (component.type !== Animatable && !(component.type.prototype instanceof Animatable)) {
-            if (useElements) props = { ref: el => this.elements[index] = el };
+            if (useElements) props = { ...props, ref: el => this.elements[index] = el };
 
             if (useEvents && (this.props.parentLevel < 1 || this.props.noCascade)) {
                 props = {
@@ -302,7 +309,7 @@ export default class Animatable extends Component {
     static defaultProps = {
         parentLevel: 0,
         stagger: 0.1,
-        viewportMargin: 0.25,
+        viewportMargin: 0.75,
         animate: {},
         animations: {}
     }

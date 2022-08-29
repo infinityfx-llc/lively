@@ -1,4 +1,4 @@
-import { ANIMATION_PROPERTIES } from '../globals';
+import { ANIMATION_PROPERTIES, DEFAULT_UNIT } from '../globals';
 import { isObject } from './helper';
 
 export const hexToRgba = (hex) => {
@@ -56,7 +56,7 @@ export const sanitize = (prop, val, key = false) => {
         if (val.match(/^#[0-9a-f]{3,8}$/i)) return hexToRgba(val);
         if (val.match(/^rgba?\(.*\)$/i)) return strToRgba(val);
 
-        const unit = (val.match(/[^0-9\.]*$/i) || ['px'])[0];
+        const unit = (val.match(/[^0-9\.]*$/i) || [DEFAULT_UNIT])[0];
         val = parseFloat(val);
         if (isNaN(val)) return ANIMATION_PROPERTIES[prop];
 

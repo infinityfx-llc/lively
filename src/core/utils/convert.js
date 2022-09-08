@@ -1,7 +1,7 @@
-import { ANIMATION_PROPERTIES, DEFAULT_UNIT } from '../globals';
-import { isObject } from './helper';
+import { UNITLESS, UNITS } from '../globals';
+import { is } from './helper';
 
-export const hexToRgba = (hex) => {
+export const hexToRgba = hex => {
     const [_, r, g, b, a] = hex.match(/^#([\da-f]{1,2})([\da-f]{1,2})([\da-f]{1,2})([\da-f]{2})?/i);
 
     return {
@@ -12,7 +12,7 @@ export const hexToRgba = (hex) => {
     };
 };
 
-export const strToRgba = (str) => {
+export const strToRgba = str => {
     const [_, r, g, b, a] = str.match(/^rgba?\((\d+)\D+(\d+)\D+(\d+)\D*(\d+)?\)/i);
 
     return {
@@ -23,75 +23,74 @@ export const strToRgba = (str) => {
     };
 };
 
-export const originToStyle = (origin) => {
-    let x = 0.5, y = 0.5;
+export const objToStr = (val, order = Object.keys(val)) => order.map(key => val[key].join('')).join(', ');
 
-    if (isObject(origin)) {
-        x = origin.x;
-        y = origin.y;
-    } else
-        if (typeof origin === 'string') {
-            switch (origin) {
-                case 'left':
-                    x = 0;
-                    break;
-                case 'right':
-                    x = 1;
-                    break;
-                case 'top':
-                    y = 0;
-                    break;
-                case 'bottom':
-                    y = 1;
-            }
-        } else {
-            x = y = origin;
+export const originToStr = origin => {
+    let { x, y } = is.object(origin) ? origin : { x: 0.5, y: 0.5 };
+
+    if (is.string(origin)) {
+        switch (origin) {
+            case 'left':
+                x = 0;
+                break;
+            case 'right':
+                x = 1;
+                break;
+            case 'top':
+                y = 0;
+                break;
+            case 'bottom':
+                y = 1;
         }
+    }
 
     return `${x * 100}% ${y * 100}%`;
 };
 
-export const sanitize = (prop, val, key = false) => {
-    if (typeof val === 'string') {
-        if (val.match(/^#[0-9a-f]{3,8}$/i)) return hexToRgba(val);
-        if (val.match(/^rgba?\(.*\)$/i)) return strToRgba(val);
+export const styleToArr = style => {
+    const val = style.toString().match(/^([\d.]+)([^\d.]*)$/i);
+    if (!val) return [style, null];
 
-        const unit = (val.match(/[^0-9\.]*$/i) || [DEFAULT_UNIT])[0];
-        val = parseFloat(val);
-        if (isNaN(val)) return ANIMATION_PROPERTIES[prop];
+    return [parseFloat(val[1]), val[2]];
+};
 
-        if (unit === '%') val /= 100;
-        return unit ? [val, unit] : val;
-    }
-    
-    if (isObject(val)) {
-        let arr = Object.keys(val), values = val;
-        if ('x' in val || 'y' in val) arr = ['x', 'y'];
-        if ('r' in val || 'g' in val || 'b' in val || 'a' in val) arr = ['r', 'g', 'b', 'a'];
-        if ('left' in val || 'right' in val || 'top' in val || 'bottom' in val) arr = ['left', 'right', 'top', 'bottom'];
+export const Units = {
+    emtopx: (val, el = document.body) => val * parseFloat(getComputedStyle(el).fontSize),
+    remtopx: val => Units.emtopx(val),
+    vwtopx: val => val * window.innerWidth,
+    vhtopx: val => val * window.innerHeight,
+    vmintopx: val => val * Math.min(window.innerWidth, window.innerHeight),
+    vmaxtopx: val => val * Math.max(window.innerWidth, window.innerHeight),
+    radtodeg: val => val * 180 / Math.PI,
+    fromProperty: prop => {
+        if (['rotate', 'skew'].includes(prop)) return 'deg';
+        if (['clip', 'scale'].includes(prop)) return '%';
+        if (UNITLESS.includes(prop)) return null;
 
-        val = {};
-        for (const key of arr) {
-            val[key] = sanitize(prop, values[key], key);
+        return 'px';
+    },
+    toBase: (val, prop, el) => {
+        if (is.object(val)) {
+            const object = {};
+            for (const key in val) object[key] = Units.toBase(val[key], prop);
+
+            return object;
         }
+
+        const newUnit = Units.fromProperty(prop);
+        const key = `${val[1]}to${newUnit}`;
+        if (is.null(val[1]) && !is.null(newUnit)) return [val[0], newUnit]; // NOT FULLY CORRECT (keep into account string values that have no unit)
+
+        if (!(key in Units)) return val;
+
+        const num = Units[key](val[0], el);
+
+        return [num, newUnit];
+    },
+    normalize: (unit, prop) => {
+        if (is.null(unit) && UNITLESS.includes(prop)) return unit;
+        if (UNITS.includes(unit)) return unit;
+
+        return Units.fromProperty(prop);
     }
-
-    if (val !== undefined) return val;
-
-    const initial = ANIMATION_PROPERTIES[prop];
-    return key in initial ? initial[key] : initial;
-};
-
-export const toString = (val, unit) => {
-    if (Array.isArray(val)) unit = val[1], val = val[0];
-
-    return val * (unit === '%' ? 100 : 1) + unit;
-};
-
-export const toLength = (val) => {
-    if (Array.isArray(val)) {
-        val = val[1] === 'px' ? val[0] + 'px' : val[0]; // maybe vw, etc..
-    }
-
-    return val;
-};
+}

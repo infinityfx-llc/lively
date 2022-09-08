@@ -1,82 +1,89 @@
-export const livelyProperty = (prop, val, object = window) => {
-    if (!('Lively' in object)) object.Lively = {};
-    if (!(prop in object.Lively)) object.Lively[prop] = val;
-};
+// export const padArray = (arr, len) => new Array(len).fill(0).map((_, i) => i < arr.length ? arr[i] : arr[arr.length - 1]);
 
-export const isObject = (val) => val && typeof val === 'object' && !Array.isArray(val);
+export const xor = (a, b) => (a && !b) || (!a && b);
 
-export const padArray = (arr, len) => new Array(len).fill(0).map((_, i) => i < arr.length ? arr[i] : arr[arr.length - 1]);
+export const hasKeys = (obj, n) => Object.keys(obj).length === n;
 
-export const addEventListener = (event, callback) => {
-    if (!(callback instanceof Function)) return;
+export const hasSomeKey = (obj, keys) => Object.keys(obj).some(val => keys.includes(val));
 
-    livelyProperty('Events', {});
-    if (!(event in window.Lively.Events)) {
-        window.Lively.Events[event] = { unique: 0 };
-        window.addEventListener(event, e => {
-            Object.values(window.Lively.Events[event]).forEach(cb => {
-                if (cb instanceof Function) cb(e);
-            });
-        });
-    }
+export const is = {
+    null: val => typeof val === 'undefined' || val === null,
+    array: val => Array.isArray(val),
+    object: val => !is.null(val) && typeof val === 'object' && !is.array(val),
+    function: val => val instanceof Function,
+    string: val => typeof val === 'string',
+    bool: val => typeof val === 'boolean',
+    number: val => typeof val === 'number',
+    empty: obj => hasKeys(obj, 0),
+    inViewport: (boundingBox, margin = 0) => {
+        const { y, bottom } = boundingBox;
+        const h = bottom - y;
 
-    const e = window.Lively.Events[event];
-    callback.Lively = { ListenerID: e.unique };
-    e[e.unique++] = callback;
-};
-
-export const removeEventListener = (event, callback) => {
-    if (typeof window === 'undefined' || !window.Lively?.Events?.[event]) return;
-    if (!callback?.Lively || !('ListenerID' in callback.Lively)) return;
-
-    delete window.Lively.Events[event][callback.Lively.ListenerID];
-};
-
-const getStyles = (element) => {
-    const styles = {};
-    for (let i = 0; i < element.style.length; i++) {
-        styles[element.style[i]] = element.style[element.style[i]];
-    }
-
-    return styles;
-};
-
-const setStyles = (element, styles) => {
-    element.style = {};
-
-    for (const key in styles) {
-        element.style[key] = styles[key];
-    }
-};
-
-export const cacheElementStyles = (element) => {
-    livelyProperty('queue', [], element);
-    livelyProperty('timeouts', {}, element);
-
-    if (!element.Lively.style) {
-        element.Lively.style = {
-            ...getStyles(element),
-            transitionProperty: 'all',
-            willChange: 'transform',
-            strokeDasharray: 1
+        return {
+            left: y > window.innerHeight + h * margin,
+            entered: y + h * margin < window.innerHeight
         };
+    },
+    visible: el => {
+        const { x, y, right, bottom } = el.getBoundingClientRect();
+        const w = right - x;
+        const h = bottom - y;
+        if (w < 1 || h < 1) return false;
+
+        return y < window.innerHeight && bottom > 0 && x < window.innerWidth && right > 0;
+    },
+};
+
+export const getProperty = (el, prop) => {
+    const styles = getComputedStyle(el);
+
+    for (const value of styles.transform.matchAll(/(\w+)\(([^)]+)\)/gi)) {
+        const [_, type, val] = value;
+        const obj = val.split(', ').reduce((obj, val, i) => (obj[['x', 'y', 'z'][i]] = utils.styleToArr(val), obj), {});
+        if (prop === type) return hasKeys(obj, 1) ? obj.x : obj;
     }
 
-    setStyles(element, element.Lively.style);
+    return utils.styleToArr(styles[prop]);
+};
 
-    const { paddingLeft, paddingRight, paddingTop, paddingBottom, backgroundColor, color, borderRadius, padding, fontSize, zIndex } = getComputedStyle(element);
-    const { x, y, width, height } = element.getBoundingClientRect();
+export const mergeObjects = (a, b, keys = Object.keys(b)) => {
+    for (const key of keys) {
+        if (!is.null(b[key])) a[key] = b[key];
+    }
 
-    element.Lively.initials = {
-        x, y,
-        paddingLeft, paddingRight,
-        paddingTop, paddingBottom,
-        backgroundColor, color,
-        fontSize,
-        zIndex: zIndex === 'auto' ? 0 : parseInt(zIndex),
-        width: width + 'px',
-        height: height + 'px',
-        borderRadius: borderRadius.split(' ')[0],
-        padding: padding.split(' ')[0]
+    return a;
+};
+
+export const merge = (a, b) => {
+    if (is.object(a)) {
+        const object = {};
+        for (const key in a) object[key] = merge(a[key], b[key]);
+        return object;
+    }
+
+    return [a[0] + b[0], a[1]];
+};
+
+export const mergeProperties = (aggregate, props) => {
+    for (const prop in props) {
+        aggregate[prop] = prop in aggregate ? merge(aggregate[prop], props[prop]) : props[prop];
+    }
+};
+
+export const debounce = (cb, ms = 250) => {
+    return () => {
+        clearTimeout(cb.LivelyTimeout);
+
+        cb.LivelyTimeout = setTimeout(cb, ms);
+    };
+};
+
+export const throttle = (cb, ms = 250) => {
+    return () => {
+        const t = Date.now();
+        if (cb.LivelyTimestamp - t < ms) return;
+        cb.LivelyTimestamp = t;
+
+        cb();
     };
 };

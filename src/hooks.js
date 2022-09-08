@@ -1,5 +1,6 @@
 import useUnmount from './hooks/unmount';
-import useAnimation from './hooks/animation';
+// import useAnimation from './hooks/animation';
+import useLink from './hooks/link';
 import useScroll from './hooks/scroll';
 
-export { useUnmount, useAnimation, useScroll };
+export { useUnmount, useLink, useScroll };

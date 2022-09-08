@@ -1,36 +1,26 @@
-export default function Link(transform = val => val) {
-    if (!transform.isBound) {
-        transform.isBound = true;
-        return Link.construct(this, transform);
-    }
+import { is } from './utils/helper';
 
-    return typeof window !== 'undefined' ? transform(this.value) : null;
-};
+const Link = { // Allow for interpolation as well
 
-Link.construct = (context, ...args) => {
-    const link = Link.bind(context, ...args);
+    create: (initial) => {
+        const state = { value: initial, transform: val => val, duration: 0 }; // duration WIP
 
-    link.set = val => context.value = val;
+        const link = function (args) {
+            if (is.function(args)) return state.transform = args, link;
 
-    link.link = cb => {
-        context.linked.push(cb);
-
+            return state.transform(state.value);
+        };
+    
+        link.set = (val, duration = 0) => {
+            state.value = val;
+            state.duration = duration;
+        };
+    
         return link;
-    };
+    },
 
-    link.feed = val => {
-        context.value = val;
+    isInstance: val => is.function(val) && is.function(val.set)
 
-        for (const cb of context.linked) {
-            cb();
-        }
-    };
-
-    return link;
 };
 
-Link.create = function (initial) {
-    return Link.construct({ value: initial, linked: [] });
-};
-
-Link.isLink = val => val instanceof Function && 'link' in val;
+export default Link;

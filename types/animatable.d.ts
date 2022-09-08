@@ -82,6 +82,9 @@ interface AnimatableProps {
      */
     whileFocus?: string | boolean;
 
+    /**
+     * Controls the order in which the component animates when part of a cascading animation.
+     */
     group?: number;
 }
 

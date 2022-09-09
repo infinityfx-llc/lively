@@ -19,6 +19,51 @@ export default class Track {
         // events: onend, onpause, onplay
     }
 
+    getInterpolatedValue(prop, val, t, element) { // FURTHER OPTIMIZE!!
+        if (is.function(val)) {
+            val = this.clip.convert(val(t, this.clip.duration), prop);
+            val = Units.toBase(val, prop, element);
+        } else {
+            if (!(prop in this.indices)) this.indices[prop] = this.reverse ? val.length - 1 : 0;
+
+            const inc = this.reverse ? -1 : 1;
+            let i = this.indices[prop];
+
+            let from = val[i];
+            let to = val[i + inc];
+            let mainVal = from.set, isMarker;
+
+            if (this.reverse ? to.time >= t : to.time <= t) {
+                this.indices[prop] = i = i + inc;
+
+                const keys = ['start', 'end'];
+                const s = keys[+!this.reverse], e = keys[+this.reverse];
+                if (s in from || e in to) {
+                    mainVal = s in from ? from[s] : to[e];
+                    isMarker = true;
+                } else {
+                    from = val[i];
+                    to = val[i + inc];
+                }
+            }
+
+            if (is.null(mainVal)) mainVal = getProperty(element, prop);
+            mainVal = Units.toBase(mainVal, prop, element);
+
+            if (isMarker) {
+                val = mainVal;
+            } else {
+                let scndVal = is.null(to.set) ? getProperty(element, prop) : to.set;
+                scndVal = Units.toBase(scndVal, prop, element);
+
+                const func = Interpolate[to.interpolate] || Interpolate.linear;
+                val = Interpolate.interpolate(mainVal, scndVal, (t - from.time) / (to.time - from.time), func);
+            }
+        }
+
+        return val;
+    }
+
     get(element) {
         let t = this.t - this.delay;
         const isAlt = this.alternate && Math.floor(t / this.clip.duration) % 2 == 1;
@@ -28,51 +73,10 @@ export default class Track {
         const properties = {};
 
         if (this.t >= this.delay) {
+            properties.origin = this.clip.origin;
+
             for (const prop in this.clip.properties) {
-                let val = this.clip.properties[prop];
-
-                if (is.function(val)) {
-                    val = this.clip.convert(val(t, this.clip.duration), prop);
-                    val = Units.toBase(val, prop, element);
-                } else {
-                    if (!(prop in this.indices)) this.indices[prop] = this.reverse ? val.length - 1 : 0; // reset indices when end of animation (maybe?)
-
-                    const inc = this.reverse ? -1 : 1;
-                    let i = this.indices[prop];
-
-                    let from = val[i];
-                    let to = val[i + inc];
-                    let mainVal = from.set, isMarker;
-
-                    if (this.reverse ? to.time >= t : to.time <= t) {
-                        this.indices[prop] = i = i + inc;
-
-                        const keys = ['start', 'end'];
-                        const s = keys[+!this.reverse], e = keys[+this.reverse];
-                        if (s in from || e in to) {
-                            mainVal = s in from ? from[s] : to[e];
-                            isMarker = true;
-                        } else {
-                            from = val[i];
-                            to = val[i + inc];
-                        }
-                    }
-
-                    if (is.null(mainVal)) mainVal = getProperty(element, prop);
-                    mainVal = Units.toBase(mainVal, prop, element);
-
-                    if (isMarker) {
-                        val = Units.toBase(mainVal, prop, element);
-                    } else {
-                        let scndVal = is.null(to.set) ? getProperty(element, prop) : to.set;
-                        scndVal = Units.toBase(scndVal, prop, element);
-
-                        const func = Interpolate[to.interpolate] || Interpolate.linear;
-                        val = Interpolate.interpolate(mainVal, scndVal, (t - from.time) / (to.time - from.time), func);
-                    }
-                }
-
-                properties[prop] = val;
+                properties[prop] = this.getInterpolatedValue(prop, this.clip.properties[prop], t, element);
             }
         }
 
@@ -82,7 +86,7 @@ export default class Track {
     step(dt) {
         this.t += dt;
 
-        return this.t >= this.T;
+        return this.t >= this.T; // FIX END KEYFRAME NOT BEING APPLIED
     }
 
 }

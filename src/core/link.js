@@ -1,20 +1,35 @@
 import { is } from './utils/helper';
 
-const Link = { // Allow for interpolation as well
+const Link = {
+
+    bind: (f, context) => {
+        f.origin = f.origin || f;
+        const bound = (...args) => f.origin.call(context, ...args);
+        bound.origin = f.origin;
+
+        return bound;
+    },
 
     create: (initial) => {
-        const state = { value: initial, transform: val => val, duration: 0 }; // duration WIP
+        const link = Link.bind(function (args) {
+            if (is.function(args)) {
+                const clone = Link.bind(link, { transform: args });
+                clone.set = link.set;
+                clone.internal = link.internal;
 
-        const link = function (args) {
-            if (is.function(args)) return state.transform = args, link;
+                return clone;
+            }
 
-            return state.transform(state.value);
-        };
+            return this.transform(link.internal.value);
+        }, { transform: val => val });
     
         link.set = (val, duration = 0) => {
-            state.value = val;
-            state.duration = duration;
+            link.internal.value = val;
+            link.internal.duration = duration;
+            link.internal.t = null;
         };
+
+        link.internal = { value: initial, duration: 0 };
     
         return link;
     },

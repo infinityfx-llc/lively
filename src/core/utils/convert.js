@@ -26,25 +26,21 @@ export const strToRgba = str => {
 export const objToStr = (val, order = Object.keys(val)) => order.map(key => val[key].join('')).join(', ');
 
 export const originToStr = origin => {
-    let { x, y } = is.object(origin) ? origin : { x: 0.5, y: 0.5 };
+    let { x = 0.5, y = 0.5 } = is.object(origin) ? origin : {};
 
     if (is.string(origin)) {
         switch (origin) {
-            case 'left':
-                x = 0;
+            case 'left': x = 0;
                 break;
-            case 'right':
-                x = 1;
+            case 'right': x = 1;
                 break;
-            case 'top':
-                y = 0;
+            case 'top': y = 0;
                 break;
-            case 'bottom':
-                y = 1;
+            case 'bottom': y = 1;
         }
     }
 
-    return `${x * 100}% ${y * 100}%`;
+    return { x, y };
 };
 
 export const styleToArr = style => {

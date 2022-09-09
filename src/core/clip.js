@@ -9,7 +9,7 @@ export default class Clip {
 
     constructor({ duration = 1, delay, repeat, alternate, origin = { x: 0.5, y: 0.5 }, ...properties } = {}, initial = {}) {
         this.duration = duration;
-        this.origin = originToStr(origin); // APPLY THIS SOMEWHERE!
+        this.origin = originToStr(origin);
 
         this.initial = initial;
         this.initials = { ...initial }; // OPTIMIZE
@@ -75,7 +75,7 @@ export default class Clip {
     }
 
     convert(val, prop) {
-        if (is.null(val)) return prop in this.initial ? this.convert(this.initial[prop], prop) : null;
+        if (is.null(val)) return prop in this.initial ? this.convert(this.initial[prop], prop) : null; // Look into not including this.initial and making convert a static method
 
         if (is.object(val)) {
             let keys = Object.keys(val);

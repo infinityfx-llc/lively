@@ -1,4 +1,5 @@
-// export const padArray = (arr, len) => new Array(len).fill(0).map((_, i) => i < arr.length ? arr[i] : arr[arr.length - 1]);
+import { TRANSFORMS } from '../globals';
+import { styleToArr } from './convert';
 
 export const xor = (a, b) => (a && !b) || (!a && b);
 
@@ -37,14 +38,29 @@ export const is = {
 export const getProperty = (el, prop) => {
     const styles = getComputedStyle(el);
 
-    for (const value of styles.transform.matchAll(/(\w+)\(([^)]+)\)/gi)) {
-        const [_, type, val] = value;
-        const obj = val.split(', ').reduce((obj, val, i) => (obj[['x', 'y', 'z'][i]] = utils.styleToArr(val), obj), {});
-        if (prop === type) return hasKeys(obj, 1) ? obj.x : obj;
+    if (TRANSFORMS.includes(prop)) {
+        const m = new DOMMatrix(styles.transform);
+
+        switch (prop) {
+            case 'translate': return { x: [m.e, 'px'], y: [m.f, 'px'] };
+            case 'scale':
+                return {
+                    x: [Math.sqrt(m.a * m.a + m.b * m.b) * 100 * Math.sign(m.a), '%'],
+                    y: [Math.sqrt(m.c * m.c + m.d * m.d) * 100 * Math.sign(m.c), '%']
+                };
+            case 'rotate':
+            case 'skew':
+                const skew = Math.atan2(m.d, m.c) * 180 / Math.PI - 90;
+                const angle = Math.atan2(m.b, m.a) * 180 / Math.PI;
+
+                return prop === 'rotate' ? [angle, 'deg'] : { x: [skew, 'deg'], y: [0, 'deg'] };
+        }
     }
 
-    return utils.styleToArr(styles[prop]);
+    return styleToArr(styles[prop]);
 };
+
+export const padArray = (arr, len) => new Array(len).fill(0).map((_, i) => i < arr.length ? arr[i] : arr[arr.length - 1]);
 
 export const mergeObjects = (a, b, keys = Object.keys(b)) => {
     for (const key of keys) {
@@ -54,19 +70,19 @@ export const mergeObjects = (a, b, keys = Object.keys(b)) => {
     return a;
 };
 
-export const merge = (a, b) => {
+export const merge = (a, b, average = false) => {
     if (is.object(a)) {
         const object = {};
         for (const key in a) object[key] = merge(a[key], b[key]);
         return object;
     }
 
-    return [a[0] + b[0], a[1]];
+    return [(a[0] + b[0]) / (+average + 1), a[1]];
 };
 
 export const mergeProperties = (aggregate, props) => {
     for (const prop in props) {
-        aggregate[prop] = prop in aggregate ? merge(aggregate[prop], props[prop]) : props[prop];
+        aggregate[prop] = prop in aggregate ? merge(aggregate[prop], props[prop], prop === 'origin') : props[prop]; // maybe average things like scale as well?
     }
 };
 

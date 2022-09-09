@@ -19,17 +19,17 @@
 			"import": "./dist/esm/hooks.js",
 			"require": "./dist/cjs/hooks.js"
 		},
-		"./animate": {
-			"import": "./dist/esm/animate.js",
-			"require": "./dist/cjs/animate.js",
-			"types": "./types/animate.d.ts"
+		"./auto": {
+			"import": "./dist/esm/auto.js",
+			"require": "./dist/cjs/auto.js",
+			"types": "./types/auto.d.ts"
 		}
 	},
 	"typesVersions": {
 		"*": {
 			"animations": ["./types/animations.d.ts"],
 			"hooks": ["./types/hooks.d.ts"],
-			"animate": ["./types/animate.d.ts"]
+			"auto": ["./types/auto.d.ts"]
 		}
 	},
 	"repository": "infinityfx-llc/lively",

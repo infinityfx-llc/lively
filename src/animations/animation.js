@@ -1,4 +1,4 @@
-import AnimationClip from '../core/animation-clip';
+import Clip from '../core/clip';
 
 const Animation = {
 
@@ -11,7 +11,7 @@ const Animation = {
 
         animation.use = function (options = {}) {
             const [properties, initial] = getProperties(options);
-            return new AnimationClip(properties, initial);
+            return new Clip(properties, initial);
         }
 
         return animation;

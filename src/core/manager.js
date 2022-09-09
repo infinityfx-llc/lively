@@ -33,18 +33,17 @@ export default class AnimationManager {
     }
 
     play(clip, options) {
+        if (clip.isEmpty) return;
+
         for (let i = 0; i < this.targets.length; i++) {
             options.delay = (options.delay || 0) + i * this.stagger;
 
-            if (clip.isEmpty) continue;
             this.targets[i].add(clip.play(options), options);
         }
     }
 
     initialize(clip) {
         for (const target of this.targets) target.initialize(clip);
-
-        // init reactive values here
     }
 
     step(dt) {

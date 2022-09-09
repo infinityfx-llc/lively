@@ -1,4 +1,7 @@
 import Track from './track';
+import { Units } from './utils/convert';
+import { getProperty, is } from './utils/helper';
+import { interpolate, linear } from './utils/interpolation';
 
 export default class Channel extends Track {
 
@@ -6,37 +9,35 @@ export default class Channel extends Track {
         super({
             duration: Infinity,
             properties: {},
-            convert
+            convert,
+            origin: { x: 0.5, y: 0.5 }
         });
 
-        // this.previous = {};
+        this.cache = {};
     }
 
     add(prop, link) {
         this.clip.properties[prop] = link;
     }
 
-    // get(element) {
-    //     const properties = {};
+    getInterpolatedValue(prop, val, t, element) {
+        if (is.null(val.internal.t)) val.internal.t = t;
+        if (val.internal.t === t) this.cache[prop] = {};
+        
+        const x = val.internal.duration === 0 ? 1 : Math.min((t - val.internal.t) / val.internal.duration, 1);
 
-    //     for (const prop in this.clip.properties) {
-    //         let val = this.clip.properties[prop];
-    //         let scndVal = this.previous[prop] || { value: null, t: 0 };
-    //         const t = (this.t - scndVal.t) / val.duration;
+        const cached = this.cache[prop] || {};
+        if (cached.t === x) return cached.value; // check why cached can be undefined
 
-    //         const func = interpolation.linear; //interpolation[to.interpolate] || interpolation.linear;
+        const to = Units.toBase(this.clip.convert(val(t, this.clip.duration), prop), prop, element);
 
-    //         val = this.clip.convert(val(t, this.clip.duration), prop);
-    //         val = unit.toBase(val, prop, element);
+        let from = getProperty(element, prop); // THIS SHOULD BE CACHED DURING INTERPOLATION OTHERWISE WRONG SPEED
+        from = Units.toBase(from, prop, element);
 
-    //         if (is.null(scndVal.value)) scndVal = unit.toBase(utils.getProperty(element, prop), prop, element);
+        const value = interpolate(from, to, x, linear);
+        this.cache[prop] = { value, t: x };
 
-    //         properties[prop] = interpolation.interpolate(scndVal, val, t, func);
-
-    //         this.previous[prop] = { value: val, t: this.t };
-    //     }
-
-    //     return properties;
-    // }
+        return value;
+    }
 
 }

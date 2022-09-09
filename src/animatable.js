@@ -1,42 +1,5 @@
-// import React, { Children, cloneElement, Component, isValidElement } from 'react';
-// import Animation from './animations/animation';
-// import AnimationClip from './core/animation-clip';
-// import Keyframe from './core/keyframe';
-// import Link from './core/link';
-// import AnimationQueue from './core/queue';
-// import { addEventListener, cacheElementStyles, isObject, removeEventListener } from './core/utils/helper';
-
 // useReducedMotion
 // allow for links to be used in objects such as link per scale component { x: link, y: link }
-// allow for functions as animation value
-// change up keyframes to include duration/time property
-// disabled property for animatable components
-
-// export default class Animatable extends Component {
-
-//     constructor(props) {
-//         super(props);
-
-//         this.hover = false;
-//         this.hasFocus = false;
-//         this.inView = false;
-//         this.scrollDelta = 0;
-//         this.viewportMargin = props.viewportMargin;
-
-//         const { duration, interpolate, origin, useLayout } = this.props.animate || {}; //OPTIMIZE
-//         this.links = { duration, interpolate, origin, useLayout }; //OPTIMIZE
-
-//         this.animations = { default: this.parse(this.props.animate) };
-//         for (const key in this.props.animations) {
-//             this.animations[key] = this.parse(this.props.animations[key]);
-//         }
-
-//         this.links = new Keyframe(this.links);
-
-//         this.elements = [];
-//         this.children = [];
-//         this.level = 0;
-//     }
 
 //     parse(properties) {
 //         if (Animation.isAnimation(properties)) return properties.use();
@@ -56,16 +19,6 @@
 //         return new AnimationClip(props, this.props.initial);
 //     }
 
-//     style() {
-//         cancelAnimationFrame(this.frame);
-
-//         this.frame = requestAnimationFrame(() => {
-//             for (const el of this.elements) {
-//                 this.links.update(el);
-//             }
-//         });
-//     }
-
 //     update() {
 //         for (const el of this.elements) {
 //             cacheElementStyles(el); // get previous cached styles and transition between the 2
@@ -78,178 +31,8 @@
 //         // if ((this.props.parentLevel < 1 || this.props.noCascade) && this.props.onMount) this.play(this.props.onMount, { staggerDelay: 0.001, immediate: true });
 //     }
 
-//     componentDidMount() {
-//         const isParent = this.props.parentLevel < 1 || this.props.noCascade;
-//         this.resizeEventListener = this.onResize.bind(this);
-//         addEventListener('resize', this.resizeEventListener);
-//         if (isParent) {
-//             this.scrollEventListener = this.onScroll.bind(this);
-//             addEventListener('scroll', this.scrollEventListener);
-//         }
-
-//         this.update();
-
-//         (async () => {
-//             if ('fonts' in document) {
-//                 await document.fonts.ready;
-//                 this.update({ mount: true });
-//             }
-
-//             if (isParent) {
-//                 if (this.props.onMount) this.play(this.props.onMount, { staggerDelay: 0.001, immediate: true });
-//                 AnimationQueue.delay(() => this.onScroll(), 0.001);
-//             }
-//         })();
-//     }
-
 //     async componentDidUpdate() {
 //         this.update(); //maybe use mount = true
-//     }
-
-//     componentWillUnmount() {
-//         removeEventListener('scroll', this.scrollEventListener);
-//         removeEventListener('resize', this.resizeEventListener);
-//     }
-
-//     inViewport() {
-//         let entered = true, left = true;
-
-//         for (const el of this.elements) {
-//             const { y } = el.getBoundingClientRect();
-//             entered = entered && y + el.clientHeight * this.viewportMargin < window.innerHeight;
-//             left = left && y > window.innerHeight + el.clientHeight * (1 - this.viewportMargin);
-//         }
-
-//         if (!this.elements.length) {
-//             for (const { animatable } of this.children) {
-//                 const [nestedEntered, nestedLeft] = animatable.inViewport();
-//                 entered = entered && nestedEntered;
-//                 left = left && nestedLeft;
-//             }
-//         }
-
-//         return [entered, left];
-//     }
-
-//     async onScroll() {
-//         if (!this.props.whileViewport || Date.now() - this.scrollDelta < 350) return;
-//         this.scrollDelta = Date.now();
-
-//         let [entered, left] = this.inViewport();
-
-//         if (!this.inView && entered) {
-//             this.inView = true;
-//             if (this.props.whileViewport) this.play(this.props.whileViewport);
-//             this.props.onEnterViewport?.();
-//         }
-
-//         if (this.inView && left) {
-//             this.inView = false;
-//             if (this.props.whileViewport) this.play(this.props.whileViewport, { reverse: true, immediate: true });
-//             this.props.onLeaveViewport?.();
-//         }
-//     }
-
-//     async onResize() {
-//         if (this.nextResize?.cancel) this.nextResize.cancel();
-
-//         this.nextResize = AnimationQueue.delay(this.update.bind(this, { mount: true }), 0.25);
-//     }
-
-//     async onEnter(e, callback = false) {
-//         if (!this.hover) {
-//             if (this.props.whileHover) this.play(this.props.whileHover);
-//             this.hover = true;
-//         }
-
-//         if (callback) callback(e);
-//     }
-
-//     async onLeave(e, callback = false) {
-//         if (this.hover) {
-//             if (this.props.whileHover) this.play(this.props.whileHover, { reverse: true });
-//             this.hover = false;
-//         }
-
-//         if (callback) callback(e);
-//     }
-
-//     async onFocus(e, callback = false) {
-//         if (!this.hasFocus) {
-//             if (this.props.whileFocus) this.play(this.props.whileFocus);
-//             this.hasFocus = true;
-//         }
-
-//         if (callback) callback(e);
-//     }
-
-//     async onBlur(e, callback = false) {
-//         if (this.hasFocus) {
-//             if (this.props.whileFocus) this.play(this.props.whileFocus, { reverse: true });
-//             this.hasFocus = false;
-//         }
-
-//         if (callback) callback(e);
-//     }
-
-//     async onClick(e, callback = false) {
-//         if (this.props.onClick) this.play(this.props.onClick);
-
-//         if (callback) callback(e);
-//     }
-
-//     async play(animationName, { callback, reverse = false, immediate = false, cascade = false, groupAdjust = 0, cascadeDelay = 0, staggerDelay = 0 } = {}) {
-//         if (this.props.parentLevel > 0 && !cascade) return;
-
-//         const animation = typeof animationName === 'string' ? this.animations[animationName] : this.animations.default;
-//         if (!animation) return;
-//         this.props.onAnimationStart?.();
-
-//         let aggregate_delay = 0;
-//         for (let i = 0; i < this.elements.length; i++) {
-//             let offset = 'group' in this.props ? this.props.parentLevel - this.props.group : this.level + groupAdjust;
-//             // NOT FULLY CORRECT (also take into account reverse staggering)
-//             let delay = reverse ? offset * animation.duration : (this.props.parentLevel - offset) * cascadeDelay;
-//             delay = this.props.stagger * i + delay + staggerDelay;
-//             aggregate_delay = Math.max(delay, aggregate_delay);
-
-//             animation.play(this.elements[i], {
-//                 delay,
-//                 reverse,
-//                 immediate
-//             });
-//         };
-
-//         for (const { animatable, staggerIndex } of this.children) {
-//             animatable.play(animationName, {
-//                 reverse,
-//                 immediate,
-//                 cascade: true,
-//                 staggerDelay: staggerIndex < 0 ? 0 : this.props.stagger * staggerIndex,
-//                 cascadeDelay: animation.duration,
-//                 groupAdjust: staggerIndex < 0 ? 0 : 1
-//             });
-//         }
-
-//         AnimationQueue.delay(() => {
-//             callback?.();
-//             this.props.onAnimationEnd?.();
-//         }, aggregate_delay + animation.duration);
-//     }
-
-//     mergeProperties(own = {}, passed = {}) {
-//         const merged = { ...passed, ...own };
-
-//         for (const key in merged) {
-//             if (['children', 'parentLevel', 'ref'].includes(key)) {
-//                 delete merged[key];
-//                 continue;
-//             }
-//             if (Array.isArray(own[key]) || Array.isArray(passed[key])) continue;
-//             if (typeof own[key] === 'object' && typeof passed[key] === 'object') merged[key] = { ...passed[key], ...own[key] };
-//         }
-
-//         return merged;
 //     }
 
 //     deepClone(component, { index = 0, useElements = false, useEvents = true } = {}) {
@@ -302,22 +85,40 @@
 //         return nested + count;
 //     }
 
-//     render(children = this.props.children) {
-//         this.level = this.countNestedLevels(children);
+// static setStyle(element, style = {}, transition = 0) {
+//     element.style.transitionDuration = `${transition}s`;
 
-//         this.childrenIndex = 0;
-//         return Children.map(children, (child, i) => this.deepClone(child, { index: i, useElements: true }));
+//     for (const key in style) {
+//         if (key === 'width') {
+//             this.setLength(element, style, 'width', 'paddingLeft', 'paddingRight');
+//             continue;
+//         }
+//         if (key === 'height') {
+//             this.setLength(element, style, 'height', 'paddingTop', 'paddingBottom');
+//             continue;
+//         }
+//         if ((key === 'padding' && (style.width || style.height)) || key === 'start' || key === 'end') continue;
+
+//         element.style[key] = style[key];
 //     }
-
-//     static defaultProps = {
-//         parentLevel: 0,
-//         stagger: 0.1,
-//         viewportMargin: 0.75,
-//         animate: {},
-//         animations: {}
-//     }
-
 // }
+
+// static setLength(element, keyframe, axis, padStart, padEnd) {
+//     const size = element.Lively.initials[axis];
+//     const paddingStart = parseInt(element.Lively.initials[padStart]);
+//     const paddingEnd = parseInt(element.Lively.initials[padEnd]);
+//     let val = keyframe[axis];
+
+//     const ratio = keyframe.padding ? 1 : paddingStart / (paddingEnd === 0 ? 1e-6 : paddingEnd); // OPTIMIZE
+//     if (typeof val === 'string') val = `calc(${val} / ${size})`;
+//     const padding = keyframe.padding ? keyframe.padding : paddingStart + paddingEnd + 'px';
+
+//     element.style[axis] = `max(calc(${size} * ${val} - ${element.style.boxSizing !== 'border-box' ? '0px' : padding}), 0px)`;
+//     const padStyle = `calc(min(calc(${size} * ${val}), ${padding}) * `;
+//     element.style[padStart] = padStyle + (ratio * 0.5);
+//     element.style[padEnd] = padStyle + (1 / (ratio === 0 ? 1e-6 : ratio) * 0.5); // OPTIMIZE
+// }
+
 import { Children, cloneElement, Component, isValidElement } from 'react';
 import Clip from './core/clip';
 import AnimationManager from './core/manager';
@@ -454,25 +255,25 @@ export default class Animatable extends Component {
 
         this.dispatch('onAnimationStart');
         const clip = this.animations[animation];
-        const duration = clip.length() + delay; // THIS IS NOT CORRECT don't include + delay in reverse terms
+        const duration = clip.length();
 
-        // also implement stagger for direct animatable children
+        // also implement stagger for direct animatable children (child.props.group)
         let parentDelay = 0;
-        for (const child of this.children) {
-            parentDelay = Math.max(parentDelay, child.play(animation, { reverse, immediate, delay: child.props.group * duration }, true));
+        for (const child of this.children) { // maybe implement recursive implementation with children per Animatable, instead of all children belonging to top parent Animatable
+            parentDelay = Math.max(parentDelay, child.play(animation, { reverse, immediate, delay: delay + duration }, true));
         }
 
         this.manager.play(clip, { reverse, composite, immediate, delay: reverse ? parentDelay : delay });
 
-        // this.dispatch('onAnimationEnd');
-        return duration + (reverse ? parentDelay : 0);
+        if (!this.props.group) setTimeout(() => this.dispatch('onAnimationEnd'), ((reverse ? duration : 0) + parentDelay) * 1000); // NOT CORRECT (currently not cancellable, for re-render causes duplicate events)
+        return duration + (reverse ? parentDelay : delay);
     }
 
     pause() {}
 
     stop() {} // MAYBE?
 
-    prerender(children, level = 0, domLevel = 0) {
+    prerender(children, level = 0, domLevel = 0) { // maybe only parse first layer of child Animatable objects per parent (see play implementation)
         return Children.map(children, (child, i) => {
             if (!isValidElement(child)) return child;
 

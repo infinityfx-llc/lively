@@ -14,8 +14,21 @@ export default class Timeline {
     }
 
     purge() {
+        if (!('cache' in this.element)) {
+            this.element.cache = {};
+
+            for (let i = 0; i < this.element.style.length; i++) {
+                const prop = this.element.style[i];
+                this.element.cache[prop] = this.element.style[prop];
+            }
+
+            this.element.cache.strokeDasharray = 1;
+        }
+
         this.element.style = {};
-        this.element.style.strokeDasharray = 1;
+        for (const prop in this.element.cache) {
+            this.element.style[prop] = this.element.cache[prop];
+        }
     }
 
     clear() {
@@ -40,8 +53,8 @@ export default class Timeline {
 
         let props = {};
         for (let i = 0; i < this.tracks.length + 1; i++) {
-            const track = this.tracks[i] || this.channel;
-            if (track && (!this.culling || is.visible(this.element))) mergeProperties(props, track.get(this.element));
+            const track = this.tracks[i] || this.channel; // LOOK INTO optimal placement for clip.isEmpty check (for channels)
+            if (!track.clip.isEmpty && (!this.culling || is.visible(this.element))) mergeProperties(props, track.get(this.element));
 
             if (track.step(dt)) this.remove(track);
         }
@@ -56,7 +69,7 @@ export default class Timeline {
 
         for (const prop in properties) {
             let val = properties[prop];
-
+            
             if (prop === 'origin') { // OPTIMIZE
                 el.style.transformOrigin = `${val.x * 100}% ${val.y * 100}%`;
             } else
@@ -70,11 +83,11 @@ export default class Timeline {
                             el.style.pointerEvents = val[0] ? 'all' : 'none';
                         } else
                             if (prop === 'clip') {
-                                el.style.clipPath = `inset(${objToStr(val, ['top', 'right', 'bottom', 'left'])})`;
+                                el.style.clipPath = `inset(${objToStr(val, ' ', ['top', 'right', 'bottom', 'left'])})`;
                                 el.style.webkitClipPath = el.style.clipPath;
                             } else
                                 if (TRANSFORMS.includes(prop)) {
-                                    val = is.object(val) ? `${prop}(${objToStr(val, ['x', 'y'])})` : `${prop}(${val.join('')})`;
+                                    val = is.object(val) ? `${prop}(${objToStr(val, ', ', ['x', 'y'])})` : `${prop}(${val.join('')})`;
 
                                     transform.push(val); // use aliases (and maybe allow for 3d transforms)
                                 } else
@@ -91,7 +104,7 @@ export default class Timeline {
     initialize(clip) {
         this.apply(this.element, clip.initials);
 
-        this.channel = clip.channel; // Maybe allow for array of channels?
+        this.channel = clip.channel;
     }
 
 }

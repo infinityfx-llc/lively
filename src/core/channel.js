@@ -10,7 +10,8 @@ export default class Channel extends Track {
             duration: Infinity,
             properties: {},
             convert,
-            origin: { x: 0.5, y: 0.5 }
+            origin: { x: 0.5, y: 0.5 },
+            isEmpty: true
         });
 
         this.cache = {};
@@ -18,6 +19,7 @@ export default class Channel extends Track {
 
     add(prop, link) {
         this.clip.properties[prop] = link;
+        this.clip.isEmpty = false;
     }
 
     getInterpolatedValue(prop, val, t, element) {
@@ -27,7 +29,7 @@ export default class Channel extends Track {
         const x = val.internal.duration === 0 ? 1 : Math.min((t - val.internal.t) / val.internal.duration, 1);
 
         const cached = this.cache[prop] || {};
-        if (cached.t === x) return cached.value; // check why cached can be undefined
+        if (cached.t === x) return cached.value;
 
         const to = Units.toBase(this.clip.convert(val(t, this.clip.duration), prop), prop, element);
 

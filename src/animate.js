@@ -1,10 +1,3 @@
-// import Animate from './animate/animate';
-// import WriteOn from './animate/write-on';
-// import ColorWipe from './animate/color-wipe';
-// import Parallax from './animate/parallax';
-
-// export { Animate, Parallax, WriteOn, ColorWipe };
-
 import React, { Children, cloneElement, Component, isValidElement } from 'react';
 import Animatable from './animatable';
 import { Move, Pop } from './animations';
@@ -26,7 +19,7 @@ export default class Animate extends Component {
         const animation = this.animations[this.levels - level];
 
         if (level === this.levels) props.ref = el => this.animatable = el;
-        return <Animatable animate={animation} {...props}>
+        return <Animatable {...props} animate={animation}>
             {Children.map(children, child => {
                 if (!isValidElement(child)) return child;
 
@@ -35,8 +28,8 @@ export default class Animate extends Component {
         </Animatable>;
     }
 
-    play(animationName, options = {}) {
-        this.animatable?.play(animationName, { ...options });
+    play(animation, options = {}) {
+        this.animatable?.play(animation, { ...options });
     }
 
     render() {
@@ -45,8 +38,6 @@ export default class Animate extends Component {
 
     static defaultProps = {
         levels: 1,
-        // stagger: 0.1,
-        // viewportMargin: 0.75,
         animations: [Move, Pop]
     }
 

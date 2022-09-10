@@ -11,7 +11,7 @@ export default function Parallax({ children, amount }) {
 
     return (
         <Animatable ref={ref} animate={{
-            position: scroll(val => {
+            translate: scroll(val => {
                 if (offset === undefined) {
                     const el = ref.current?.elements[0];
                     if (el) offset = Math.max(el.getBoundingClientRect().y + window.scrollY - window.innerHeight / 2, 0);

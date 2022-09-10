@@ -122,6 +122,7 @@
 import { Children, cloneElement, Component, isValidElement } from 'react';
 import Clip from './core/clip';
 import AnimationManager from './core/manager';
+import Animation from './animations/animation';
 import { addEventListener, offAny, onAny, removeEventListener } from './core/utils/events';
 import { debounce, is, mergeObjects, throttle } from './core/utils/helper';
 
@@ -147,6 +148,7 @@ export default class Animatable extends Component {
     }
 
     parse(properties) {
+        if (Animation.isInstance(properties)) return properties.use();
         if (!is.object(properties)) return null;
 
         return new Clip(properties, this.props.initial);
@@ -189,6 +191,10 @@ export default class Animatable extends Component {
         offAny(Animatable.events, this.elements, this.eventListener);
 
         this.manager.destroy();
+    }
+
+    componentDidUpdate() {
+        // if props.playing changes pause/play animation
     }
 
     dispatch(e) {
@@ -269,9 +275,9 @@ export default class Animatable extends Component {
         return duration + (reverse ? parentDelay : delay);
     }
 
-    pause() {}
-
-    stop() {} // MAYBE?
+    stop() {
+        this.manager.clear();
+    }
 
     prerender(children, level = 0, domLevel = 0) { // maybe only parse first layer of child Animatable objects per parent (see play implementation)
         return Children.map(children, (child, i) => {
@@ -286,7 +292,8 @@ export default class Animatable extends Component {
 
                 const i = this.childIndex++;
                 props.ref = el => this.children[i] = el;
-                mergeObjects(props, this.props, ['animate', 'initial', 'animations', 'stagger']);
+                mergeObjects(props, this.props, ['animate', 'initial', 'animations', 'stagger']); // OPTIMIZE
+                mergeObjects(props, child.props, ['animate', 'initial', 'animations', 'stagger']); // OPTIMIZE
             } else
                 if (!domLevel) props.ref = el => this.elements[i] = el;
 

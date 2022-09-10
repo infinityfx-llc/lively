@@ -1,5 +1,5 @@
 import { TRANSFORMS } from '../globals';
-import { styleToArr } from './convert';
+import { hexToRgba, strToRgba, styleToArr } from './convert';
 
 export const xor = (a, b) => (a && !b) || (!a && b);
 
@@ -33,6 +33,8 @@ export const is = {
 
         return y < window.innerHeight && bottom > 0 && x < window.innerWidth && right > 0;
     },
+    rgb: val => val.match(/^rgba?\(.*\)$/i),
+    hex: val => val.match(/^#[0-9a-f]{3,8}$/i)
 };
 
 export const getProperty = (el, prop) => {
@@ -57,7 +59,10 @@ export const getProperty = (el, prop) => {
         }
     }
 
-    return styleToArr(styles[prop]);
+    const val = styles[prop];
+    if (is.rgb(val)) return strToRgba(val);
+
+    return styleToArr(val);
 };
 
 export const padArray = (arr, len) => new Array(len).fill(0).map((_, i) => i < arr.length ? arr[i] : arr[arr.length - 1]);

@@ -36,9 +36,12 @@ export default class AnimationManager {
         if (clip.isEmpty) return;
 
         for (let i = 0; i < this.targets.length; i++) {
-            options.delay = (options.delay || 0) + i * this.stagger;
+            const config = {
+                ...options,
+                delay: (options.delay || 0) + i * this.stagger
+            };
 
-            this.targets[i].add(clip.play(options), options);
+            this.targets[i].add(clip.play(config), config);
         }
     }
 

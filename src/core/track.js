@@ -56,7 +56,7 @@ export default class Track {
                 let scndVal = is.null(to.set) ? getProperty(element, prop) : to.set;
                 scndVal = Units.toBase(scndVal, prop, element);
 
-                const func = Interpolate[to.interpolate] || Interpolate.linear;
+                const func = Interpolate[to.interpolate] || Interpolate.ease;
                 val = Interpolate.interpolate(mainVal, scndVal, (t - from.time) / (to.time - from.time), func);
             }
         }

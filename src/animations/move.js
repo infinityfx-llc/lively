@@ -11,7 +11,7 @@ const Move = Animation.create(({ direction = 'up', ...options }) => {
             break;
     }
 
-    return [{ position: { x: 0, y: 0 }, opacity: 1, duration: 0.5, ...options }, { position: { x, y }, opacity: 0 }];
+    return [{ translate: { x: 0, y: 0 }, opacity: 1, duration: 0.5, ...options }, { translate: { x, y }, opacity: 0 }];
 });
 
 export default Move;

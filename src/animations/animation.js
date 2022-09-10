@@ -1,4 +1,5 @@
 import Clip from '../core/clip';
+import { is } from '../core/utils/helper';
 
 const Animation = {
 
@@ -17,7 +18,7 @@ const Animation = {
         return animation;
     },
 
-    isAnimation: val => val instanceof Function && 'use' in val
+    isInstance: val => is.function(val) && is.function(val.use)
 
 };
 

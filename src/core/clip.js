@@ -90,24 +90,26 @@ export default class Clip {
             val = { ...val }; // CHECK
             for (const key of keys) {
                 const def = prop in DEFAULTS ? DEFAULTS[prop][key] : DEFAULTS[key];
-                val[key] = key in val ? this.convert(val[key]) : def;
+                val[key] = key in val ? this.convert(val[key], prop) : def;
             }
 
             return val;
         }
 
-        let u;
+        let unit;
         if (is.string(val)) {
-            if (val.match(/^#[0-9a-f]{3,8}$/i)) return hexToRgba(val);
-            if (val.match(/^rgba?\(.*\)$/i)) return strToRgba(val);
+            if (is.hex(val)) return hexToRgba(val);
+            if (is.rgb(val)) return strToRgba(val);
 
-            [val, u] = styleToArr(val);
-            if (!u) return [val, u];
+            [val, unit] = styleToArr(val);
+            if (!unit) return [val, unit];
         }
 
-        u = Units.normalize(u, prop);
+        const normalUnit = Units.normalize(unit, prop);
+        if (normalUnit === '%' && !unit) val *= 100;
+        unit = normalUnit;
 
-        return [val, u];
+        return [val, unit];
     }
 
     play(options = {}) {

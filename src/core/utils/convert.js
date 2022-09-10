@@ -3,27 +3,19 @@ import { is } from './helper';
 
 export const hexToRgba = hex => {
     const [_, r, g, b, a] = hex.match(/^#([\da-f]{1,2})([\da-f]{1,2})([\da-f]{1,2})([\da-f]{2})?/i);
+    const t = val => [is.null(val) ? 255 : parseInt(val.padStart(2, val), 16), null];
 
-    return {
-        r: parseInt(r.padStart(2, r), 16),
-        g: parseInt(g.padStart(2, g), 16),
-        b: parseInt(b.padStart(2, b), 16),
-        a: a !== undefined ? parseInt(a, 16) : 255,
-    };
+    return { r: t(r), g: t(g), b: t(b), a: t(a) };
 };
 
 export const strToRgba = str => {
     const [_, r, g, b, a] = str.match(/^rgba?\((\d+)\D+(\d+)\D+(\d+)\D*(\d+)?\)/i);
+    const t = val => [is.null(val) ? 255 : parseInt(val), null];
 
-    return {
-        r: parseInt(r),
-        g: parseInt(g),
-        b: parseInt(b),
-        a: a !== undefined ? parseInt(a) : 255,
-    };
+    return { r: t(r), g: t(g), b: t(b), a: t(a) };
 };
 
-export const objToStr = (val, order = Object.keys(val)) => order.map(key => val[key].join('')).join(', ');
+export const objToStr = (val, seperator, order = Object.keys(val)) => order.map(key => val[key].join('')).join(seperator);
 
 export const originToStr = origin => {
     let { x = 0.5, y = 0.5 } = is.object(origin) ? origin : {};

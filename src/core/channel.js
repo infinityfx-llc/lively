@@ -26,7 +26,7 @@ export default class Channel extends Track {
         if (is.null(val.internal.t)) val.internal.t = t;
         if (val.internal.t === t) this.cache[prop] = {};
         
-        const x = val.internal.duration === 0 ? 1 : Math.min((t - val.internal.t) / val.internal.duration, 1);
+        const x = !val.internal.duration ? 1 : Math.min((t - val.internal.t) / val.internal.duration, 1);
 
         const cached = this.cache[prop] || {};
         if (cached.t === x) return cached.value;

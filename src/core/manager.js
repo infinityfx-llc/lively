@@ -8,6 +8,7 @@ export default class AnimationManager {
 
         this.stagger = stagger;
         this.useCulling = useCulling;
+        this.paused = false;
     }
 
     register() {
@@ -50,6 +51,8 @@ export default class AnimationManager {
     }
 
     step(dt) {
+        if (this.paused) return;
+
         for (const target of this.targets) target.step(dt);
     }
 

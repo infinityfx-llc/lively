@@ -1,24 +1,3 @@
-// useReducedMotion
-// allow for links to be used in objects such as link per scale component { x: link, y: link }
-
-//     parse(properties) {
-//         if (Animation.isAnimation(properties)) return properties.use();
-//         if (!isObject(properties)) return null;
-
-//         const props = {};
-//         for (const prop in properties) {
-//             const val = properties[prop];
-//             if (Link.isLink(val)) {
-//                 this.links[prop] = val.link(this.style.bind(this));
-//                 continue;
-//             }
-
-//             props[prop] = val;
-//         }
-
-//         return new AnimationClip(props, this.props.initial);
-//     }
-
 //     update() {
 //         for (const el of this.elements) {
 //             cacheElementStyles(el); // get previous cached styles and transition between the 2
@@ -29,45 +8,6 @@
 
 //         // animate on children that have just mounted
 //         // if ((this.props.parentLevel < 1 || this.props.noCascade) && this.props.onMount) this.play(this.props.onMount, { staggerDelay: 0.001, immediate: true });
-//     }
-
-//     async componentDidUpdate() {
-//         this.update(); //maybe use mount = true
-//     }
-
-//     deepClone(component, { index = 0, useElements = false, useEvents = true } = {}) {
-//         if (!isValidElement(component)) return component;
-
-//         let props = { pathLength: 1 };
-//         if (component.type !== Animatable && !(component.type.prototype instanceof Animatable)) {
-//             if (useElements) props = { ...props, ref: el => this.elements[index] = el };
-
-//             if (useEvents && (this.props.parentLevel < 1 || this.props.noCascade)) {
-//                 props = {
-//                     ...props,
-//                     onMouseEnter: e => this.onEnter(e, component.props?.onMouseEnter),
-//                     onMouseLeave: e => this.onLeave(e, component.props?.onMouseLeave),
-//                     onFocus: e => this.onFocus(e, component.props?.onFocus),
-//                     onBlur: e => this.onBlur(e, component.props?.onBlur),
-//                     onClick: e => this.onClick(e, component.props?.onClick)
-//                 };
-//                 useEvents = false;
-//             }
-//         }
-
-//         if ((component.type === Animatable || component.type.prototype instanceof Animatable) && !component.props?.noCascade) {
-//             const idx = this.childrenIndex++;
-//             props = {
-//                 ...props,
-//                 ...this.mergeProperties(component.props, this.props),
-//                 parentLevel: this.parentLevel > 0 ? this.parentLevel : this.level,
-//                 ref: el => this.children[idx] = { animatable: el, staggerIndex: useElements ? index : -1 }
-//             };
-//         }
-
-//         const children = Children.map(component.props.children, (child, i) => this.deepClone(child, { index: i, useEvents }));
-
-//         return cloneElement(component, props, children);
 //     }
 
 //     countNestedLevels(children) {
@@ -119,6 +59,10 @@
 //     element.style[padEnd] = padStyle + (1 / (ratio === 0 ? 1e-6 : ratio) * 0.5); // OPTIMIZE
 // }
 
+// TODO:
+// allow for links to be used in objects such as link per scale component { x: link, y: link }
+// useLayout implementation (use will-change)
+
 import { Children, cloneElement, Component, isValidElement } from 'react';
 import Clip from './core/clip';
 import AnimationManager from './core/manager';
@@ -137,21 +81,21 @@ export default class Animatable extends Component {
     constructor(props) {
         super(props);
 
-        this.animations = { default: this.parse(this.props.animate) };
-        for (const key in this.props.animations) {
+        this.animations = { default: this.parse(this.props.animate || {}) };
+        for (const key in this.props.animations || {}) {
             this.animations[key] = this.parse(this.props.animations[key]);
         }
 
         this.children = [];
         this.elements = [];
-        this.manager = new AnimationManager(this.props.stagger, this.props.lazy);
+        this.stagger = this.props.stagger || 0.1;
+        this.manager = new AnimationManager(this.stagger, this.props.lazy);
     }
 
     parse(properties) {
         if (Animation.isInstance(properties)) return properties.use();
-        if (!is.object(properties)) return null;
 
-        return new Clip(properties, this.props.initial);
+        return is.object(properties) ? new Clip(properties, this.props.initial) : null;
     }
 
     update() {
@@ -169,6 +113,7 @@ export default class Animatable extends Component {
         onAny(Animatable.events, this.elements, this.eventListener);
 
         this.manager.set(this.elements);
+        this.manager.paused = this.props.paused; // OPTIMIZE
         this.manager.register();
         this.update();
 
@@ -194,7 +139,7 @@ export default class Animatable extends Component {
     }
 
     componentDidUpdate() {
-        // if props.playing changes pause/play animation
+        this.manager.paused = this.props.paused;
     }
 
     dispatch(e) {
@@ -255,7 +200,7 @@ export default class Animatable extends Component {
         }
     }
 
-    play(animation, { reverse = false, composite = false, immediate = false, delay = 0 } = {}, cascade = false) {
+    play(animation, { reverse = false, composite = false, immediate = false, delay = 0, callback } = {}, cascade = false) {
         if (!animation || this.props.disabled || (this.props.group > 0 && !cascade)) return;
         if (!is.string(animation)) animation = 'default';
 
@@ -271,7 +216,11 @@ export default class Animatable extends Component {
 
         this.manager.play(clip, { reverse, composite, immediate, delay: reverse ? parentDelay : delay });
 
-        if (!this.props.group) setTimeout(() => this.dispatch('onAnimationEnd'), ((reverse ? duration : 0) + parentDelay) * 1000); // NOT CORRECT (currently not cancellable, for re-render causes duplicate events)
+        if (!this.props.group) setTimeout(() => {
+            this.dispatch('onAnimationEnd');
+            if (is.function(callback)) callback();
+        }, ((reverse ? duration : 0) + parentDelay) * 1000); // NOT CORRECT (currently not cancellable, for re-render causes duplicate events)
+        
         return duration + (reverse ? parentDelay : delay);
     }
 
@@ -309,11 +258,9 @@ export default class Animatable extends Component {
 
     static defaultProps = {
         group: 0,
-        stagger: 0.1,
         viewportMargin: 0.75,
         lazy: true,
-        animate: {},
-        animations: {}
+        paused: false, // cascade this live to children
     }
 
 }

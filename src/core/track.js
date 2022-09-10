@@ -14,8 +14,6 @@ export default class Track {
         this.delay = delay;
         this.alternate = alternate;
 
-        // this.ended = new Promise(); // WIP
-
         // events: onend, onpause, onplay
     }
 
@@ -33,7 +31,7 @@ export default class Track {
             let to = val[i + inc];
             let mainVal = from.set, isMarker;
 
-            if (this.reverse ? to.time >= t : to.time <= t) {
+            if (this.reverse ? to.time > t : to.time < t) {
                 this.indices[prop] = i = i + inc;
 
                 const keys = ['start', 'end'];
@@ -56,7 +54,7 @@ export default class Track {
                 let scndVal = is.null(to.set) ? getProperty(element, prop) : to.set;
                 scndVal = Units.toBase(scndVal, prop, element);
 
-                const func = Interpolate[to.interpolate] || Interpolate.ease;
+                const func = Interpolate[to.interpolate || this.clip.interpolate] || Interpolate.ease;
                 val = Interpolate.interpolate(mainVal, scndVal, (t - from.time) / (to.time - from.time), func);
             }
         }
@@ -65,10 +63,10 @@ export default class Track {
     }
 
     get(element) {
-        let t = this.t - this.delay;
-        const isAlt = this.alternate && Math.floor(t / this.clip.duration) % 2 == 1;
-        t = t % this.clip.duration;
-        t = xor(this.reverse, isAlt) ? this.clip.duration - t : t;
+        let t = this.t - this.delay, d = this.clip.duration;
+        const isAlt = this.alternate && Math.floor(t / d) % 2 == !+(this.t >= this.T); // Make more readable and check for correctness
+        t = this.t >= this.T ? d : t % d;
+        t = xor(this.reverse, isAlt) ? d - t : t;
 
         const properties = {};
 
@@ -84,9 +82,10 @@ export default class Track {
     }
 
     step(dt) {
+        const ended = this.t >= this.T;
         this.t += dt;
 
-        return this.t >= this.T; // FIX END KEYFRAME NOT BEING APPLIED
+        return ended;
     }
 
 }

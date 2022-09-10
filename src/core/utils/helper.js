@@ -34,7 +34,8 @@ export const is = {
         return y < window.innerHeight && bottom > 0 && x < window.innerWidth && right > 0;
     },
     rgb: val => val.match(/^rgba?\(.*\)$/i),
-    hex: val => val.match(/^#[0-9a-f]{3,8}$/i)
+    hex: val => val.match(/^#[0-9a-f]{3,8}$/i),
+    color: val => is.object(val) && 'r' in val
 };
 
 export const getProperty = (el, prop) => {
@@ -58,6 +59,8 @@ export const getProperty = (el, prop) => {
                 return prop === 'rotate' ? [angle, 'deg'] : { x: [skew, 'deg'], y: [0, 'deg'] };
         }
     }
+
+    // parse custom properties here aswell
 
     const val = styles[prop];
     if (is.rgb(val)) return strToRgba(val);

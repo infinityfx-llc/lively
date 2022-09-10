@@ -39,7 +39,7 @@ export const styleToArr = style => {
     const val = style.toString().match(/^([\d.]+)([^\d.]*)$/i);
     if (!val) return [style, null];
 
-    return [parseFloat(val[1]), val[2]];
+    return [parseFloat(val[1]), val[2] || null];
 };
 
 export const Units = {
@@ -65,15 +65,13 @@ export const Units = {
             return object;
         }
 
-        const newUnit = Units.fromProperty(prop);
-        const key = `${val[1]}to${newUnit}`;
-        if (is.null(val[1]) && !is.null(newUnit)) return [val[0], newUnit]; // NOT FULLY CORRECT (keep into account string values that have no unit)
+        if (!is.number(val[0])) return val; // CHECK FOR OPTIMIZATION
 
-        if (!(key in Units)) return val;
+        const unit = Units.fromProperty(prop);
+        if (is.null(val[1]) && !is.null(unit)) return [val[0], unit];
 
-        const num = Units[key](val[0], el);
-
-        return [num, newUnit];
+        const conversion = Units[`${val[1]}to${unit}`];
+        return conversion ? [conversion(val[0], el), unit] : val;
     },
     normalize: (unit, prop) => {
         if (is.null(unit) && UNITLESS.includes(prop)) return unit;
@@ -81,4 +79,14 @@ export const Units = {
 
         return Units.fromProperty(prop);
     }
-}
+};
+
+export const Alias = {
+    origin: ['transformOrigin'],
+    length: ['strokeDashoffset'],
+    clip: ['clipPath', 'webkitClipPath'],
+    transformOrigin: val => `${val.x * 100}% ${val.y * 100}%`,
+    strokeDashoffset: val => 1 - val[0],
+    clipPath: val => `inset(${objToStr(val, ' ', ['top', 'right', 'bottom', 'left'])})`,
+    webkitClipPath: val => Alias.clipPath(val)
+};

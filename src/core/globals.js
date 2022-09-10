@@ -2,7 +2,7 @@ export const POSITIONS = ['set', 'start', 'end'];
 
 export const UNITS = ['%', 'px', 'em', 'rem', 'vw', 'vh', 'vmin', 'vmax', 'deg', 'rad'];
 
-export const UNITLESS = ['opacity', 'active', 'interact', 'zIndex', 'lineHeight', 'fontWeight', 'length'];
+export const UNITLESS = ['opacity', 'zIndex', 'lineHeight', 'fontWeight', 'length'];
 
 export const PARSABLE_OBJECTS = [
     ['x', 'y'], // might need z for 3d transforms

@@ -7,7 +7,7 @@ import { hasSomeKey, is, mergeObjects } from './utils/helper';
 
 export default class Clip {
 
-    constructor({ duration = 1, delay, repeat, alternate, origin = { x: 0.5, y: 0.5 }, ...properties } = {}, initial = {}) {
+    constructor({ duration = 1, delay, repeat, alternate, interpolate, origin = { x: 0.5, y: 0.5 }, ...properties } = {}, initial = {}) {
         this.duration = duration;
         this.origin = originToStr(origin);
 
@@ -18,6 +18,7 @@ export default class Clip {
         this.properties = this.parse(properties);
         this.isEmpty = is.empty(this.properties);
 
+        this.interpolate = interpolate;
         this.defaults = { delay, repeat, alternate };
     }
 
@@ -102,10 +103,9 @@ export default class Clip {
             if (is.rgb(val)) return strToRgba(val);
 
             [val, unit] = styleToArr(val);
-            if (!unit) return [val, unit];
         }
 
-        const normalUnit = Units.normalize(unit, prop);
+        const normalUnit = is.number(val) ? Units.normalize(unit, prop) : null; // CHECK FOR OPTIMIZATION
         if (normalUnit === '%' && !unit) val *= 100;
         unit = normalUnit;
 

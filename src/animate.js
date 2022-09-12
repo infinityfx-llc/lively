@@ -16,7 +16,7 @@ export default class Animate extends Component {
         if (level < 1 || Children.count(children) < 1) return children;
 
         const { levels, animations, ...props } = this.props;
-        const animation = this.animations[this.levels - level];
+        const animation = this.animations[this.levels - level]; // get useLayout from here
 
         if (level === this.levels) props.ref = el => this.animatable = el;
         return <Animatable {...props} animate={animation}>

@@ -10,11 +10,11 @@ export const PARSABLE_OBJECTS = [
     ['left', 'top', 'right', 'bottom']
 ];
 
-export const TRANSFORMS = ['translate', 'scale', 'skew', 'rotate']; // this is also apply order (maybe allow custom order)
+export const TRANSFORMS = ['translate', 'scale', 'skew', 'rotate']; // (maybe allow custom order)
 
 export const DEFAULTS = { // implement defaults for custom properties such as length, or active (or find a way to get current value)
     translate: { x: [0, 'px'], y: [0, 'px'] },
-    scale: { x: [100, '%'], y: [100, '%'] },
+    scale: { x: [1, '%'], y: [1, '%'] },
     clip: { left: [0, '%'], top: [0, '%'], right: [0, '%'], bottom: [0, '%'] },
     r: [127, null],
     g: [127, null],

@@ -1,4 +1,4 @@
-import { Units } from './utils/convert';
+import { convert, Units } from './utils/convert';
 import { getProperty, is, xor } from './utils/helper';
 import * as Interpolate from './utils/interpolation';
 
@@ -19,7 +19,7 @@ export default class Track {
 
     getInterpolatedValue(prop, val, t, element) { // FURTHER OPTIMIZE!!
         if (is.function(val)) {
-            val = this.clip.convert(val(t, this.clip.duration), prop);
+            val = convert(val(t, this.clip.duration), prop);
             val = Units.toBase(val, prop, element);
         } else {
             if (!(prop in this.indices)) this.indices[prop] = this.reverse ? val.length - 1 : 0;
@@ -62,20 +62,18 @@ export default class Track {
         return val;
     }
 
-    get(element) {
+    get(element, cull = true) {
+        const properties = {}, end = this.t >= this.T;
+        if (this.t < this.delay || (cull && !end && !is.visible(element))) return properties;
+
         let t = this.t - this.delay, d = this.clip.duration;
-        const isAlt = this.alternate && Math.floor(t / d) % 2 == !+(this.t >= this.T); // Make more readable and check for correctness
-        t = this.t >= this.T ? d : t % d;
+        const isAlt = this.alternate && Math.floor(t / d) % 2 == +!end; // Make more readable and check for correctness
+        t = end ? d : t % d;
         t = xor(this.reverse, isAlt) ? d - t : t;
 
-        const properties = {};
-
-        if (this.t >= this.delay) {
-            properties.origin = this.clip.origin;
-
-            for (const prop in this.clip.properties) {
-                properties[prop] = this.getInterpolatedValue(prop, this.clip.properties[prop], t, element);
-            }
+        properties.origin = this.clip.origin;
+        for (const prop in this.clip.properties) {
+            properties[prop] = this.getInterpolatedValue(prop, this.clip.properties[prop], t, element);
         }
 
         return properties;

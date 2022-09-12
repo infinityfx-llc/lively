@@ -1,5 +1,5 @@
 import { TRANSFORMS } from '../globals';
-import { hexToRgba, strToRgba, styleToArr } from './convert';
+import { strToRgba, styleToArr } from './convert';
 
 export const xor = (a, b) => (a && !b) || (!a && b);
 
@@ -78,19 +78,29 @@ export const mergeObjects = (a, b, keys = Object.keys(b)) => {
     return a;
 };
 
-export const merge = (a, b, average = false) => {
+const MergeFunctions = { // OPTIMIZE
+    translate: (a, b) => a + b,
+    rotate: (a, b) => a + b,
+    scale: (a, b) => a * b,
+    default: (a, b) => (a + b) / 2
+};
+
+export const merge = (a, b, func) => {
     if (is.object(a)) {
         const object = {};
-        for (const key in a) object[key] = merge(a[key], b[key]);
+        for (const key in a) object[key] = merge(a[key], b[key], func);
         return object;
     }
 
-    return [(a[0] + b[0]) / (+average + 1), a[1]];
+    if (!is.number(a[0]) || !is.number(b[0])) return b;
+
+    return [func(a[0], b[0]), a[1]];
 };
 
 export const mergeProperties = (aggregate, props) => {
     for (const prop in props) {
-        aggregate[prop] = prop in aggregate ? merge(aggregate[prop], props[prop], prop === 'origin') : props[prop]; // maybe average things like scale as well?
+        const func = MergeFunctions[prop] || MergeFunctions.default;
+        aggregate[prop] = prop in aggregate ? merge(aggregate[prop], props[prop], func) : props[prop];
     }
 };
 

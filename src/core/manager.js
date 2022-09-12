@@ -3,11 +3,12 @@ import Timeline from './timeline';
 
 export default class AnimationManager {
 
-    constructor(stagger, useCulling) {
+    constructor(stagger, useCulling, useLayout) {
         this.targets = [];
 
         this.stagger = stagger;
-        this.useCulling = useCulling;
+        this.useCulling = useCulling; // OPTIMIZE
+        this.useLayout = useLayout; // OPTIMIZE
         this.paused = false;
     }
 
@@ -30,7 +31,7 @@ export default class AnimationManager {
     }
 
     set(elements) {
-        this.targets = elements.map(el => new Timeline(el, this.useCulling));
+        this.targets = elements.map(el => new Timeline(el, this.useCulling, this.useLayout));
     }
 
     play(clip, options) {

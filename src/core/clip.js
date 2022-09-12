@@ -1,21 +1,18 @@
 import Channel from './channel';
-import { DEFAULTS, PARSABLE_OBJECTS, POSITIONS } from './globals';
+import { POSITIONS } from './globals';
 import Link from './link';
 import Track from './track';
-import { hexToRgba, originToStr, strToRgba, styleToArr, Units } from './utils/convert';
+import { convert, originToStr } from './utils/convert';
 import { hasSomeKey, is, mergeObjects } from './utils/helper';
 
 export default class Clip {
 
-    constructor({ duration = 1, delay, repeat, alternate, interpolate, origin = { x: 0.5, y: 0.5 }, ...properties } = {}, initial = {}) {
+    constructor({ duration = 1, delay, repeat, alternate, interpolate, origin = { x: 0.5, y: 0.5 }, ...properties } = {}, initials = {}) {
         this.duration = duration;
         this.origin = originToStr(origin);
+        this.channel = new Channel();
 
-        this.initial = initial;
-        this.initials = { ...initial }; // OPTIMIZE
-        this.channel = new Channel(this.convert.bind(this)); // OPTIMIZE
-
-        this.properties = this.parse(properties);
+        [this.properties, this.initials] = this.parse(properties, initials);
         this.isEmpty = is.empty(this.properties);
 
         this.interpolate = interpolate;
@@ -26,7 +23,7 @@ export default class Clip {
         return this.duration * (this.defaults.repeat || 1) + (this.defaults.delay || 0);
     }
 
-    parse(properties) {
+    parse(properties, initials) {
         for (const prop in properties) {
             let val = properties[prop];
 
@@ -39,7 +36,7 @@ export default class Clip {
             if (is.function(val)) continue;
 
             val = is.array(val) ? val : [val];
-            val.length < 2 ? val.unshift(prop in this.initial ? this.initial[prop] : null) : this.initials[prop] = val[0];
+            val.length < 2 ? val.unshift(prop in initials ? initials[prop] : null) : initials[prop] = val[0];
 
             const arr = val.map(val => this.sanitize(val, prop));
             for (let i = 0; i < arr.length; i++) this.quantize(arr, i);
@@ -47,9 +44,10 @@ export default class Clip {
             properties[prop] = arr;
         }
 
-        for (const prop in this.initials) this.initials[prop] = this.convert(this.initials[prop], prop);
+        initials = { ...initials };
+        for (const prop in initials) initials[prop] = convert(initials[prop], prop);
 
-        return properties;
+        return [properties, initials];
     }
 
     sanitize(val, prop) {
@@ -61,7 +59,7 @@ export default class Clip {
 
         val = { ...val }; // CHECK
         for (const key of POSITIONS) {
-            if (key in val) val[key] = this.convert(val[key], prop);
+            if (key in val) val[key] = convert(val[key], prop);
         }
 
         return val;
@@ -73,43 +71,6 @@ export default class Clip {
 
         const low = this.quantize(keys, l, l);
         return keys[i].time = low + (this.quantize(keys, i + 1, l) - low) * ((i - l) / (i - l + 1));
-    }
-
-    convert(val, prop) {
-        if (is.null(val)) return prop in this.initial ? this.convert(this.initial[prop], prop) : null; // Look into not including this.initial and making convert a static method
-
-        if (is.object(val)) {
-            let keys = Object.keys(val);
-
-            for (const arr of PARSABLE_OBJECTS) {
-                if (hasSomeKey(val, arr)) {
-                    keys = arr;
-                    break;
-                }
-            }
-
-            val = { ...val }; // CHECK
-            for (const key of keys) {
-                const def = prop in DEFAULTS ? DEFAULTS[prop][key] : DEFAULTS[key];
-                val[key] = key in val ? this.convert(val[key], prop) : def;
-            }
-
-            return val;
-        }
-
-        let unit;
-        if (is.string(val)) {
-            if (is.hex(val)) return hexToRgba(val);
-            if (is.rgb(val)) return strToRgba(val);
-
-            [val, unit] = styleToArr(val);
-        }
-
-        const normalUnit = is.number(val) ? Units.normalize(unit, prop) : null; // CHECK FOR OPTIMIZATION
-        if (normalUnit === '%' && !unit) val *= 100;
-        unit = normalUnit;
-
-        return [val, unit];
     }
 
     play(options = {}) {

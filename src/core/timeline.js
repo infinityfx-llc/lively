@@ -1,28 +1,32 @@
-import { TRANSFORMS } from './globals';
-import { Alias, objToStr } from './utils/convert';
-import { is, mergeProperties } from './utils/helper';
+import { DEFAULTS, TRANSFORMS } from './globals';
+import { Alias, arrToStyle, objToStr, styleToArr } from './utils/convert';
+import { is, merge, mergeProperties } from './utils/helper';
 
 export default class Timeline {
 
-    constructor(element, useCulling = true) {
+    constructor(element, useCulling = true, useLayout = false) {
         this.element = element;
         this.tracks = [];
         this.queue = [];
 
         this.playing = true;
         this.culling = useCulling;
+        this.layout = useLayout;
     }
 
     purge() {
         if (!('cache' in this.element)) {
-            this.element.cache = {};
+            const styles = getComputedStyle(this.element); // OPTIMIZE
 
-            for (let i = 0; i < this.element.style.length; i++) {
+            this.element.cache = {
+                strokeDasharray: 1,
+                borderRadius: styleToArr(styles.borderRadius), // dont apply this on cache hydration
+            };
+
+            for (let i = 0; i < this.element.style.length; i++) { // also parse transforms here
                 const prop = this.element.style[i];
                 this.element.cache[prop] = this.element.style[prop];
             }
-
-            this.element.cache.strokeDasharray = 1;
         }
 
         this.element.style = {};
@@ -51,10 +55,13 @@ export default class Timeline {
     step(dt) {
         if (!this.playing) return;
 
-        let props = {};
-        for (let i = 0; i < this.tracks.length + 1; i++) {
-            const track = this.tracks[i] || this.channel; // LOOK INTO optimal placement for clip.isEmpty check (for channels)
-            if (!track.clip.isEmpty && (!this.culling || is.visible(this.element))) mergeProperties(props, track.get(this.element));
+        const props = this.element.correction ? { scale: DEFAULTS.scale } : {}; // OPTIMIZE
+        const len = this.tracks.length + (+!this.channel.isEmpty); // OPTIMIZE
+
+        for (let i = 0; i < len; i++) {
+            const track = this.tracks[i] || this.channel;
+
+            mergeProperties(props, track.get(this.element, this.culling));
 
             if (track.step(dt)) this.remove(track);
         }
@@ -71,7 +78,20 @@ export default class Timeline {
             let val = properties[prop];
 
             if (TRANSFORMS.includes(prop)) {
-                val = is.object(val) ? `${prop}(${objToStr(val, ', ', ['x', 'y'])})` : `${prop}(${val.join('')})`;
+                if (prop == 'scale') {
+                    if (this.layout) {
+                        const correction = { x: [1 / val.x[0], val.x[1]], y: [1 / val.y[0], val.y[1]] };
+                        for (const child of el.children) child.correction = correction;
+
+                        const r = properties.borderRadius || el.cache.borderRadius; // WIP
+                        el.style.borderRadius = `${r[0] / val.x[0]}${r[1]} / ${r[0] / val.y[0]}${r[1]}`;
+                        // potentially correct other things as well
+                    }
+
+                    if (el.correction) val = merge(val, el.correction, (a, b) => a * b); // OPTIMIZE
+                }
+
+                val = `${prop}(${is.object(val) ? objToStr(val, ', ', ['x', 'y']) : arrToStyle(val)})`;
 
                 transform.push(val); // use aliases (and maybe allow for 3d transforms)
                 continue;
@@ -82,7 +102,7 @@ export default class Timeline {
                 if (is.color(val)) {
                     el.style[style] = `rgba(${val.r[0]}, ${val.g[0]}, ${val.b[0]}, ${val.a[0]})`;
                 } else {
-                    el.style[style] = style in Alias ? Alias[style](val) : is.null(val[1]) ? val[0] : val.join('');
+                    el.style[style] = style in Alias ? Alias[style](val) : arrToStyle(val);
                 }
             }
         }

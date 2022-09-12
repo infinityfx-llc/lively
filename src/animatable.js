@@ -1,67 +1,6 @@
-//     update() {
-//         for (const el of this.elements) {
-//             cacheElementStyles(el); // get previous cached styles and transition between the 2
-
-//             this.animations.default.restore(el, true);
-//             this.links.update(el);
-//         }
-
-//         // animate on children that have just mounted
-//         // if ((this.props.parentLevel < 1 || this.props.noCascade) && this.props.onMount) this.play(this.props.onMount, { staggerDelay: 0.001, immediate: true });
-//     }
-
-//     countNestedLevels(children) {
-//         if (!children) return 0;
-
-//         let count = 0, nested = 0;
-//         Children.forEach(children, (child) => {
-//             if (!isValidElement(child)) return;
-//             if (child.type === Animatable || child.type.prototype instanceof Animatable) count = 1;
-
-//             const n = this.countNestedLevels(child.props?.children);
-//             nested = nested < n ? n : nested;
-//         });
-
-//         return nested + count;
-//     }
-
-// static setStyle(element, style = {}, transition = 0) {
-//     element.style.transitionDuration = `${transition}s`;
-
-//     for (const key in style) {
-//         if (key === 'width') {
-//             this.setLength(element, style, 'width', 'paddingLeft', 'paddingRight');
-//             continue;
-//         }
-//         if (key === 'height') {
-//             this.setLength(element, style, 'height', 'paddingTop', 'paddingBottom');
-//             continue;
-//         }
-//         if ((key === 'padding' && (style.width || style.height)) || key === 'start' || key === 'end') continue;
-
-//         element.style[key] = style[key];
-//     }
-// }
-
-// static setLength(element, keyframe, axis, padStart, padEnd) {
-//     const size = element.Lively.initials[axis];
-//     const paddingStart = parseInt(element.Lively.initials[padStart]);
-//     const paddingEnd = parseInt(element.Lively.initials[padEnd]);
-//     let val = keyframe[axis];
-
-//     const ratio = keyframe.padding ? 1 : paddingStart / (paddingEnd === 0 ? 1e-6 : paddingEnd); // OPTIMIZE
-//     if (typeof val === 'string') val = `calc(${val} / ${size})`;
-//     const padding = keyframe.padding ? keyframe.padding : paddingStart + paddingEnd + 'px';
-
-//     element.style[axis] = `max(calc(${size} * ${val} - ${element.style.boxSizing !== 'border-box' ? '0px' : padding}), 0px)`;
-//     const padStyle = `calc(min(calc(${size} * ${val}), ${padding}) * `;
-//     element.style[padStart] = padStyle + (ratio * 0.5);
-//     element.style[padEnd] = padStyle + (1 / (ratio === 0 ? 1e-6 : ratio) * 0.5); // OPTIMIZE
-// }
-
 // TODO:
 // allow for links to be used in objects such as link per scale component { x: link, y: link }
-// useLayout implementation (use will-change)
+// implement layoutgroup component that detects changes in layout
 
 import { Children, cloneElement, Component, isValidElement } from 'react';
 import Clip from './core/clip';
@@ -89,7 +28,7 @@ export default class Animatable extends Component {
         this.children = [];
         this.elements = [];
         this.stagger = this.props.stagger || 0.1;
-        this.manager = new AnimationManager(this.stagger, this.props.lazy);
+        this.manager = new AnimationManager(this.stagger, this.props.lazy, this.props.useLayout);
     }
 
     parse(properties) {
@@ -100,7 +39,7 @@ export default class Animatable extends Component {
 
     update() {
         this.manager.purge();
-        this.manager.initialize(this.animations.default); // also implement restoring of current keyframe
+        this.manager.initialize(this.animations.default);
     }
 
     componentDidMount() {
@@ -109,7 +48,7 @@ export default class Animatable extends Component {
         this.scrollEventListener = throttle(this.onScroll.bind(this));
         addEventListener('scroll', this.scrollEventListener);
 
-        this.eventListener = this.onEvent.bind(this); // NOT SURE (BUT TODO)
+        this.eventListener = this.onEvent.bind(this);
         onAny(Animatable.events, this.elements, this.eventListener);
 
         this.manager.set(this.elements);
@@ -120,6 +59,7 @@ export default class Animatable extends Component {
         document.fonts.ready.then(() => {
             this.update();
             this.manager.clear();
+            clearTimeout(this.timeout); // improve (temp solution)
             this.inViewport = false;
 
             if (!this.props.group) {
@@ -140,6 +80,8 @@ export default class Animatable extends Component {
 
     componentDidUpdate() {
         this.manager.paused = this.props.paused;
+
+        for (const child of this.children) child.manager.paused = this.props.paused;
     }
 
     dispatch(e) {
@@ -200,8 +142,8 @@ export default class Animatable extends Component {
         }
     }
 
-    play(animation, { reverse = false, composite = false, immediate = false, delay = 0, callback } = {}, cascade = false) {
-        if (!animation || this.props.disabled || (this.props.group > 0 && !cascade)) return;
+    play(animation, { reverse = false, composite = false, immediate = false, delay = 0, callback } = {}, delegate = false) {
+        if (!animation || this.props.disabled || (this.props.group > 0 && !delegate)) return;
         if (!is.string(animation)) animation = 'default';
 
         this.dispatch('onAnimationStart');
@@ -210,17 +152,20 @@ export default class Animatable extends Component {
 
         // also implement stagger for direct animatable children (child.props.group)
         let parentDelay = 0;
-        for (const child of this.children) { // maybe implement recursive implementation with children per Animatable, instead of all children belonging to top parent Animatable
+        for (const child of this.children) {
             parentDelay = Math.max(parentDelay, child.play(animation, { reverse, immediate, delay: delay + duration }, true));
         }
 
         this.manager.play(clip, { reverse, composite, immediate, delay: reverse ? parentDelay : delay });
 
-        if (!this.props.group) setTimeout(() => {
-            this.dispatch('onAnimationEnd');
-            if (is.function(callback)) callback();
-        }, ((reverse ? duration : 0) + parentDelay) * 1000); // NOT CORRECT (currently not cancellable, for re-render causes duplicate events)
-        
+        if (immediate) clearTimeout(this.timeout); // improve (temp solution)
+        if (!this.props.group) {
+            this.timeout = setTimeout(() => {
+                this.dispatch('onAnimationEnd');
+                if (is.function(callback)) callback();
+            }, (parentDelay + duration) * 1000);
+        }
+
         return duration + (reverse ? parentDelay : delay);
     }
 
@@ -228,25 +173,25 @@ export default class Animatable extends Component {
         this.manager.clear();
     }
 
-    prerender(children, level = 0, domLevel = 0) { // maybe only parse first layer of child Animatable objects per parent (see play implementation)
+    prerender(children, isDirectChild = true, isParent = true) {
         return Children.map(children, (child, i) => {
             if (!isValidElement(child)) return child;
 
             const props = { pathLength: 1 };
+            if (isDirectChild) props.ref = el => this.elements[i] = el;
 
-            isAnimatable: if (Animatable.isInstance(child)) {
-                if (this.props.group > 0 || child.props.noCascade) break isAnimatable;
-
-                props.group = ++level;
-
+            if (Animatable.isInstance(child) && isParent && !child.props.noCascade) {
                 const i = this.childIndex++;
+                isParent = false;
+
+                props.group = this.props.group + 1;
                 props.ref = el => this.children[i] = el;
+
                 mergeObjects(props, this.props, ['animate', 'initial', 'animations', 'stagger']); // OPTIMIZE
                 mergeObjects(props, child.props, ['animate', 'initial', 'animations', 'stagger']); // OPTIMIZE
-            } else
-                if (!domLevel) props.ref = el => this.elements[i] = el;
+            }
 
-            return cloneElement(child, props, this.prerender(child.props.children, level, domLevel + 1));
+            return cloneElement(child, props, this.prerender(child.props.children, false, isParent));
         });
     }
 
@@ -260,7 +205,7 @@ export default class Animatable extends Component {
         group: 0,
         viewportMargin: 0.75,
         lazy: true,
-        paused: false, // cascade this live to children
+        paused: false,
     }
 
 }

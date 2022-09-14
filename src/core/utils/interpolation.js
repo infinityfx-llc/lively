@@ -1,3 +1,4 @@
+import Clip from '../clip';
 import { is } from './helper';
 
 export const interpolate = (a, b, t, func) => {
@@ -30,4 +31,30 @@ export const spring = (a, b, t) => {
 
     t = 1 - amplitude * Math.exp(-decay * t) * Math.cos(frequency * Math.pow(t, 2) * Math.PI);
     return linear(a, b, t);
+};
+
+export const computeMorph = (next, prev, properties, duration = 1) => {
+
+    const props = { duration, origin: { x: 0, y: 0 } }, initial = {};
+    for (const prop of properties) { // OPTIMIZE
+        if (prop == 'scale') {
+            props.scale = { x: 1, y: 1 };
+            initial.scale = {
+                x: 1 + (prev.layout.width - next.layout.width) / next.layout.width,
+                y: 1 + (prev.layout.height - next.layout.height) / next.layout.height
+            };
+        } else
+            if (prop == 'translate') {
+                props.translate = { x: 0, y: 0 };
+                initial.translate = {
+                    x: prev.layout.x - next.layout.x,
+                    y: prev.layout.y - next.layout.y
+                };
+            } else {
+                props[prop] = next[prop];
+                initial[prop] = prev[prop];
+            }
+    }
+
+    return new Clip(props, initial);
 };

@@ -1,5 +1,7 @@
-import { TRANSFORMS } from '../globals';
-import { strToRgba, styleToArr } from './convert';
+import { MORPH_PROPERTIES, TRANSFORMS } from '../globals';
+import { convert, strToRgba, styleToArr } from './convert';
+
+export const tag = () => Math.random().toString(16).slice(2, 10);
 
 export const xor = (a, b) => (a && !b) || (!a && b);
 
@@ -38,29 +40,29 @@ export const is = {
     color: val => is.object(val) && 'r' in val
 };
 
+export const decomposeTransform = transform => {
+    const m = new DOMMatrix(transform);
+
+    const x = Math.sqrt(m.a * m.a + m.b * m.b) * Math.sign(m.a);
+    const y = Math.sqrt(m.c * m.c + m.d * m.d) * Math.sign(m.d);
+    const skew = Math.atan2(m.d, m.c) * 180 / Math.PI - 90;
+    const rotate = Math.atan2(m.b, m.a) * 180 / Math.PI;
+
+    return {
+        translate: { x: m.e, y: m.f },
+        scale: { x, y },
+        rotate,
+        skew: { x: skew, y: 0 }
+    };
+};
+
 export const getProperty = (el, prop) => {
     const styles = getComputedStyle(el);
 
-    if (TRANSFORMS.includes(prop)) {
-        const m = new DOMMatrix(styles.transform);
+    const transform = decomposeTransform(styles.transform);
+    if (prop in transform) return convert(transform[prop], prop);
 
-        switch (prop) {
-            case 'translate': return { x: [m.e, 'px'], y: [m.f, 'px'] };
-            case 'scale':
-                return {
-                    x: [Math.sqrt(m.a * m.a + m.b * m.b) * 100 * Math.sign(m.a), '%'],
-                    y: [Math.sqrt(m.c * m.c + m.d * m.d) * 100 * Math.sign(m.c), '%']
-                };
-            case 'rotate':
-            case 'skew':
-                const skew = Math.atan2(m.d, m.c) * 180 / Math.PI - 90;
-                const angle = Math.atan2(m.b, m.a) * 180 / Math.PI;
-
-                return prop === 'rotate' ? [angle, 'deg'] : { x: [skew, 'deg'], y: [0, 'deg'] };
-        }
-    }
-
-    // parse custom properties here aswell
+    // parse custom properties here aswell (clip, length, etc.)
 
     const val = styles[prop];
     if (is.rgb(val)) return strToRgba(val);
@@ -68,7 +70,21 @@ export const getProperty = (el, prop) => {
     return styleToArr(val);
 };
 
+export const getSnapshot = el => {
+    const { x, y, width, height } = el.getBoundingClientRect();
+    const styles = getComputedStyle(el);
+
+    const props = {};
+    for (const prop of MORPH_PROPERTIES) props[prop] = styles[prop]; // OPTIMIZE
+    Object.assign(props, decomposeTransform(styles.transform));
+    props.layout = { x, y, width, height };
+
+    return props;
+};
+
 export const padArray = (arr, len) => new Array(len).fill(0).map((_, i) => i < arr.length ? arr[i] : arr[arr.length - 1]);
+
+export const subArray = (arr, sub) => arr.filter(val => !sub.includes(val));
 
 export const mergeObjects = (a, b, keys = Object.keys(b)) => {
     for (const key of keys) {

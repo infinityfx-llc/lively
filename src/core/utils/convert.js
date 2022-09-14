@@ -4,7 +4,7 @@ import { hasSomeKey, is } from './helper';
 export const convert = (val, prop, sub = false) => {
     if (is.null(val)) return null;
 
-    if (prop === 'scale' && !sub && !is.object(val)) val = { x: val, y: val };
+    if (prop === 'scale' && !sub && !is.object(val)) val = { x: val, y: val }; // OPTIMIZE
     if (is.object(val)) {
         let keys = Object.keys(val);
 

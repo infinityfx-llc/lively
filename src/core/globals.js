@@ -21,3 +21,5 @@ export const DEFAULTS = { // implement defaults for custom properties such as le
     b: [127, null],
     a: [255, null]
 };
+
+export const MORPH_PROPERTIES = ['translate', 'scale', 'rotate', 'opacity', 'borderRadius', 'backgroundColor', 'color'];

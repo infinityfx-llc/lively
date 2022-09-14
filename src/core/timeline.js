@@ -1,6 +1,6 @@
 import { DEFAULTS, TRANSFORMS } from './globals';
-import { Alias, arrToStyle, objToStr, styleToArr } from './utils/convert';
-import { is, merge, mergeProperties } from './utils/helper';
+import { Alias, arrToStyle, objToStr } from './utils/convert';
+import { getProperty, is, merge, mergeProperties } from './utils/helper';
 
 export default class Timeline {
 
@@ -16,11 +16,9 @@ export default class Timeline {
 
     purge() {
         if (!('cache' in this.element)) {
-            const styles = getComputedStyle(this.element); // OPTIMIZE
-
             this.element.cache = {
                 strokeDasharray: 1,
-                borderRadius: styleToArr(styles.borderRadius), // dont apply this on cache hydration
+                borderRadius: getProperty(this.element, 'borderRadius'), // dont apply this on cache hydration
             };
 
             for (let i = 0; i < this.element.style.length; i++) { // also parse transforms here
@@ -86,6 +84,7 @@ export default class Timeline {
                         const r = properties.borderRadius || el.cache.borderRadius; // WIP
                         el.style.borderRadius = `${r[0] / val.x[0]}${r[1]} / ${r[0] / val.y[0]}${r[1]}`;
                         // potentially correct other things as well
+                        delete properties.borderRadius; // maybe?
                     }
 
                     if (el.correction) val = merge(val, el.correction, (a, b) => a * b); // OPTIMIZE

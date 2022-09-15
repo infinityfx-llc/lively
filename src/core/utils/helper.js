@@ -1,4 +1,4 @@
-import { MORPH_PROPERTIES, TRANSFORMS } from '../globals';
+import { MERGE_FUNCTIONS, MORPH_PROPERTIES } from '../globals';
 import { convert, strToRgba, styleToArr } from './convert';
 
 export const tag = () => Math.random().toString(16).slice(2, 10);
@@ -74,10 +74,9 @@ export const getSnapshot = el => {
     const { x, y, width, height } = el.getBoundingClientRect();
     const styles = getComputedStyle(el);
 
-    const props = {};
+    const props = { layout: { x, y, width, height } };
     for (const prop of MORPH_PROPERTIES) props[prop] = styles[prop]; // OPTIMIZE
     Object.assign(props, decomposeTransform(styles.transform));
-    props.layout = { x, y, width, height };
 
     return props;
 };
@@ -94,13 +93,6 @@ export const mergeObjects = (a, b, keys = Object.keys(b)) => {
     return a;
 };
 
-const MergeFunctions = { // OPTIMIZE
-    translate: (a, b) => a + b,
-    rotate: (a, b) => a + b,
-    scale: (a, b) => a * b,
-    default: (a, b) => (a + b) / 2
-};
-
 export const merge = (a, b, func) => {
     if (is.object(a)) {
         const object = {};
@@ -115,7 +107,8 @@ export const merge = (a, b, func) => {
 
 export const mergeProperties = (aggregate, props) => {
     for (const prop in props) {
-        const func = MergeFunctions[prop] || MergeFunctions.default;
+        const func = MERGE_FUNCTIONS[prop] || MERGE_FUNCTIONS.default;
+
         aggregate[prop] = prop in aggregate ? merge(aggregate[prop], props[prop], func) : props[prop];
     }
 };

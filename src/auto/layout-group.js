@@ -1,7 +1,7 @@
 import { Children, cloneElement, Component, isValidElement } from 'react';
 import Animatable from '../animatable';
 import { MORPH_PROPERTIES } from '../core/globals';
-import { getSnapshot, subArray, tag } from '../core/utils/helper';
+import { getSnapshot, subArray } from '../core/utils/helper';
 import { computeMorph } from '../core/utils/interpolation';
 
 export default class LayoutGroup extends Component {
@@ -36,7 +36,7 @@ export default class LayoutGroup extends Component {
             const prev = snapshot[i];
             if (!prev || child.props.layoutKey !== prev.key) continue;
 
-            const next = getSnapshot(child.elements[0]); // check if works for random deletion of children
+            const next = getSnapshot(child.elements[0]);
             child.manager.play(computeMorph(next, prev.data, this.properties), { composite: true }); // WIP maybe dont use manager directly
 
             j++;

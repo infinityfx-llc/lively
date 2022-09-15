@@ -36,7 +36,10 @@ export default class Clip {
             if (is.function(val)) continue;
 
             val = is.array(val) ? val : [val];
-            val.length < 2 ? val.unshift(prop in initials ? initials[prop] : null) : initials[prop] = val[0];
+            if (val.length < 2) {
+                val.unshift(prop in initials ? initials[prop] : null)
+            } else
+            if (!is.null(val[0])) initials[prop] = val[0];
 
             const arr = val.map(val => this.sanitize(val, prop));
             for (let i = 0; i < arr.length; i++) this.quantize(arr, i);

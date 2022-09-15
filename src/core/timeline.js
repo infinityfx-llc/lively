@@ -1,4 +1,4 @@
-import { DEFAULTS, TRANSFORMS } from './globals';
+import { DEFAULT_OBJECTS, MERGE_FUNCTIONS, TRANSFORMS } from './globals';
 import { Alias, arrToStyle, objToStr } from './utils/convert';
 import { getProperty, is, merge, mergeProperties } from './utils/helper';
 
@@ -21,7 +21,7 @@ export default class Timeline {
                 borderRadius: getProperty(this.element, 'borderRadius'), // dont apply this on cache hydration
             };
 
-            for (let i = 0; i < this.element.style.length; i++) { // also parse transforms here
+            for (let i = 0; i < this.element.style.length; i++) {
                 const prop = this.element.style[i];
                 this.element.cache[prop] = this.element.style[prop];
             }
@@ -53,7 +53,7 @@ export default class Timeline {
     step(dt) {
         if (!this.playing) return;
 
-        const props = this.element.correction ? { scale: DEFAULTS.scale } : {}; // OPTIMIZE
+        const props = this.element.correction ? { scale: DEFAULT_OBJECTS.scale } : {}; // OPTIMIZE
         const len = this.tracks.length + (+!this.channel.isEmpty); // OPTIMIZE
 
         for (let i = 0; i < len; i++) {
@@ -75,24 +75,25 @@ export default class Timeline {
         for (const prop in properties) {
             let val = properties[prop];
 
-            if (TRANSFORMS.includes(prop)) {
-                if (prop == 'scale') {
-                    if (this.layout) {
-                        const correction = { x: [1 / val.x[0], val.x[1]], y: [1 / val.y[0], val.y[1]] };
-                        for (const child of el.children) child.correction = correction;
+            if (prop == 'scale') {
+                if (this.layout) {
+                    const correction = { x: [1 / val.x[0], val.x[1]], y: [1 / val.y[0], val.y[1]] };
+                    for (const child of el.children) child.correction = correction;
 
-                        const r = properties.borderRadius || el.cache.borderRadius; // WIP
-                        el.style.borderRadius = `${r[0] / val.x[0]}${r[1]} / ${r[0] / val.y[0]}${r[1]}`;
-                        // potentially correct other things as well
-                        delete properties.borderRadius; // maybe?
-                    }
-
-                    if (el.correction) val = merge(val, el.correction, (a, b) => a * b); // OPTIMIZE
+                    const r = properties.borderRadius || el.cache.borderRadius; // WIP
+                    delete properties.borderRadius; // maybe?
+                    
+                    el.style.borderRadius = `${r[0] / val.x[0]}${r[1]} / ${r[0] / val.y[0]}${r[1]}`;
+                    // potentially correct other things as well
                 }
 
+                if (el.correction) val = merge(val, el.correction, MERGE_FUNCTIONS.scale);
+            }
+
+            if (TRANSFORMS.includes(prop)) {
                 val = `${prop}(${is.object(val) ? objToStr(val, ', ', ['x', 'y']) : arrToStyle(val)})`;
 
-                transform.push(val); // use aliases (and maybe allow for 3d transforms)
+                transform.push(val);
                 continue;
             }
 

@@ -1,4 +1,4 @@
-import { DEFAULTS, PARSABLE_OBJECTS, UNITLESS, UNITS } from '../globals';
+import { DEFAULT_OBJECTS, DEFAULT_UNITS, PARSABLE_OBJECTS, UNITS } from '../globals';
 import { hasSomeKey, is } from './helper';
 
 export const convert = (val, prop, sub = false) => {
@@ -17,7 +17,7 @@ export const convert = (val, prop, sub = false) => {
 
         val = { ...val }; // CHECK
         for (const key of keys) {
-            const def = prop in DEFAULTS ? DEFAULTS[prop][key] : DEFAULTS[key];
+            const def = prop in DEFAULT_OBJECTS ? DEFAULT_OBJECTS[prop][key] : DEFAULT_OBJECTS[key];
             val[key] = key in val ? convert(val[key], prop, true) : def;
         }
 
@@ -83,7 +83,7 @@ export const arrToStyle = arr => {
     return (arr[1] == '%' ? arr[0] * 100 : arr[0]) + (is.null(arr[1]) ? '' : arr[1]);
 };
 
-export const Units = {
+export const Units = { // implement % conversion
     emtopx: (val, el = document.body) => val * parseFloat(getComputedStyle(el).fontSize),
     remtopx: val => Units.emtopx(val),
     vwtopx: val => val * window.innerWidth,
@@ -91,13 +91,7 @@ export const Units = {
     vmintopx: val => val * Math.min(window.innerWidth, window.innerHeight),
     vmaxtopx: val => val * Math.max(window.innerWidth, window.innerHeight),
     radtodeg: val => val * 180 / Math.PI,
-    fromProperty: prop => {
-        if (['rotate', 'skew'].includes(prop)) return 'deg'; // LOOK INTO USING MAP INSTEAD
-        if (['clip', 'scale'].includes(prop)) return '%'; // LOOK INTO USING MAP INSTEAD
-        if (UNITLESS.includes(prop)) return null; // LOOK INTO USING MAP INSTEAD
-
-        return 'px';
-    },
+    fromProperty: prop => prop in DEFAULT_UNITS ? DEFAULT_UNITS[prop] : DEFAULT_UNITS.default,
     toBase: (val, prop, el) => {
         if (is.object(val)) {
             const object = {};
@@ -115,12 +109,13 @@ export const Units = {
         return conversion ? [conversion(val[0], el), unit] : val;
     },
     normalize: (unit, prop) => {
-        if (is.null(unit) && UNITLESS.includes(prop)) return unit;
-        if (UNITS.includes(unit)) return unit;
+        if (UNITS.includes(unit) || (is.null(unit) && prop in DEFAULT_UNITS)) return unit;
 
         return Units.fromProperty(prop);
     }
 };
+
+const clipPath = val => `inset(${objToStr(val, ' ', ['top', 'right', 'bottom', 'left'])})`;
 
 export const Alias = { // OPTIMIZE
     origin: ['transformOrigin'],
@@ -128,6 +123,6 @@ export const Alias = { // OPTIMIZE
     clip: ['clipPath', 'webkitClipPath'],
     transformOrigin: val => `${val.x * 100}% ${val.y * 100}%`,
     strokeDashoffset: val => 1 - val[0],
-    clipPath: val => `inset(${objToStr(val, ' ', ['top', 'right', 'bottom', 'left'])})`,
-    webkitClipPath: val => Alias.clipPath(val)
+    clipPath,
+    webkitClipPath: clipPath
 };

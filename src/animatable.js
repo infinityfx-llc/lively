@@ -51,7 +51,7 @@ export default class Animatable extends Component {
         this.eventListener = this.onEvent.bind(this);
         onAny(Animatable.events, this.elements, this.eventListener);
 
-        this.manager.set(this.elements);
+        this.manager.set(this.elements); // maybe on component update update this aswell
         this.manager.paused = this.props.paused; // OPTIMIZE
         this.manager.register();
         this.update();

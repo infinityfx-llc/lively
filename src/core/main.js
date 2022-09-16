@@ -23,7 +23,8 @@ export default class Lively {
     }
 
     add(manager) {
-        this.managers.push(manager);
+        const i = this.managers.findIndex(val => val.priority >= manager.priority); // TEMP SOLUTION
+        this.managers.splice(i < 0 ? 0 : i, 0, manager);
     }
 
     remove(manager) {

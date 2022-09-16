@@ -3,17 +3,18 @@ import Timeline from './timeline';
 
 export default class AnimationManager {
 
-    constructor(stagger, useCulling, useLayout) {
+    constructor({ priority = 0, stagger = 0.1, culling = true, noDeform = false }) {
         this.targets = [];
 
+        this.priority = priority;
         this.stagger = stagger;
-        this.useCulling = useCulling; // OPTIMIZE
-        this.useLayout = useLayout; // OPTIMIZE
+        this.culling = culling; // OPTIMIZE
+        this.noDeform = noDeform; // OPTIMIZE
         this.paused = false;
     }
 
     register() {
-        Lively.get().add(this);
+        Lively.get().add(this); // maybe add Animatable group prop here as well and use as index into priority array to fix scale correction flicker
     }
 
     destroy() {
@@ -31,7 +32,7 @@ export default class AnimationManager {
     }
 
     set(elements) {
-        this.targets = elements.map(el => new Timeline(el, this.useCulling, this.useLayout));
+        this.targets = elements.map(el => new Timeline(el, this.culling, this.noDeform));
     }
 
     play(clip, options) {

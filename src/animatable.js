@@ -1,6 +1,5 @@
 // TODO:
 // allow for links to be used in objects such as link per scale component { x: link, y: link }
-// implement layoutgroup component that detects changes in layout
 
 import { Children, cloneElement, Component, isValidElement } from 'react';
 import Clip from './core/clip';
@@ -16,6 +15,7 @@ export default class Animatable extends Component {
     }
 
     static events = ['click', 'mouseenter', 'mouseleave', 'focus', 'blur'];
+    static cascadingProps = ['animate', 'initial', 'animations', 'stagger'];
 
     constructor(props) {
         super(props);
@@ -28,7 +28,12 @@ export default class Animatable extends Component {
         this.children = [];
         this.elements = [];
         this.stagger = this.props.stagger || 0.1;
-        this.manager = new AnimationManager(this.stagger, this.props.lazy, this.props.useLayout);
+        this.manager = new AnimationManager({
+            priority: this.props.group,
+            stagger: this.stagger,
+            culling: this.props.lazy,
+            noDeform: this.props.noDeform
+        });
     }
 
     parse(properties) {
@@ -43,8 +48,8 @@ export default class Animatable extends Component {
     }
 
     componentDidMount() {
-        this.resizeEventListener = debounce(this.update.bind(this));
-        addEventListener('resize', this.resizeEventListener);
+        // this.resizeEventListener = debounce(this.update.bind(this)); // Probably dont need this
+        // addEventListener('resize', this.resizeEventListener);
         this.scrollEventListener = throttle(this.onScroll.bind(this));
         addEventListener('scroll', this.scrollEventListener);
 
@@ -70,7 +75,7 @@ export default class Animatable extends Component {
     }
 
     componentWillUnmount() {
-        removeEventListener('resize', this.resizeEventListener);
+        // removeEventListener('resize', this.resizeEventListener);
         removeEventListener('scroll', this.scrollEventListener);
 
         offAny(Animatable.events, this.elements, this.eventListener);
@@ -187,8 +192,8 @@ export default class Animatable extends Component {
                 props.group = this.props.group + 1;
                 props.ref = el => this.children[i] = el;
 
-                mergeObjects(props, this.props, ['animate', 'initial', 'animations', 'stagger']); // OPTIMIZE
-                mergeObjects(props, child.props, ['animate', 'initial', 'animations', 'stagger']); // OPTIMIZE
+                mergeObjects(props, this.props, this.constructor.cascadingProps); // OPTIMIZE
+                mergeObjects(props, child.props, this.constructor.cascadingProps); // OPTIMIZE
             }
 
             return cloneElement(child, props, this.prerender(child.props.children, false, isParent));

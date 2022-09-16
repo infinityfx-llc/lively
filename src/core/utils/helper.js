@@ -1,8 +1,6 @@
 import { MERGE_FUNCTIONS, MORPH_PROPERTIES } from '../globals';
 import { convert, strToRgba, styleToArr } from './convert';
 
-export const tag = () => Math.random().toString(16).slice(2, 10);
-
 export const xor = (a, b) => (a && !b) || (!a && b);
 
 export const hasKeys = (obj, n) => Object.keys(obj).length === n;

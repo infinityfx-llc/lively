@@ -4,14 +4,14 @@ import { getProperty, is, merge, mergeProperties } from './utils/helper';
 
 export default class Timeline {
 
-    constructor(element, useCulling = true, useLayout = false) {
+    constructor(element, culling, layout) {
         this.element = element;
         this.tracks = [];
         this.queue = [];
 
         this.playing = true;
-        this.culling = useCulling;
-        this.layout = useLayout;
+        this.culling = culling;
+        this.layout = layout;
     }
 
     purge() {

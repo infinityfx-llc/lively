@@ -38,6 +38,7 @@ export default class LayoutGroup extends Component {
 
             const next = getSnapshot(child.elements[0]);
             child.manager.play(computeMorph(next, prev.data, this.properties), { composite: true }); // WIP maybe dont use manager directly
+            // implement manager.forceUpdate to update animation without animationFrame (maybe no necessary?)
 
             j++;
         }

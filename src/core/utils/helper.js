@@ -7,6 +7,25 @@ export const hasKeys = (obj, n) => Object.keys(obj).length === n;
 
 export const hasSomeKey = (obj, keys) => Object.keys(obj).some(val => keys.includes(val));
 
+export const inViewport = (boundingBox, margin = 0) => {
+    const { y, bottom } = boundingBox;
+    const h = bottom - y;
+
+    return {
+        left: y > window.innerHeight + h * margin,
+        entered: y + h * margin < window.innerHeight
+    };
+};
+
+export const isVisible = el => {
+    const { x, y, right, bottom } = el.getBoundingClientRect();
+    const w = right - x;
+    const h = bottom - y;
+    if (w < 1 || h < 1) return false;
+
+    return y < window.innerHeight && bottom > 0 && x < window.innerWidth && right > 0;
+};
+
 export const is = {
     null: val => typeof val === 'undefined' || val === null,
     array: val => Array.isArray(val),
@@ -16,23 +35,6 @@ export const is = {
     bool: val => typeof val === 'boolean',
     number: val => typeof val === 'number',
     empty: obj => hasKeys(obj, 0),
-    inViewport: (boundingBox, margin = 0) => {
-        const { y, bottom } = boundingBox;
-        const h = bottom - y;
-
-        return {
-            left: y > window.innerHeight + h * margin,
-            entered: y + h * margin < window.innerHeight
-        };
-    },
-    visible: el => {
-        const { x, y, right, bottom } = el.getBoundingClientRect();
-        const w = right - x;
-        const h = bottom - y;
-        if (w < 1 || h < 1) return false;
-
-        return y < window.innerHeight && bottom > 0 && x < window.innerWidth && right > 0;
-    },
     rgb: val => val.match(/^rgba?\(.*\)$/i),
     hex: val => val.match(/^#[0-9a-f]{3,8}$/i),
     color: val => is.object(val) && 'r' in val
@@ -113,14 +115,6 @@ export const mergeProperties = (aggregate, props) => {
 
         aggregate[prop] = prop in aggregate ? merge(aggregate[prop], props[prop], func) : props[prop];
     }
-};
-
-export const debounce = (cb, ms = 250) => {
-    return () => {
-        clearTimeout(cb.LivelyTimeout);
-
-        cb.LivelyTimeout = setTimeout(cb, ms);
-    };
 };
 
 export const throttle = (cb, ms = 250) => {

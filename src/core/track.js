@@ -1,5 +1,5 @@
 import { convert, Units } from './utils/convert';
-import { getProperty, is, xor } from './utils/helper';
+import { getProperty, is, isVisible, xor } from './utils/helper';
 import * as Interpolate from './utils/interpolation';
 
 export default class Track {
@@ -64,7 +64,7 @@ export default class Track {
 
     get(element, cull = true) {
         const properties = {}, end = this.t >= this.T;
-        if (this.t < this.delay || (cull && !end && !is.visible(element))) return properties;
+        if (this.t < this.delay || (cull && !end && !isVisible(element))) return properties;
 
         let t = this.t - this.delay, d = this.clip.duration;
         const isAlt = this.alternate && Math.floor(t / d) % 2 == +!end; // Make more readable and check for correctness

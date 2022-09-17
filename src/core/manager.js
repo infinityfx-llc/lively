@@ -3,14 +3,14 @@ import Timeline from './timeline';
 
 export default class AnimationManager {
 
-    constructor({ priority = 0, stagger = 0.1, culling = true, noDeform = false }) {
+    constructor({ priority = 0, stagger = 0.1, culling = true, noDeform = false, paused = false }) {
         this.targets = [];
 
         this.priority = priority;
         this.stagger = stagger;
         this.culling = culling; // OPTIMIZE
         this.noDeform = noDeform; // OPTIMIZE
-        this.paused = false;
+        this.paused = paused;
     }
 
     register() {

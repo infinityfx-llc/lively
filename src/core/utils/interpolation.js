@@ -48,8 +48,8 @@ export const computeMorph = (next, prev, properties, duration = 1) => {
                 props.translate = { x: 0, y: 0 };
 
                 initial.translate = {
-                    x: (prev.layout.x - next.layout.x) * prev.layout.parentWidth,
-                    y: (prev.layout.y - next.layout.y) * prev.layout.parentHeight
+                    x: (prev.layout.x - next.layout.x) * next.layout.parentWidth,
+                    y: (prev.layout.y - next.layout.y) * next.layout.parentHeight
                 };
             } else {
                 props[prop] = next[prop];

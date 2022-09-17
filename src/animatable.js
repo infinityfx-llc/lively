@@ -6,7 +6,7 @@ import Clip from './core/clip';
 import AnimationManager from './core/manager';
 import Animation from './animations/animation';
 import { addEventListener, offAny, onAny, removeEventListener } from './core/utils/events';
-import { debounce, is, mergeObjects, throttle } from './core/utils/helper';
+import { inViewport, is, mergeObjects, throttle } from './core/utils/helper';
 
 export default class Animatable extends Component {
 
@@ -32,7 +32,8 @@ export default class Animatable extends Component {
             priority: this.props.group,
             stagger: this.stagger,
             culling: this.props.lazy,
-            noDeform: this.props.noDeform
+            noDeform: this.props.noDeform,
+            paused: this.props.paused
         });
     }
 
@@ -43,27 +44,23 @@ export default class Animatable extends Component {
     }
 
     update() {
+        this.manager.clear();
         this.manager.purge();
         this.manager.initialize(this.animations.default);
     }
 
     componentDidMount() {
-        // this.resizeEventListener = debounce(this.update.bind(this)); // Probably dont need this
-        // addEventListener('resize', this.resizeEventListener);
         this.scrollEventListener = throttle(this.onScroll.bind(this));
         addEventListener('scroll', this.scrollEventListener);
-
         this.eventListener = this.onEvent.bind(this);
         onAny(Animatable.events, this.elements, this.eventListener);
 
         this.manager.set(this.elements); // maybe on component update update this aswell
-        this.manager.paused = this.props.paused; // OPTIMIZE
         this.manager.register();
         this.update();
 
         document.fonts.ready.then(() => {
             this.update();
-            this.manager.clear();
             clearTimeout(this.timeout); // improve (temp solution)
             this.inViewport = false;
 
@@ -75,9 +72,7 @@ export default class Animatable extends Component {
     }
 
     componentWillUnmount() {
-        // removeEventListener('resize', this.resizeEventListener);
         removeEventListener('scroll', this.scrollEventListener);
-
         offAny(Animatable.events, this.elements, this.eventListener);
 
         this.manager.destroy();
@@ -132,7 +127,7 @@ export default class Animatable extends Component {
     onScroll() {
         if (!this.props.whileViewport) return;
 
-        const { entered, left } = is.inViewport(this.getBoundingBox(), this.props.viewportMargin);
+        const { entered, left } = inViewport(this.getBoundingBox(), this.props.viewportMargin);
 
         if (entered && !this.inViewport) {
             this.inViewport = true;
@@ -179,11 +174,12 @@ export default class Animatable extends Component {
     }
 
     prerender(children, isDirectChild = true, isParent = true) {
-        return Children.map(children, (child, i) => {
+        return Children.map(children, child => {
             if (!isValidElement(child)) return child;
 
             const props = { pathLength: 1 };
-            if (isDirectChild) props.ref = el => this.elements[i] = el; // incorrect don't use i
+            const i = this.elementIndex++;
+            if (isDirectChild) props.ref = el => this.elements[i] = el;
 
             if (Animatable.isInstance(child) && isParent && !child.props.noCascade) {
                 const i = this.childIndex++;
@@ -193,8 +189,7 @@ export default class Animatable extends Component {
                 props.ref = el => this.children[i] = el;
                 if (!this.props.group) props.active = this.props.active; // TESTING
 
-                mergeObjects(props, this.props, this.constructor.cascadingProps); // OPTIMIZE
-                mergeObjects(props, child.props, this.constructor.cascadingProps); // OPTIMIZE
+                mergeObjects(props, { ...this.props, ...child.props }, this.constructor.cascadingProps); // OPTIMIZE
             }
 
             return cloneElement(child, props, this.prerender(child.props.children, false, isParent));
@@ -202,7 +197,7 @@ export default class Animatable extends Component {
     }
 
     render() {
-        this.childIndex = 0;
+        this.elementIndex = this.childIndex = 0;
 
         return this.prerender(this.props.children);
     }

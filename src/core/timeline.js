@@ -70,7 +70,7 @@ export default class Timeline {
     apply(el, properties) {
         if (is.empty(properties)) return;
 
-        const transform = [];
+        let transform = [];
 
         for (const prop in properties) {
             let val = properties[prop];
@@ -90,10 +90,9 @@ export default class Timeline {
                 if (el.correction) val = merge(val, el.correction, MERGE_FUNCTIONS.scale);
             }
 
-            if (TRANSFORMS.includes(prop)) {
-                val = `${prop}(${is.object(val) ? objToStr(val, ', ', ['x', 'y']) : arrToStyle(val)})`;
-
-                transform.push(val);
+            const idx = TRANSFORMS.indexOf(prop);
+            if (idx >= 0) {
+                transform[idx] = `${prop}(${is.object(val) ? objToStr(val, ', ', ['x', 'y']) : arrToStyle(val)})`;
                 continue;
             }
 
@@ -107,7 +106,7 @@ export default class Timeline {
             }
         }
 
-        if (transform.length) el.style.transform = transform.join(' ');
+        if ((transform = transform.filter(val => !!val)).length) el.style.transform = transform.join(' ');
     }
 
     initialize(clip) {

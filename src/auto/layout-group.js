@@ -10,7 +10,7 @@ export default class LayoutGroup extends Component {
         super(props);
 
         this.children = [];
-        this.properties = subArray(this.props.include, this.props.ignore);
+        this.properties = subArray(this.props.include, this.props.exclude);
     }
 
     getSnapshotBeforeUpdate() {
@@ -24,23 +24,19 @@ export default class LayoutGroup extends Component {
     }
 
     componentDidUpdate(_1, _2, snapshot) {
-        let j = 0;
-
-        for (let i = 0; i < snapshot.length; i++) { // WIP
+        for (let i = 0, j = 0; i < snapshot.length; i++, j++) { // WIP
             const child = this.children[j];
-            if (!child || !child.elements[0]) {
-                j++;
+            if (!child || !child.elements[0]) continue;
+
+            const prev = snapshot[i];
+            if (!prev || child.props.layoutKey !== prev.key) {
+                j--;
                 continue;
             }
 
-            const prev = snapshot[i];
-            if (!prev || child.props.layoutKey !== prev.key) continue;
-
             const next = getSnapshot(child.elements[0]);
-            child.manager.play(computeMorph(next, prev.data, this.properties), { composite: true }); // WIP maybe dont use manager directly
-            // implement manager.forceUpdate to update animation without animationFrame (maybe no necessary?)
-
-            j++;
+            child.manager.play(computeMorph(next, prev.data, this.properties, this.props.duration), { composite: true }); // WIP maybe dont use manager directly
+            // implement manager.forceUpdate to update animation without animationFrame
         }
     }
 
@@ -57,7 +53,7 @@ export default class LayoutGroup extends Component {
 
     static defaultProps = {
         include: MORPH_PROPERTIES,
-        ignore: []
+        exclude: []
     }
 
 }

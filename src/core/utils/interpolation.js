@@ -35,7 +35,7 @@ export const spring = (a, b, t) => {
 
 export const computeMorph = (next, prev, properties, duration = 1) => {
 
-    const props = { duration, origin: { x: 0, y: 0 } }, initial = {};
+    const props = { duration }, initial = {};
     for (const prop of properties) { // OPTIMIZE
         if (prop == 'scale') {
             props.scale = { x: 1, y: 1 };
@@ -46,9 +46,10 @@ export const computeMorph = (next, prev, properties, duration = 1) => {
         } else
             if (prop == 'translate') {
                 props.translate = { x: 0, y: 0 };
+
                 initial.translate = {
-                    x: prev.layout.x - next.layout.x,
-                    y: prev.layout.y - next.layout.y
+                    x: (prev.layout.x - next.layout.x) * prev.layout.parentWidth,
+                    y: (prev.layout.y - next.layout.y) * prev.layout.parentHeight
                 };
             } else {
                 props[prop] = next[prop];
@@ -58,3 +59,4 @@ export const computeMorph = (next, prev, properties, duration = 1) => {
 
     return new Clip(props, initial);
 };
+

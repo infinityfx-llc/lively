@@ -68,11 +68,15 @@ export const getProperty = (el, prop) => {
     return styleToArr(val);
 };
 
-export const getSnapshot = el => {
-    const { x, y, width, height } = el.getBoundingClientRect();
+export const getSnapshot = (el, toParent = false) => {
     const styles = getComputedStyle(el);
+    let { x, y, width, height } = el.getBoundingClientRect();
 
-    const props = { layout: { x, y, width, height } };
+    const parent = (toParent ? el.parentElement : document.body).getBoundingClientRect();
+    x = ((x - parent.x) + width / 2) / parent.width;
+    y = ((y - parent.y) + height / 2) / parent.height;
+
+    const props = { layout: { x, y, width, height, parentWidth: parent.width, parentHeight: parent.height } };
     for (const prop of MORPH_PROPERTIES) props[prop] = styles[prop]; // OPTIMIZE
     Object.assign(props, decomposeTransform(styles.transform));
 

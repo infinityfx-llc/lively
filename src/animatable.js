@@ -183,7 +183,7 @@ export default class Animatable extends Component {
             if (!isValidElement(child)) return child;
 
             const props = { pathLength: 1 };
-            if (isDirectChild) props.ref = el => this.elements[i] = el;
+            if (isDirectChild) props.ref = el => this.elements[i] = el; // incorrect don't use i
 
             if (Animatable.isInstance(child) && isParent && !child.props.noCascade) {
                 const i = this.childIndex++;
@@ -191,6 +191,7 @@ export default class Animatable extends Component {
 
                 props.group = this.props.group + 1;
                 props.ref = el => this.children[i] = el;
+                if (!this.props.group) props.active = this.props.active; // TESTING
 
                 mergeObjects(props, this.props, this.constructor.cascadingProps); // OPTIMIZE
                 mergeObjects(props, child.props, this.constructor.cascadingProps); // OPTIMIZE

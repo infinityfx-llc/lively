@@ -1,1 +1,0 @@
-import{useEffect as r}from"react";import{L as t}from"./link-5c08f046.js";import{a as n,r as o}from"./events-f324bc86.js";function c(){var c=t.create(0);return r((function(){var r=function(){return c.set(window.scrollY)};return r(),n("scroll",r),function(){return o("scroll",r)}}),[]),c}export{c as u};

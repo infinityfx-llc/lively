@@ -1,1 +1,0 @@
-export function useAnimation(initial: any): [object, Function];

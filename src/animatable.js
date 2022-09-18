@@ -206,7 +206,7 @@ export default class Animatable extends Component {
         group: 0,
         viewportMargin: 0.75,
         lazy: true,
-        paused: false,
+        paused: false
     }
 
 }

@@ -31,8 +31,6 @@ export const DEFAULT_OBJECTS = { // implement defaults for custom properties suc
     a: [255, null]
 };
 
-export const TRANSFORMS = ['translate', 'scale', 'skew', 'rotate']; // (maybe allow custom order)
-
 export const MORPH_PROPERTIES = ['translate', 'scale', 'rotate', 'opacity', 'borderRadius', 'backgroundColor', 'color', 'zIndex', 'pointerEvents'];
 
 export const MERGE_FUNCTIONS = { // OPTIMIZE

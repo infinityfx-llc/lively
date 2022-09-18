@@ -1,0 +1,1 @@
+import{useEffect as r}from"react";import{L as t}from"./link-fda65080.js";import{a as n,r as o}from"./events-ac24ef8f.js";function e(){var e=t.create(0);return r((function(){var r=function(){return e.set(window.scrollY)};return r(),n("scroll",r),function(){return o("scroll",r)}}),[]),e}export{e as u};

@@ -1,4 +1,4 @@
-import { DEFAULT_OBJECTS, MERGE_FUNCTIONS, TRANSFORMS } from './globals';
+import { DEFAULT_OBJECTS, MERGE_FUNCTIONS } from './globals';
 import { Alias, arrToStyle, objToStr } from './utils/convert';
 import { getProperty, is, merge, mergeProperties } from './utils/helper';
 
@@ -12,6 +12,7 @@ export default class Timeline {
         this.playing = true;
         this.culling = culling;
         this.layout = layout;
+        this.transforms = ['translate', 'scale', 'skew', 'rotate'];
     }
 
     purge() {
@@ -90,7 +91,7 @@ export default class Timeline {
                 if (el.correction) val = merge(val, el.correction, MERGE_FUNCTIONS.scale);
             }
 
-            const idx = TRANSFORMS.indexOf(prop);
+            const idx = this.transforms.indexOf(prop);
             if (idx >= 0) {
                 transform[idx] = `${prop}(${is.object(val) ? objToStr(val, ', ', ['x', 'y']) : arrToStyle(val)})`;
                 continue;

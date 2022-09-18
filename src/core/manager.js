@@ -14,7 +14,7 @@ export default class AnimationManager {
     }
 
     register() {
-        Lively.get().add(this); // maybe add Animatable group prop here as well and use as index into priority array to fix scale correction flicker
+        Lively.get().add(this);
     }
 
     destroy() {

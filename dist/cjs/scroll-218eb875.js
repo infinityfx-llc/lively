@@ -1,0 +1,1 @@
+"use strict";var e=require("react"),r=require("./link-964db6c5.js"),n=require("./events-d4e828a9.js");exports.useScroll=function(){var t=r.Link.create(0);return e.useEffect((function(){var e=function(){return t.set(window.scrollY)};return e(),n.addEventListener("scroll",e),function(){return n.removeEventListener("scroll",e)}}),[]),t};

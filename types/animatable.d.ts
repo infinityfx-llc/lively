@@ -18,6 +18,32 @@ interface AnimatableProps {
     viewportMargin?: number;
 
     /**
+     * Controls the order in which the component animates when part of a cascading animation.
+     */
+    group?: number;
+
+    /**
+     * Whether to pause an animation when the animated `element` is not visible on screen.
+     * 
+     * @default true
+     */
+    lazy?: boolean;
+
+    /**
+     * Whether all playing animations should be paused or not.
+     * 
+     * @default false
+     */
+    paused?: boolean;
+
+    /**
+     * Whether to correct an `element`'s children and certain of it's properties for deformations caused by scaling the `element`. 
+     * 
+     * @default false
+     */
+    noDeform?: boolean;
+
+    /**
      * Define a default animation.
      */
     animate?: AnimationProperties;
@@ -81,51 +107,51 @@ interface AnimatableProps {
      * @default false
      */
     whileFocus?: string | boolean;
-
-    /**
-     * Controls the order in which the component animates when part of a cascading animation.
-     */
-    group?: number;
 }
 
 export class Animatable extends React.Component<AnimatableProps> {
 
-    private parse;
+    /**
+     * Checks whether something is an instance of `Animatable` or a class that extends it.
+     */
+    static isInstance(val: any): boolean;
 
-    private style;
+    private parse;
 
     private update;
 
-    private inViewport;
+    private dispatch;
+
+    private onEvent;
 
     private onScroll;
 
-    private onResize;
+    private getBoundingBox;
 
-    private onEnter;
-
-    private onLeave;
-
-    private onFocus;
-
-    private onBlur;
-
-    private onClick;
-
-    play(animationName: string, { callback, reverse, immediate, cascade, groupAdjust, cascadeDelay, staggerDelay }?: {
+    /**
+     * Play an animation referenced in `this.animations`.
+     * 
+     * @param {string} animation
+     * @param {object} [options]
+     * @param {Function} [options.callback] - A callback function that gets called when the animation finishes playing.
+     * @param {boolean} [options.reverse] - Play the animation in reverse.
+     * @param {boolean} [options.composite] - Whether to play the animation simultaneously with other animations.
+     * @param {boolean} [options.immediate] - Whether to immediately play the animation, will override other playing animations when `composite` is `false`.
+     * @param {number} [options.delay] - Delay the animation by some amount in seconds.
+     */
+    play(animation: string, { callback, reverse, composite, immediate, delay }?: {
         callback?: Function;
         reverse?: boolean;
+        composite?: boolean;
         immediate?: boolean;
-        cascade?: boolean;
-        groupAdjust?: number;
-        cascadeDelay?: number;
-        staggerDelay?: number;
-    }): Promise<void>;
+        delay?: number;
+    }, delegate?: boolean): number;
 
-    private mergeProperties;
+    /**
+     * Stop playing all currently playing animations.
+     */
+    stop(): void;
 
-    private deepClone;
-    
-    private countNestedLevels;
+    private prerender;
 
 }

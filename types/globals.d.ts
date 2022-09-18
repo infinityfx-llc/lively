@@ -1,6 +1,6 @@
 import React from 'react';
 
-type PositionProperty = { x?: number; y?: number; } | string;
+type TranslateProperty = { x?: number; y?: number; } | string;
 
 type ScaleProperty = { x?: number; y?: number; } | string | number;
 
@@ -17,7 +17,7 @@ export interface AnimationInitials extends React.CSSProperties {
      * 
      * @default { x: 0, y: 0 }
      */
-    position?: PositionProperty;
+    translate?: TranslateProperty;
 
     /**
      * @default { x: 1, y: 1 }
@@ -27,7 +27,7 @@ export interface AnimationInitials extends React.CSSProperties {
     /**
      * @default 0
      */
-    rotation?: number;
+    rotate?: number | string;
 
     /**
      * @default { left: 0, top: 0, right: 0, bottom: 0 }
@@ -35,27 +35,11 @@ export interface AnimationInitials extends React.CSSProperties {
     clip?: ClipProperty;
 
     /**
-     * Whether to render the `element`.
-     * An alias for the `display` property which maps `true` to `""` and `false` to `"none"`.
-     * 
-     * @default true
-     */
-    active?: boolean;
-
-    /**
-     * Whether to allow mouse interactions with the `element`. 
-     * An alias for the `pointerEvents` property which maps `true` to `"all"` and `false` to `"none"`.
-     * 
-     * @default true
-     */
-    interact?: boolean;
-
-    /**
-     * Value between `0` and `1` which defines how much of an `<svg>` element stroke is shown.
+     * Value between `0` and `1` which defines how much of an `SVGElement`'s stroke is shown.
      * 
      * @default 1
      */
-    strokeLength?: number;
+    length?: number;
 }
 
 export interface AnimationProperties extends AnimationInitials {
@@ -95,15 +79,12 @@ export interface AnimationProperties extends AnimationInitials {
      * 
      * @default "ease"
      */
-    interpolate?: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear' | 'step-start' | 'step-end' | 'spring';
+    interpolate?: 'constant' | 'linear' | 'ease' | 'spring';
 
     /**
+     * Alias for `transform-origin`.
+     * 
      * @default { x: 0.5, y: 0.5 }
      */
     origin?: string | { x?: number, y?: number } | number;
-
-    /**
-     * @default false
-     */
-    useLayout?: boolean;
 }

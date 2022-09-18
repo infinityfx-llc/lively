@@ -1,6 +1,6 @@
 {
 	"name": "@infinityfx/lively",
-	"version": "2.0.0-beta.2",
+	"version": "2.0.0-beta.4",
 	"description": "Feature complete, lightweight react animation library.",
 	"main": "dist/cjs/index.js",
 	"module": "dist/esm/index.js",
@@ -8,8 +8,7 @@
 	"exports": {
 		".": {
 			"import": "./dist/esm/index.js",
-			"require": "./dist/cjs/index.js",
-			"types": "./types/index.d.ts"
+			"require": "./dist/cjs/index.js"
 		},
 		"./animations": {
 			"import": "./dist/esm/animations.js",
@@ -21,8 +20,7 @@
 		},
 		"./auto": {
 			"import": "./dist/esm/auto.js",
-			"require": "./dist/cjs/auto.js",
-			"types": "./types/auto.d.ts"
+			"require": "./dist/cjs/auto.js"
 		}
 	},
 	"typesVersions": {

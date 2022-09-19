@@ -13,11 +13,12 @@ Feature complete, lightweight react animation library. Lively lets u create perf
     - [Installation](#installation)
     - [Usage](#usage)
 - [Base components](#base-components)
-    - [Animatable](#animatable-animatable)
-    - [Morph](#morph-morph)
+    - [Animatable `<Animatable />`](#animatable-animatable)
+    - [Animate `<Animate />`](#animate-animate)
 - [Reactivity](#reactivity)
 - [Auto-animation](#auto-animation)
-    - [Animate `<Animate />`](#animate-animate)
+    - [LayoutGroup `<LayoutGroup />`](#layoutgroup-layoutgroup)
+    - [Morph `<Morph />`](#morph-morph)
     - [Parallax `<Parallax />`](#parallax-parallax)
     - [`WriteOn <WriteOn />`](#writeon-writeon)
     - [`ColorWipe <ColorWipe />`](#colorwipe-colorwipe)
@@ -25,9 +26,11 @@ Feature complete, lightweight react animation library. Lively lets u create perf
     - [Overview](#overview)
     - [Create your own](#create-your-own)
 - [Hooks](#hooks)
-    - [useUnmount](#useunmount)
-    - [useAnimation](#useanimation)
-    - [useScroll](#usescroll)
+    - [`useUnmount()`](#useunmount)
+    - [`useLink()`](#uselink)
+    - [`useScroll()`](#usescroll)
+    - [`usePath()`](#usepath)
+    - [`useReducedMotion()`](#usereducedmotion)
 
 ## Get started
 
@@ -40,7 +43,7 @@ $ npm i @infinityfx/lively
 ### Usage
 
 ```jsx
-import { Animate } from '@infinityfx/lively/animate';
+import { Animate } from '@infinityfx/lively';
 
 ...
 
@@ -70,12 +73,54 @@ import { Animatable } from '@infinityfx/lively';
 </Animatable>
 ```
 
+### Animate `<Animate />`
+
+Fully automatic animation based on pre-fab animations.
+
+```jsx
+import { Animate } from '@infinityfx/lively';
+import { Scale, Fade } from '@infinityfx/lively/animations';
+
+...
+
+<Animate onMount animations={[Scale({ duration: 2 }), Fade]}>
+    <div class="my-class">
+        ...
+    </div>
+</Animate>
+```
+
+## Reactivity
+
+Lively implements fully reactive animations using the [`useLink()`](#uselink) and [`useScroll()`](#usescroll) hooks.
+
+## Auto-animation
+
+### LayoutGroup `<LayoutGroup />`
+
+Animates `<Animatable />` and `<Morph />` components, that are direct children when their layout changes.
+
+```jsx
+import { Animatable } from '@infinityfx/lively';
+import { LayoutGroup } from '@infinityfx/lively/auto';
+
+...
+
+<LayoutGroup>
+    <Animatable>
+        <div class="my-class">
+            Hello world!
+        </div>
+    </Animatable>
+</LayoutGroup>
+```
+
 ### Morph `<Morph />`
 
 Morphs one element into another.
 
 ```jsx
-import { Morph } from '@infinityfx/lively';
+import { Morph } from '@infinityfx/lively/auto';
 
 ...
 
@@ -92,35 +137,12 @@ import { Morph } from '@infinityfx/lively';
 </Morph>
 ```
 
-## Reactivity
-
-Lively implements fully reactive animations using the [`useAnimation()`](#useanimation) and [`useScroll()`](#usescroll) hooks.
-
-## Auto-animation
-
-### Animate `<Animate />`
-
-Fully automatic animation based on pre-fab animations.
-
-```jsx
-import { Animate } from '@infinityfx/lively/animate';
-import { Scale, Fade } from '@infinityfx/lively/animations';
-
-...
-
-<Animate onMount animations={[Scale({ useLayout: true }), Fade]}>
-    <div class="my-class">
-        ...
-    </div>
-</Animate>
-```
-
 #### Parallax `<Parallax />`
 
 Easily create parallax motion based on page scroll position.
 
 ```jsx
-import { Parallax } from '@infinityfx/lively/animate';
+import { Parallax } from '@infinityfx/lively/auto';
 
 ...
 
@@ -134,7 +156,7 @@ import { Parallax } from '@infinityfx/lively/animate';
 ### WriteOn `<WriteOn />`
 
 ```jsx
-import { WriteOn } from '@infinityfx/lively/animate';
+import { WriteOn } from '@infinityfx/lively/auto';
 
 ...
 
@@ -144,7 +166,7 @@ import { WriteOn } from '@infinityfx/lively/animate';
 ### ColorWipe `<ColorWipe />`
 
 ```jsx
-import { ColorWipe } from '@infinityfx/lively/animate';
+import { ColorWipe } from '@infinityfx/lively/auto';
 
 ...
 
@@ -170,7 +192,7 @@ These pre-fab can be used as followed with either an `<Animate />` or `<Animatab
 
 ```jsx
 import { Move } from '@infinityfx/lively/animations';
-import { Animate } from '@infinityfx/lively/animate';
+import { Animate } from '@infinityfx/lively/auto';
 
 ...
 
@@ -195,7 +217,7 @@ import { Animatable } from '@infinityfx/lively';
 
 ### Create your own
 
-If you whish to create your own pre-fab animation, you can do so using the `.create()` method of the Animation class. This method takes a function which gets the animation configuration options passed as an argument. The function must return the animation properties/keyframes.
+If you whish to create your own pre-fab animation, you can do so using the `.create()` method of the `Animation` class. This method takes a function which gets the animation configuration options passed as an argument. The function must return the animation properties/keyframes.
 
 ```js
 import { Animation } from '@infinityfx/lively/animations';
@@ -215,7 +237,7 @@ export default myCustomAnimation;
 
 Lively comes with a set of hooks that allow for the creation of complex reactive animations.
 
-### useUnmount
+### `useUnmount()`
 
 The useUnmount hook can be used to animate out components that are being unmounted. It can be used in tandem with the `<Animatable />` and `<Animate />` components.
 
@@ -233,37 +255,37 @@ export default function Page() {
 }
 ```
 
-### useAnimation
+### `useLink()`
 
-The useAnimation hook can be used to create a reactive value, which can be linked to animation components to animate different properties based on the value.
+The useLink hook can be used to create a reactive value, which can be linked to animation components to animate different properties based on the value.
 
 ```jsx
 import { useEffect } from 'react';
-import { useAnimation } from '@infinityfx/lively/hooks';
+import { useLink } from '@infinityfx/lively/hooks';
 import { Animatable } from '@infinityfx/lively';
 
 export default function Page() {
 
-    const [value, setValue] = useAnimation(0 /* initial value */);
+    const [link, setValue] = useLink(0 /* initial value */);
 
     useEffect(() => {
         setTimeout(() => setValue(1), 1000); // set the animation value to 1, 1 second after the component has mounted.
     }, []);
 
     return <Animatable animate={{
-        opacity: value
+        opacity: link
     }}>...</Animatable>;
 
 }
 ```
 
-Additionally you can provide an animation value with a function to transform the value to a more usable format for certain animation properties.
+Additionally you can provide a link with a function to transform the value to a more usable format for certain animation properties.
 
 ```jsx
-const [value, setValue] = useAnimation(0 /* initial value */);
+const [link, setValue] = useLink(0 /* initial value */);
 
 return <Animatable animate={{
-    position: value(input => {
+    position: link(input => {
         input /= 100; // example where the input value needs to be divided for the correct output format.
 
         return { x: input, y: input }; // we return an object instead of a number for the position property.
@@ -271,14 +293,44 @@ return <Animatable animate={{
 }}>...</Animatable>;
 ```
 
-### useScroll
+### `useScroll()`
 
-The useScroll hook is an extension of the useAnimation hook which returns a reactive value that gives the current scroll position of the window.
+The `useScroll` hook is an extension of the `useLink` hook which returns a reactive value that corresponds to the current scroll position of the window.
 
 ```jsx
 const value = useScroll();
 
+// gradually fade in element when scrolling the window
 return <Animatable animate={{
-    opacity: value(val => val / document.body.scrollHeight) // gradually fade in element when scrolling the window
+    opacity: value(val => val / document.body.scrollHeight)
 }}>...</Animatable>;
+```
+
+### `usePath()`
+
+The `usePath` hook can be used to animate an element along an SVG path.
+
+```jsx
+const [link, ref] = usePath([100, 0], 2); // offset the path by 100px along the x-axis and scale it up by a factor of 2.
+
+return <>
+    <Animatable animate={{
+        translate: link
+    }}>...</Animatable>
+
+    <svg>
+        <path ref={ref} d="..." /> {/* Some svg path to reference */}
+    </svg>
+</>;
+```
+
+### `useReducedMotion()`
+
+The `useReducedMotion` hook checks whether a user prefers the use of reduced motion on a page.
+
+```jsx
+const reduced = useReducedMotion();
+
+// If the user prefers reduced motion, then pause the animation.
+return <Animatable animate={{ ... }} paused={reduced}>...</Animatable>;
 ```

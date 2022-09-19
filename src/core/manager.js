@@ -44,7 +44,7 @@ export default class AnimationManager {
                 delay: (options.delay || 0) + i * this.stagger
             };
 
-            this.targets[i].add(clip.play(config), config);
+            this.targets[i].add(clip.play(config), options);
         }
     }
 

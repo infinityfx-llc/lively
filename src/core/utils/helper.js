@@ -3,6 +3,10 @@ import { convert, strToRgba, styleToArr } from './convert';
 
 export const xor = (a, b) => (a && !b) || (!a && b);
 
+export const padArray = (arr, len) => new Array(len).fill(0).map((_, i) => i < arr.length ? arr[i] : arr[arr.length - 1]);
+
+export const subArray = (arr, sub) => arr.filter(val => !sub.includes(val));
+
 export const hasKeys = (obj, n) => Object.keys(obj).length === n;
 
 export const hasSomeKey = (obj, keys) => Object.keys(obj).some(val => keys.includes(val));
@@ -84,10 +88,6 @@ export const getSnapshot = (el, toParent = false) => {
 
     return props;
 };
-
-export const padArray = (arr, len) => new Array(len).fill(0).map((_, i) => i < arr.length ? arr[i] : arr[arr.length - 1]);
-
-export const subArray = (arr, sub) => arr.filter(val => !sub.includes(val));
 
 export const mergeObjects = (a, b, keys = Object.keys(b)) => {
     for (const key of keys) {

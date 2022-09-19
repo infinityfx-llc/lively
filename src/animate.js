@@ -28,8 +28,8 @@ export default class Animate extends Component {
         </Animatable>;
     }
 
-    play(animation, options = {}) {
-        this.animatable?.play(animation, { ...options });
+    play() {
+        this.animatable?.play(arguments);
     }
 
     render() {

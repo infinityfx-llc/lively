@@ -54,13 +54,12 @@ export default class Clip {
     }
 
     sanitize(val, prop) {
-        if (!is.object(val)) val = { set: val };
+        val = is.object(val) ? { ...val } : { set: val };
 
         if (!hasSomeKey(val, POSITIONS)) val = { set: val };
         if (!('set' in val)) val.set = 'start' in val ? val.start : val.end;
         if ('time' in val && val.time > this.duration) delete val.time;
 
-        val = { ...val }; // CHECK
         for (const key of POSITIONS) {
             if (key in val) val[key] = convert(val[key], prop);
         }

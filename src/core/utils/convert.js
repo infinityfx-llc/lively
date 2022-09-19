@@ -84,8 +84,8 @@ export const arrToStyle = arr => {
 };
 
 export const Units = { // implement % conversion
-    emtopx: (val, el = document.body) => val * parseFloat(getComputedStyle(el).fontSize),
-    remtopx: val => Units.emtopx(val),
+    emtopx: (val, el) => val * parseFloat(getComputedStyle(el).fontSize),
+    remtopx: val => Units.emtopx(val, document.body),
     vwtopx: val => val * window.innerWidth,
     vhtopx: val => val * window.innerHeight,
     vmintopx: val => val * Math.min(window.innerWidth, window.innerHeight),

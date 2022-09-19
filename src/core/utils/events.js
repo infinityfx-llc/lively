@@ -19,7 +19,7 @@ export const addEventListener = (event, callback) => {
 };
 
 export const removeEventListener = (event, callback) => {
-    if (is.null(window) || !(event in Events) || is.null(callback) || !('LivelyID' in callback)) return;
+    if (!(event in Events) || is.null(callback) || !('LivelyID' in callback)) return;
 
     delete Events[event][callback.LivelyID];
 };

@@ -1,6 +1,6 @@
 import { convert, Units } from './utils/convert';
 import { getProperty, is, isVisible, xor } from './utils/helper';
-import * as Interpolate from './utils/interpolation';
+import { FUNCTIONS, interpolate } from './utils/interpolation';
 
 export default class Track {
 
@@ -19,47 +19,42 @@ export default class Track {
 
     getInterpolatedValue(prop, val, t, element) { // FURTHER OPTIMIZE!!
         if (is.function(val)) {
-            val = convert(val(t, this.clip.duration), prop);
-            val = Units.toBase(val, prop, element);
-        } else {
-            if (!(prop in this.indices)) this.indices[prop] = this.reverse ? val.length - 1 : 0;
+            return Units.toBase(convert(val(t, this.clip.duration), prop), prop, element);
+        }
 
-            const inc = this.reverse ? -1 : 1;
-            let i = this.indices[prop];
+        if (!(prop in this.indices)) this.indices[prop] = this.reverse ? val.length - 1 : 0;
 
-            let from = val[i];
-            let to = val[i + inc];
-            let mainVal = from.set, isMarker;
+        const inc = this.reverse ? -1 : 1;
+        let i = this.indices[prop];
 
-            if (this.reverse ? to.time > t : to.time < t) {
-                this.indices[prop] = i = i + inc;
+        let from = val[i];
+        let to = val[i + inc];
+        let mainVal = from.set, isMarker;
 
-                const keys = ['start', 'end'];
-                const s = keys[+!this.reverse], e = keys[+this.reverse];
-                if (s in from || e in to) {
-                    mainVal = s in from ? from[s] : to[e];
-                    isMarker = true;
-                } else {
-                    from = val[i];
-                    to = val[i + inc];
-                }
-            }
+        if (this.reverse ? to.time > t : to.time < t) {
+            this.indices[prop] = i = i + inc;
 
-            if (is.null(mainVal)) mainVal = getProperty(element, prop);
-            mainVal = Units.toBase(mainVal, prop, element);
-
-            if (isMarker) {
-                val = mainVal;
+            const keys = ['start', 'end'];
+            const s = keys[+!this.reverse], e = keys[+this.reverse];
+            if (s in from || e in to) {
+                mainVal = s in from ? from[s] : to[e];
+                isMarker = true;
             } else {
-                let scndVal = is.null(to.set) ? getProperty(element, prop) : to.set;
-                scndVal = Units.toBase(scndVal, prop, element);
-
-                const func = Interpolate[to.interpolate || this.clip.interpolate] || Interpolate.ease;
-                val = Interpolate.interpolate(mainVal, scndVal, (t - from.time) / (to.time - from.time), func);
+                from = val[i];
+                to = val[i + inc];
             }
         }
 
-        return val;
+        if (is.null(mainVal)) mainVal = getProperty(element, prop);
+        mainVal = Units.toBase(mainVal, prop, element);
+
+        if (isMarker) return mainVal;
+
+        let scndVal = is.null(to.set) ? getProperty(element, prop) : to.set;
+        scndVal = Units.toBase(scndVal, prop, element);
+
+        const func = FUNCTIONS[to.interpolate || this.clip.interpolate] || FUNCTIONS.ease;
+        return interpolate(mainVal, scndVal, (t - from.time) / (to.time - from.time), func);
     }
 
     get(element, cull = true) {

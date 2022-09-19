@@ -12,25 +12,26 @@ export const interpolate = (a, b, t, func) => {
     return [func(a[0], b[0], t), a[1]];
 };
 
-export const constant = val => val;
-
 export const linear = (a, b, t) => {
     if (!is.number(a) || !is.number(b)) return t > .5 ? b : a;
 
     return a * (1 - t) + b * t;
 };
 
-export const ease = (a, b, t) => {
-    return linear(a, b, (1 - Math.cos(t * Math.PI)) / 2);
-};
+export const FUNCTIONS = {
+    constant: val => val,
+    linear,
+    ease: (a, b, t) => {
+        return linear(a, b, (1 - Math.cos(t * Math.PI)) / 2);
+    },
+    spring: (a, b, t) => {
+        const amplitude = 1;
+        const frequency = 2.5;
+        const decay = 3.6;
 
-export const spring = (a, b, t) => {
-    const amplitude = 1;
-    const frequency = 2.5;
-    const decay = 3.6;
-
-    t = 1 - amplitude * Math.exp(-decay * t) * Math.cos(frequency * Math.pow(t, 2) * Math.PI);
-    return linear(a, b, t);
+        t = 1 - amplitude * Math.exp(-decay * t) * Math.cos(frequency * Math.pow(t, 2) * Math.PI);
+        return linear(a, b, t);
+    }
 };
 
 export const computeMorph = (next, prev, properties, duration = 1) => {

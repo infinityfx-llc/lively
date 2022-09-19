@@ -115,14 +115,11 @@ export const Units = { // implement % conversion
     }
 };
 
-const clipPath = val => `inset(${objToStr(val, ' ', ['top', 'right', 'bottom', 'left'])})`;
-
-export const Alias = { // OPTIMIZE
-    origin: ['transformOrigin'],
-    length: ['strokeDashoffset'],
-    clip: ['clipPath', 'webkitClipPath'],
+export const Aliases = { // Implement reverse for property parsing
+    origin: 'transformOrigin',
+    length: 'strokeDashoffset',
+    clip: 'clipPath',
     transformOrigin: val => `${val.x * 100}% ${val.y * 100}%`,
     strokeDashoffset: val => 1 - val[0],
-    clipPath,
-    webkitClipPath: clipPath
+    clipPath: val => `inset(${objToStr(val, ' ', ['top', 'right', 'bottom', 'left'])})`
 };

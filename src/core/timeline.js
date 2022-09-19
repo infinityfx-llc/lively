@@ -1,5 +1,5 @@
 import { DEFAULT_OBJECTS, MERGE_FUNCTIONS } from './globals';
-import { Alias, arrToStyle, objToStr } from './utils/convert';
+import { Aliases, arrToStyle, objToStr } from './utils/convert';
 import { getProperty, is, merge, mergeProperties } from './utils/helper';
 
 export default class Timeline {
@@ -73,7 +73,7 @@ export default class Timeline {
 
         let transform = [];
 
-        for (const prop in properties) {
+        for (let prop in properties) {
             let val = properties[prop];
 
             if (prop == 'scale') {
@@ -83,7 +83,7 @@ export default class Timeline {
 
                     const r = properties.borderRadius || el.cache.borderRadius; // WIP
                     delete properties.borderRadius; // maybe?
-                    
+
                     el.style.borderRadius = `${r[0] / val.x[0]}${r[1]} / ${r[0] / val.y[0]}${r[1]}`;
                     // potentially correct other things as well
                 }
@@ -97,13 +97,12 @@ export default class Timeline {
                 continue;
             }
 
-            const styles = Alias[prop] || [prop];
-            for (const style of styles) {
-                if (is.color(val)) {
-                    el.style[style] = `rgba(${val.r[0]}, ${val.g[0]}, ${val.b[0]}, ${val.a[0]})`;
-                } else {
-                    el.style[style] = style in Alias ? Alias[style](val) : arrToStyle(val);
-                }
+            prop = Aliases[prop] || prop;
+
+            if (is.color(val)) {
+                el.style[prop] = `rgba(${val.r[0]}, ${val.g[0]}, ${val.b[0]}, ${val.a[0]})`;
+            } else {
+                el.style[prop] = prop in Aliases ? Aliases[prop](val) : arrToStyle(val);
             }
         }
 

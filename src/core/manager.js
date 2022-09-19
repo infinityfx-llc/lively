@@ -8,8 +8,8 @@ export default class AnimationManager {
 
         this.priority = priority;
         this.stagger = stagger;
-        this.culling = culling; // OPTIMIZE
-        this.noDeform = noDeform; // OPTIMIZE
+        this.culling = culling;
+        this.noDeform = noDeform;
         this.paused = paused;
     }
 

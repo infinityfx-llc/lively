@@ -24,7 +24,7 @@ export default class LayoutGroup extends Component {
     }
 
     componentDidUpdate(_1, _2, snapshot) {
-        for (let i = 0, j = 0; i < snapshot.length; i++, j++) { // WIP
+        for (let i = 0, j = 0; i < snapshot.length; i++, j++) {
             const child = this.children[j];
             if (!child || !child.elements[0]) continue;
 

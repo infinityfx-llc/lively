@@ -57,7 +57,7 @@ export default class Clip {
         val = is.object(val) ? { ...val } : { set: val };
 
         if (!hasSomeKey(val, POSITIONS)) val = { set: val };
-        if (!('set' in val)) val.set = 'start' in val ? val.start : val.end;
+        if (!('set' in val)) val.set = val.start || val.end;
         if ('time' in val && val.time > this.duration) delete val.time;
 
         for (const key of POSITIONS) {

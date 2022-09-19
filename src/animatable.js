@@ -178,8 +178,10 @@ export default class Animatable extends Component {
             if (!isValidElement(child)) return child;
 
             const props = { pathLength: 1 };
-            const i = this.elementIndex++;
-            if (isDirectChild) props.ref = el => this.elements[i] = el;
+            if (isDirectChild) {
+                const i = this.elementIndex++;
+                props.ref = el => this.elements[i] = el;
+            }
 
             if (Animatable.isInstance(child) && isParent && !child.props.noCascade) {
                 const i = this.childIndex++;

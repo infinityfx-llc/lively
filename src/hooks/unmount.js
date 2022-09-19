@@ -7,7 +7,7 @@ export default function useUnmount(initial) {
     const setMounted = () => {
         if (!state) return setState(true);
 
-        ref.current.play(ref.current.props.onUnmount, {
+        ref.current?.play(ref.current.props.onUnmount, {
             reverse: true,
             immediate: true,
             callback: () => setState(false)

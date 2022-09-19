@@ -29,7 +29,7 @@ export default class Animate extends Component {
     }
 
     play() {
-        this.animatable?.play(arguments);
+        this.animatable?.play(...arguments);
     }
 
     render() {

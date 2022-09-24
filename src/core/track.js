@@ -4,7 +4,7 @@ import { FUNCTIONS, interpolate } from './utils/interpolation';
 
 export default class Track {
 
-    constructor(clip, { reverse = false, repeat = 1, delay = 0, alternate = false } = {}) {
+    constructor(clip, { reverse = false, repeat = 1, delay = 0, alternate = false, callback } = {}) {
         this.indices = {};
         this.clip = clip;
         this.t = 0;
@@ -13,8 +13,7 @@ export default class Track {
         this.reverse = reverse;
         this.delay = delay;
         this.alternate = alternate;
-
-        // events: onend, onpause, onplay
+        this.callback = callback;
     }
 
     getInterpolatedValue(prop, val, t, element) { // FURTHER OPTIMIZE!!
@@ -78,6 +77,7 @@ export default class Track {
         const ended = this.t >= this.T;
         this.t += dt;
 
+        if (ended && is.function(this.callback)) this.callback();
         return ended;
     }
 

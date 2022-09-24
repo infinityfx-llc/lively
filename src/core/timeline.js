@@ -20,6 +20,7 @@ export default class Timeline {
             this.element.cache = {
                 strokeDasharray: 1,
                 borderRadius: getProperty(this.element, 'borderRadius'), // dont apply this on cache hydration
+                webkitBackfaceVisibility: 'hidden'
             };
 
             for (let i = 0; i < this.element.style.length; i++) {

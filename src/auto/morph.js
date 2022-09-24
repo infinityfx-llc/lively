@@ -19,7 +19,7 @@ export default class Morph extends Animatable {
             unmorph: new Clip({}, { opacity: 0, pointerEvents: 'none' })
         };
         this.properties = subArray(this.props.include, this.props.exclude); // duplicate code (layout group)
-        this.uuid = (props.id || 0) + props.group.toString(); // concat id with parent id
+        this.uuid = (props.id || 0).toString() + (props.index || 0) + props.group; // TESTING
     }
 
     shouldComponentUpdate(nextProps) {
@@ -69,6 +69,7 @@ export default class Morph extends Animatable {
 
     static defaultProps = {
         ...Animatable.defaultProps,
+        cascade: 0,
         active: false,
         include: MORPH_PROPERTIES, // duplicate code (layout group)
         exclude: [],

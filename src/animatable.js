@@ -1,5 +1,7 @@
 // TODO:
 // allow for links to be used in objects such as link per scale component { x: link, y: link }
+// allow for whileHover and such events to be based on parent or other elements.
+// add index argument to function animation property
 
 import { Children, cloneElement, Component, isValidElement } from 'react';
 import Clip from './core/clip';
@@ -15,7 +17,7 @@ export default class Animatable extends Component {
     }
 
     static events = ['click', 'mouseenter', 'mouseleave', 'focus', 'blur'];
-    static cascadingProps = ['animate', 'initial', 'animations', 'stagger'];
+    static cascadingProps = ['animate', 'initial', 'animations', 'stagger', 'cascade'];
 
     constructor(props) {
         super(props);
@@ -27,7 +29,8 @@ export default class Animatable extends Component {
 
         this.children = [];
         this.elements = [];
-        this.stagger = this.props.stagger || 0.1;
+        this.stagger = is.null(this.props.stagger) ? 0.1 : this.props.stagger;
+        this.cascade = is.null(this.props.cascade) ? 1 : this.props.cascade;
         this.manager = new AnimationManager({
             priority: this.props.group,
             stagger: this.stagger,
@@ -61,7 +64,6 @@ export default class Animatable extends Component {
 
         document.fonts.ready.then(() => {
             this.update();
-            clearTimeout(this.timeout); // improve (temp solution)
             this.inViewport = false;
 
             if (!this.props.group) {
@@ -148,23 +150,26 @@ export default class Animatable extends Component {
 
         this.dispatch('onAnimationStart');
         const clip = this.animations[animation];
-        const duration = clip.length();
+        const duration = clip.length() * this.cascade;
 
-        // also implement stagger for direct animatable children (child.props.group)
+        const cb = callback;
+        if (!this.props.group) callback = () => {
+            this.dispatch('onAnimationEnd');
+            if (is.function(cb)) cb();
+        };
+
         let parentDelay = 0;
-        for (const child of this.children) {
-            parentDelay = Math.max(parentDelay, child.play(animation, { reverse, immediate, delay: delay + duration }, true));
+        for (let i = 0; i < this.children.length; i++) {
+            parentDelay = Math.max(parentDelay, this.children[i].play(animation, {
+                reverse,
+                immediate,
+                delay: delay + duration + this.stagger * i,
+                callback
+            }, true));
         }
 
-        this.manager.play(clip, { reverse, composite, immediate, delay: reverse ? parentDelay : delay });
-
-        if (immediate) clearTimeout(this.timeout); // improve (temp solution)
-        if (!this.props.group) {
-            this.timeout = setTimeout(() => {
-                this.dispatch('onAnimationEnd');
-                if (is.function(callback)) callback();
-            }, (parentDelay + duration) * 1000);
-        }
+        if ((!reverse || this.props.group) && (reverse || this.children.length)) callback = null;
+        this.manager.play(clip, { reverse, composite, immediate, delay: reverse ? parentDelay : delay, callback });
 
         return duration + (reverse ? parentDelay : delay);
     }
@@ -183,18 +188,18 @@ export default class Animatable extends Component {
                 props.ref = el => this.elements[i] = el;
             }
 
-            if (Animatable.isInstance(child) && isParent && !child.props.noCascade) {
-                const i = this.childIndex++;
-                isParent = false;
-
+            const isAnimatable = Animatable.isInstance(child) && isParent && !child.props.stopPropagation;
+            if (isAnimatable) {
+                props.index = this.childIndex++;
                 props.group = this.props.group + 1;
-                props.ref = el => this.children[i] = el;
+                props.ref = el => this.children[props.index] = el;
+
                 if (!this.props.group) props.active = this.props.active; // TESTING
 
                 mergeObjects(props, { ...this.props, ...child.props }, this.constructor.cascadingProps); // OPTIMIZE
             }
 
-            return cloneElement(child, props, this.prerender(child.props.children, false, isParent));
+            return cloneElement(child, props, this.prerender(child.props.children, false, !isAnimatable));
         });
     }
 

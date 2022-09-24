@@ -11,6 +11,13 @@ interface AnimatableProps {
     stagger?: number;
 
     /**
+     * What percentage of previous animation duration to wait for in a cascading animation.
+     * 
+     * @default 1
+     */
+    cascade?: number;
+
+    /**
      * Percentage of `element` that needs to enter or leave the viewport (`window`) to trigger viewport based animations.
      * 
      * @default 0.75
@@ -62,7 +69,7 @@ interface AnimatableProps {
      * 
      * @default false
      */
-    noCascade?: boolean;
+    stopPropagation?: boolean;
 
     /**
      * Play either the default or the defined animation when the component mounts.

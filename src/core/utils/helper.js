@@ -120,7 +120,7 @@ export const mergeProperties = (aggregate, props) => {
 export const throttle = (cb, ms = 250) => {
     return () => {
         const t = Date.now();
-        if (cb.LivelyTimestamp - t < ms) return;
+        if (t - cb.LivelyTimestamp < ms) return;
         cb.LivelyTimestamp = t;
 
         cb();

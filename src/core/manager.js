@@ -43,6 +43,7 @@ export default class AnimationManager {
                 ...options,
                 delay: (options.delay || 0) + i * this.stagger
             };
+            if (i < this.targets.length - 1) config.callback = null;
 
             this.targets[i].add(clip.play(config), options);
         }

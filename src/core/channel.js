@@ -1,17 +1,18 @@
 import Track from './track';
 import { convert, Units } from './utils/convert';
 import { getProperty, is } from './utils/helper';
-import { interpolate, linear } from './utils/interpolation';
+import { FUNCTIONS, interpolate } from './utils/interpolation';
 
 export default class Channel extends Track {
 
-    constructor() {
+    constructor(interpolate) {
         super({
             duration: Infinity,
             properties: {},
-            origin: { x: 0.5, y: 0.5 }
+            origin: { x: 0.5, y: 0.5 },
+            interpolate
         });
-        
+
         this.isEmpty = true
         this.cache = {};
     }
@@ -24,18 +25,21 @@ export default class Channel extends Track {
     getInterpolatedValue(prop, val, t, element) {
         if (is.null(val.internal.t)) val.internal.t = t;
         if (val.internal.t === t) this.cache[prop] = {};
-        
+
         const x = !val.internal.duration ? 1 : Math.min((t - val.internal.t) / val.internal.duration, 1);
 
         const cached = this.cache[prop] || {};
         if (cached.t === x) return cached.value;
 
-        const to = Units.toBase(convert(val(t, this.clip.duration), prop), prop, element);
+        let value = Units.toBase(convert(val(), prop), prop, element);
 
-        let from = getProperty(element, prop); // THIS SHOULD BE CACHED DURING INTERPOLATION OTHERWISE WRONG SPEED
-        from = Units.toBase(from, prop, element);
+        if (x != 1) {
+            let from = getProperty(element, prop); // THIS SHOULD BE CACHED DURING INTERPOLATION OTHERWISE WRONG SPEED
+            from = Units.toBase(from, prop, element);
 
-        const value = interpolate(from, to, x, linear);
+            const func = FUNCTIONS[this.clip.interpolate] || FUNCTIONS.linear;
+            value = interpolate(from, value, x, func);
+        }
         this.cache[prop] = { value, t: x };
 
         return value;

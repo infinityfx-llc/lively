@@ -10,7 +10,7 @@ export default class Clip {
     constructor({ duration = 1, delay, repeat, alternate, interpolate, origin = { x: 0.5, y: 0.5 }, ...properties } = {}, initials = {}) {
         this.duration = duration;
         this.origin = originToStr(origin);
-        this.channel = new Channel();
+        this.channel = new Channel(interpolate);
 
         [this.properties, this.initials] = this.parse(properties, initials);
         this.isEmpty = is.empty(this.properties);

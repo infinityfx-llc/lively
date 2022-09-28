@@ -32,15 +32,15 @@ export default class Channel extends Track {
         if (cached.t === x) return cached.value;
 
         let value = Units.toBase(convert(val(), prop), prop, element);
+        let from = cached.from;
 
         if (x != 1) {
-            let from = getProperty(element, prop); // THIS SHOULD BE CACHED DURING INTERPOLATION OTHERWISE WRONG SPEED
-            from = Units.toBase(from, prop, element);
+            if (!from) from = Units.toBase(getProperty(element, prop), prop, element);
 
             const func = FUNCTIONS[this.clip.interpolate] || FUNCTIONS.linear;
             value = interpolate(from, value, x, func);
         }
-        this.cache[prop] = { value, t: x };
+        this.cache[prop] = { value, from: x != 1 ? from : null, t: x };
 
         return value;
     }

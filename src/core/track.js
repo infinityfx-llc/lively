@@ -16,43 +16,40 @@ export default class Track {
         this.callback = callback;
     }
 
+    normalize(val, prop, element) {
+        if (is.null(val)) val = getProperty(element, prop);
+        return Units.toBase(val, prop, element);
+    }
+
     getInterpolatedValue(prop, val, t, element) { // FURTHER OPTIMIZE!!
         if (is.function(val)) {
             return Units.toBase(convert(val(t, this.clip.duration), prop), prop, element);
         }
 
-        if (!(prop in this.indices)) this.indices[prop] = this.reverse ? val.length - 1 : 0;
-
         const inc = this.reverse ? -1 : 1;
         let i = this.indices[prop];
+        if (is.null(i) || (this.reverse ? t - val[i].time : val[i].time - t) > 0) this.indices[prop] = i = this.reverse ? val.length - 1 : 0; // reset indices for repeat
 
         let from = val[i];
         let to = val[i + inc];
-        let mainVal = from.set, isMarker;
 
         if (this.reverse ? to.time > t : to.time < t) {
             this.indices[prop] = i = i + inc;
 
             const keys = ['start', 'end'];
-            const s = keys[+!this.reverse], e = keys[+this.reverse];
-            if (s in from || e in to) {
-                mainVal = s in from ? from[s] : to[e];
-                isMarker = true;
+            const start = keys[+!this.reverse], end = keys[+this.reverse];
+            if (start in from || end in to) {
+                return this.normalize(start in from ? from[start] : to[end], prop, element);
             } else {
                 from = val[i];
                 to = val[i + inc];
             }
         }
 
-        if (is.null(mainVal)) mainVal = getProperty(element, prop);
-        mainVal = Units.toBase(mainVal, prop, element);
-
-        if (isMarker) return mainVal;
-
-        let scndVal = is.null(to.set) ? getProperty(element, prop) : to.set;
-        scndVal = Units.toBase(scndVal, prop, element);
-
+        const mainVal = this.normalize(from.set, prop, element);
+        const scndVal = this.normalize(to.set, prop, element);
         const func = FUNCTIONS[to.interpolate || this.clip.interpolate] || FUNCTIONS.ease;
+
         return interpolate(mainVal, scndVal, (t - from.time) / (to.time - from.time), func);
     }
 

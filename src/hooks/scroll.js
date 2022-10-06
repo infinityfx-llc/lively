@@ -1,17 +1,17 @@
 import { useEffect } from 'react';
-import Link from '../core/link';
 import { addEventListener, removeEventListener } from '../core/utils/events';
+import useLink from './link';
 
 export default function useScroll() {
-    const link = Link.create(0);
+    const [link, set] = useLink(0);
 
     useEffect(() => {
-        const set = () => link.set(window.scrollY);
-        set();
+        const setScroll = () => set(window.scrollY);
+        setScroll();
 
         // maybe add resize event aswell
-        addEventListener('scroll', set);
-        return () => removeEventListener('scroll', set);
+        addEventListener('scroll', setScroll);
+        return () => removeEventListener('scroll', setScroll);
     }, []);
 
     return link;

@@ -1,7 +1,8 @@
+import { useRef } from 'react';
 import Link from '../core/link';
 
 export default function useLink(initial) {
-    const link = Link.create(initial);
+    const link = useRef(Link.create(initial));
 
-    return [link, link.set];
+    return [link.current, link.current.set];
 }

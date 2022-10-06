@@ -1,10 +1,10 @@
 import React from 'react';
 import Animatable from '../animatable';
-import { is } from '../core/utils/helper';
+import { isStr } from '../core/utils/helper';
 
 export default function WriteOn({ children, className, style, duration }) {
 
-    if (!is.string(children)) return children; // maybe dont import is here
+    if (!isStr(children)) return children; // maybe dont import is here
 
     const chars = children.split('');
 

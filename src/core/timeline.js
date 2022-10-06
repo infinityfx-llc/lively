@@ -1,6 +1,6 @@
 import { DEFAULT_OBJECTS, MERGE_FUNCTIONS } from './globals';
 import { Aliases, arrToStyle, objToStr } from './utils/convert';
-import { getProperty, is, merge, mergeProperties } from './utils/helper';
+import { getProperty, isColor, isEmpty, isObj, merge, mergeProperties } from './utils/helper';
 
 export default class Timeline {
 
@@ -70,7 +70,7 @@ export default class Timeline {
     }
 
     apply(el, properties) {
-        if (is.empty(properties)) return;
+        if (isEmpty(properties)) return;
 
         let transform = [];
 
@@ -94,13 +94,13 @@ export default class Timeline {
 
             const idx = this.transforms.indexOf(prop);
             if (idx >= 0) {
-                transform[idx] = `${prop}(${is.object(val) ? objToStr(val, ', ', ['x', 'y']) : arrToStyle(val)})`;
+                transform[idx] = `${prop}(${isObj(val) ? objToStr(val, ', ', ['x', 'y']) : arrToStyle(val)})`;
                 continue;
             }
 
             prop = Aliases[prop] || prop;
 
-            if (is.color(val)) {
+            if (isColor(val)) {
                 el.style[prop] = `rgba(${val.r[0]}, ${val.g[0]}, ${val.b[0]}, ${val.a[0]})`;
             } else {
                 el.style[prop] = prop in Aliases ? Aliases[prop](val) : arrToStyle(val);

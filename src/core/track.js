@@ -1,5 +1,5 @@
 import { convert, Units } from './utils/convert';
-import { getProperty, is, isVisible, xor } from './utils/helper';
+import { getProperty, isFunc, isNul, isVisible, xor } from './utils/helper';
 import { FUNCTIONS, interpolate } from './utils/interpolation';
 
 export default class Track {
@@ -17,18 +17,18 @@ export default class Track {
     }
 
     normalize(val, prop, element) {
-        if (is.null(val)) val = getProperty(element, prop);
+        if (isNul(val)) val = getProperty(element, prop);
         return Units.toBase(val, prop, element);
     }
 
     getInterpolatedValue(prop, val, t, element) { // FURTHER OPTIMIZE!!
-        if (is.function(val)) {
+        if (isFunc(val)) {
             return Units.toBase(convert(val(t, this.clip.duration), prop), prop, element);
         }
 
         const inc = this.reverse ? -1 : 1;
         let i = this.indices[prop];
-        if (is.null(i) || (this.reverse ? t - val[i].time : val[i].time - t) > 0) this.indices[prop] = i = this.reverse ? val.length - 1 : 0; // reset indices for repeat
+        if (isNul(i) || (this.reverse ? t - val[i].time : val[i].time - t) > 0) this.indices[prop] = i = this.reverse ? val.length - 1 : 0; // reset indices for repeat
 
         let from = val[i];
         let to = val[i + inc];
@@ -74,7 +74,7 @@ export default class Track {
         const ended = this.t >= this.T;
         this.t += dt;
 
-        if (ended && is.function(this.callback)) this.callback();
+        if (ended && isFunc(this.callback)) this.callback();
         return ended;
     }
 

@@ -1,7 +1,7 @@
 import Animatable from '../animatable';
 import { isValidElement } from 'react';
 import { MORPH_PROPERTIES } from '../core/globals';
-import { getSnapshot, is, subArray } from '../core/utils/helper';
+import { getSnapshot, isArr, subArray } from '../core/utils/helper';
 import { computeMorph } from '../core/utils/interpolation';
 import Clip from '../core/clip';
 
@@ -59,7 +59,7 @@ export default class Morph extends Animatable {
 
     render() {
         let children = this.props.children;
-        if (is.array(children)) {
+        if (isArr(children)) {
             if (children.length > 1) return children;
             children = children[0];
         }

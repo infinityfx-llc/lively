@@ -1,4 +1,4 @@
-import { is } from './helper';
+import { isFunc, isNul } from './helper';
 
 const Events = {};
 
@@ -8,7 +8,7 @@ export const addEventListener = (event, callback) => {
 
         window.addEventListener(event, e => {
             for (const cb of Object.values(Events[event])) {
-                if (is.function(cb)) cb(e);
+                if (isFunc(cb)) cb(e);
             }
         });
     }
@@ -19,7 +19,7 @@ export const addEventListener = (event, callback) => {
 };
 
 export const removeEventListener = (event, callback) => {
-    if (!(event in Events) || is.null(callback) || !('LivelyID' in callback)) return;
+    if (!(event in Events) || isNul(callback) || !('LivelyID' in callback)) return;
 
     delete Events[event][callback.LivelyID];
 };

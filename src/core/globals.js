@@ -39,3 +39,32 @@ export const MERGE_FUNCTIONS = { // OPTIMIZE
     scale: (a, b) => a * b,
     default: (a, b) => (a + b) / 2
 };
+
+const height = ['parentElement', 'clientHeight'];
+
+export const RELATIVE_PROPERTIES = {
+    x: ['clientWidth'],
+    y: ['clientHeight'],
+    fontSize: ['parentElement', 'style', 'fontSize'],
+    default: ['parentElement', 'clientWidth'],
+    height,
+    top: height,
+    bottom: height
+};
+
+export const CONVERSIONS = {
+    '%_px': (val, el, prop) => {
+        const path = RELATIVE_PROPERTIES[prop] || RELATIVE_PROPERTIES.default;
+
+        for (const seg of path) el = el[seg];
+
+        return val * parseFloat(el);
+    },
+    em_px: (val, el) => val * parseFloat(getComputedStyle(el).fontSize),
+    rem_px: val => CONVERSIONS.emtopx(val, document.body),
+    vw_px: val => val * window.innerWidth,
+    vh_px: val => val * window.innerHeight,
+    vmin_px: val => val * Math.min(window.innerWidth, window.innerHeight),
+    vmax_px: val => val * Math.max(window.innerWidth, window.innerHeight),
+    rad_deg: val => val * 180 / Math.PI
+};

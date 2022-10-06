@@ -3,7 +3,7 @@ import { POSITIONS } from './globals';
 import Link from './link';
 import Track from './track';
 import { convert, originToStr } from './utils/convert';
-import { hasSomeKey, is, mergeObjects } from './utils/helper';
+import { hasSomeKey, isArr, isEmpty, isFunc, isNul, isObj, mergeObjects } from './utils/helper';
 
 export default class Clip {
 
@@ -13,7 +13,7 @@ export default class Clip {
         this.channel = new Channel(interpolate);
 
         [this.properties, this.initials] = this.parse(properties, initials);
-        this.isEmpty = is.empty(this.properties);
+        this.isEmpty = isEmpty(this.properties);
 
         this.interpolate = interpolate;
         this.defaults = { delay, repeat, alternate };
@@ -33,13 +33,13 @@ export default class Clip {
                 continue;
             }
 
-            if (is.function(val)) continue;
+            if (isFunc(val)) continue;
 
-            val = is.array(val) ? val : [val];
+            val = isArr(val) ? val : [val];
             if (val.length < 2) {
                 val.unshift(prop in initials ? initials[prop] : null)
             } else
-            if (!is.null(val[0])) initials[prop] = val[0];
+            if (!isNul(val[0])) initials[prop] = val[0];
 
             const arr = val.map(val => this.sanitize(val, prop));
             for (let i = 0; i < arr.length; i++) this.quantize(arr, i);
@@ -54,7 +54,7 @@ export default class Clip {
     }
 
     sanitize(val, prop) {
-        val = is.object(val) ? { ...val } : { set: val };
+        val = isObj(val) ? { ...val } : { set: val };
 
         if (!hasSomeKey(val, POSITIONS)) val = { set: val };
         if (!('set' in val)) val.set = val.start || val.end;

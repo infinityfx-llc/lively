@@ -1,4 +1,4 @@
-import { is } from './utils/helper';
+import { isFunc } from './utils/helper';
 
 const Link = {
 
@@ -12,7 +12,7 @@ const Link = {
 
     create: (initial) => {
         const link = Link.bind(function (args) {
-            if (is.function(args)) {
+            if (isFunc(args)) {
                 const clone = Link.bind(link, { transform: args });
                 clone.set = link.set;
                 clone.internal = link.internal;
@@ -34,7 +34,7 @@ const Link = {
         return link;
     },
 
-    isInstance: val => is.function(val) && is.function(val.set)
+    isInstance: val => isFunc(val) && isFunc(val.set)
 
 };
 

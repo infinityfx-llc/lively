@@ -30,19 +30,17 @@ export const isVisible = el => {
     return y < window.innerHeight && bottom > 0 && x < window.innerWidth && right > 0;
 };
 
-export const is = {
-    null: val => typeof val === 'undefined' || val === null,
-    array: val => Array.isArray(val),
-    object: val => !is.null(val) && typeof val === 'object' && !is.array(val),
-    function: val => val instanceof Function,
-    string: val => typeof val === 'string',
-    bool: val => typeof val === 'boolean',
-    number: val => typeof val === 'number',
-    empty: obj => hasKeys(obj, 0),
-    rgb: val => val.match(/^rgba?\(.*\)$/i),
-    hex: val => val.match(/^#[0-9a-f]{3,8}$/i),
-    color: val => is.object(val) && 'r' in val
-};
+export const isNul = val => typeof val === 'undefined' || val === null;
+export const isArr= val => Array.isArray(val);
+export const isObj = val => !isNul(val) && typeof val === 'object' && !isArr(val);
+export const isFunc= val => val instanceof Function;
+export const isStr= val => typeof val === 'string';
+export const isBool = val => typeof val === 'boolean';
+export const isNum = val => typeof val === 'number';
+export const isEmpty = obj => hasKeys(obj, 0);
+export const isRgb = val => val.match(/^rgba?\(.*\)$/i);
+export const isHex = val => val.match(/^#[0-9a-f]{3,8}$/i);
+export const isColor = val => isObj(val) && 'r' in val;
 
 export const decomposeTransform = transform => {
     const m = new DOMMatrix(transform);
@@ -66,10 +64,11 @@ export const getProperty = (el, prop) => {
     const transform = decomposeTransform(styles.transform);
     if (prop in transform) return convert(transform[prop], prop);
 
+    if (prop === 'length') return [1 - parseFloat(styles.strokeDashoffset), null];
     // parse custom properties here aswell (clip, length, etc.)
 
     const val = styles[prop];
-    if (is.rgb(val)) return strToRgba(val);
+    if (isRgb(val)) return strToRgba(val);
 
     return styleToArr(val);
 };
@@ -91,20 +90,18 @@ export const getSnapshot = (el, toParent = false) => {
 
 export const mergeObjects = (a, b, keys = Object.keys(b)) => {
     for (const key of keys) {
-        if (!is.null(b[key])) a[key] = b[key];
+        if (!isNul(b[key])) a[key] = b[key];
     }
 
     return a;
 };
 
 export const merge = (a, b, func) => {
-    if (is.object(a)) {
-        const object = {};
-        for (const key in a) object[key] = merge(a[key], b[key], func);
-        return object;
+    if (isObj(a)) {
+        return mapObject(a, (val, key) => merge(val, b[key], func));
     }
 
-    if (!is.number(a[0]) || !is.number(b[0])) return b;
+    if (!isNum(a[0]) || !isNum(b[0])) return b;
 
     return [func(a[0], b[0]), a[1]];
 };
@@ -115,6 +112,13 @@ export const mergeProperties = (aggregate, props) => {
 
         aggregate[prop] = prop in aggregate ? merge(aggregate[prop], props[prop], func) : props[prop];
     }
+};
+
+export const mapObject = (obj, func) => {
+    const copy = {};
+    for (const key in obj) copy[key] = func(obj[key], key);
+
+    return copy;
 };
 
 export const throttle = (cb, ms = 250) => {

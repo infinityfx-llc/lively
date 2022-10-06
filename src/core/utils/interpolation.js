@@ -1,8 +1,8 @@
 import Clip from '../clip';
-import { is } from './helper';
+import { isNum, isObj } from './helper';
 
 export const interpolate = (a, b, t, func) => {
-    if (is.object(a)) {
+    if (isObj(a)) {
         const object = {};
         for (const key in a) object[key] = interpolate(a[key], b[key], t, func);
 
@@ -13,7 +13,7 @@ export const interpolate = (a, b, t, func) => {
 };
 
 export const linear = (a, b, t) => {
-    if (!is.number(a) || !is.number(b)) return t > .5 ? b : a;
+    if (!isNum(a) || !isNum(b)) return t > .5 ? b : a;
 
     return a * (1 - t) + b * t;
 };

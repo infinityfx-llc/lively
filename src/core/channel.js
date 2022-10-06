@@ -1,6 +1,6 @@
 import Track from './track';
 import { convert, Units } from './utils/convert';
-import { getProperty, is } from './utils/helper';
+import { getProperty, isNul } from './utils/helper';
 import { FUNCTIONS, interpolate } from './utils/interpolation';
 
 export default class Channel extends Track {
@@ -23,7 +23,7 @@ export default class Channel extends Track {
     }
 
     getInterpolatedValue(prop, val, t, element) {
-        if (is.null(val.internal.t)) val.internal.t = t;
+        if (isNul(val.internal.t)) val.internal.t = t;
         if (val.internal.t === t) this.cache[prop] = {};
 
         const x = !val.internal.duration ? 1 : Math.min((t - val.internal.t) / val.internal.duration, 1);

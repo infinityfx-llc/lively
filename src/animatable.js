@@ -8,7 +8,7 @@ import Clip from './core/clip';
 import AnimationManager from './core/manager';
 import Animation from './animations/animation';
 import { addEventListener, offAny, onAny, removeEventListener } from './core/utils/events';
-import { inViewport, is, mergeObjects, throttle } from './core/utils/helper';
+import { inViewport, isFunc, isNul, isObj, isStr, mergeObjects, throttle } from './core/utils/helper';
 
 export default class Animatable extends Component {
 
@@ -29,8 +29,8 @@ export default class Animatable extends Component {
 
         this.children = [];
         this.elements = [];
-        this.stagger = is.null(this.props.stagger) ? 0.1 : this.props.stagger;
-        this.cascade = is.null(this.props.cascade) ? 1 : this.props.cascade;
+        this.stagger = isNul(this.props.stagger) ? 0.1 : this.props.stagger;
+        this.cascade = isNul(this.props.cascade) ? 1 : this.props.cascade;
         this.manager = new AnimationManager({
             priority: this.props.group,
             stagger: this.stagger,
@@ -43,7 +43,7 @@ export default class Animatable extends Component {
     parse(properties) {
         if (Animation.isInstance(properties)) return properties.use();
 
-        return is.object(properties) ? new Clip(properties, this.props.initial) : null;
+        return isObj(properties) ? new Clip(properties, this.props.initial) : null;
     }
 
     update() {
@@ -87,7 +87,7 @@ export default class Animatable extends Component {
     }
 
     dispatch(e) {
-        if (is.function(this.props[e])) this.props[e]();
+        if (isFunc(this.props[e])) this.props[e]();
     }
 
     onEvent({ type }) {
@@ -146,7 +146,7 @@ export default class Animatable extends Component {
 
     play(animation, { reverse = false, composite = false, immediate = false, delay = 0, callback } = {}, delegate = false) {
         if (!animation || this.props.disabled || (this.props.group > 0 && !delegate)) return;
-        if (!is.string(animation)) animation = 'default';
+        if (!isStr(animation)) animation = 'default';
 
         this.dispatch('onAnimationStart');
         const clip = this.animations[animation];
@@ -155,7 +155,7 @@ export default class Animatable extends Component {
         const cb = callback;
         if (!this.props.group) callback = () => {
             this.dispatch('onAnimationEnd');
-            if (is.function(cb)) cb();
+            if (isFunc(cb)) cb();
         };
 
         let parentDelay = 0;

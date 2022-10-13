@@ -65,7 +65,7 @@ export const getProperty = (el, prop) => {
     if (prop in transform) return convert(transform[prop], prop);
 
     if (prop === 'length') return [1 - parseFloat(styles.strokeDashoffset), null];
-    // parse custom properties here aswell (clip, length, etc.)
+    // parse custom property clip here
 
     const val = styles[prop];
     if (isRgb(val)) return strToRgba(val);

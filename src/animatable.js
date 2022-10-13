@@ -83,7 +83,9 @@ export default class Animatable extends Component {
     componentDidUpdate() {
         this.manager.paused = this.props.paused;
 
-        for (const child of this.children) child.manager.paused = this.props.paused;
+        // for (const child of this.children) {
+        //     if (child) child.manager.paused = this.props.paused;
+        // }
     }
 
     dispatch(e) {
@@ -159,7 +161,7 @@ export default class Animatable extends Component {
         };
 
         let parentDelay = 0;
-        for (let i = 0; i < this.children.length; i++) {
+        for (let i = 0; i < this.childIndex; i++) {
             parentDelay = Math.max(parentDelay, this.children[i].play(animation, {
                 reverse,
                 immediate,
@@ -185,14 +187,19 @@ export default class Animatable extends Component {
             const props = { pathLength: 1 };
             if (isDirectChild) {
                 const i = this.elementIndex++;
-                props.ref = el => this.elements[i] = el;
+                props.ref = el => {
+                    if (el) this.elements[i] = el;
+                }
             }
 
             const isAnimatable = Animatable.isInstance(child) && isParent && !child.props.stopPropagation;
             if (isAnimatable) {
                 props.index = this.childIndex++;
                 props.group = this.props.group + 1;
-                props.ref = el => this.children[props.index] = el;
+                props.ref = el => {
+                    if (el) this.children[props.index] = el;
+                }
+                props.paused = this.props.paused; // TESTING
 
                 if (!this.props.group) props.active = this.props.active; // TESTING
 

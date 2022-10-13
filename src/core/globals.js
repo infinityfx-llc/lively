@@ -21,7 +21,7 @@ export const PARSABLE_OBJECTS = [
     ['left', 'top', 'right', 'bottom']
 ];
 
-export const DEFAULT_OBJECTS = { // implement defaults for custom properties such as length, or active (or find a way to get current value)
+export const DEFAULT_OBJECTS = {
     translate: { x: [0, 'px'], y: [0, 'px'] },
     scale: { x: [1, '%'], y: [1, '%'] },
     clip: { left: [0, '%'], top: [0, '%'], right: [0, '%'], bottom: [0, '%'] },

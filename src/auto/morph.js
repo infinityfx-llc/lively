@@ -45,7 +45,7 @@ export default class Morph extends Animatable {
 
         TARGETS[this.uuid] = [];
         if (!target) {
-            // this.manager.clear(); // WIP TESTING
+            this.manager.clear();
             this.manager.initialize(this.animations.unmorph);
             return;
         }

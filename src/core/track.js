@@ -21,50 +21,58 @@ export default class Track {
         return Units.toBase(val, prop, element);
     }
 
-    getInterpolatedValue(prop, val, t, element) { // FURTHER OPTIMIZE!!
+    getInterpolatedValue(prop, val, t, element, ended) { // FURTHER OPTIMIZE!!
         if (isFunc(val)) {
             return Units.toBase(convert(val(t, this.clip.duration), prop), prop, element);
         }
 
         const inc = this.reverse ? -1 : 1;
         let i = this.indices[prop];
-        if (isNul(i) || (this.reverse ? t - val[i].time : val[i].time - t) > 0) this.indices[prop] = i = this.reverse ? val.length - 1 : 0; // reset indices for repeat
 
-        let from = val[i];
-        let to = val[i + inc];
+        let keyframe, to = val[i + inc], idxIsNul = isNul(i);
 
-        if (this.reverse ? to.time > t : to.time < t) {
-            this.indices[prop] = i = i + inc;
+        if (idxIsNul || (this.reverse ? val[i].time < t : val[i].time > t)) {
+            this.indices[prop] = i = this.reverse ? val.length - 1 : 0; // reset indices for repeat
 
-            const keys = ['start', 'end'];
-            const start = keys[+!this.reverse], end = keys[+this.reverse];
-            if (start in from || end in to) {
-                return this.normalize(start in from ? from[start] : to[end], prop, element);
+            if (idxIsNul) {
+                keyframe = this.reverse ? val[i].end : val[i].start;
             } else {
-                from = val[i];
-                to = val[i + inc];
+                keyframe = this.reverse ? to.start : to.end;
             }
         }
+        
+        to = val[i + inc];
+        if (this.reverse ? to.time > t : to.time < t) {
+            keyframe = this.reverse ? (to.end || val[i].start) : (to.start || val[i].end);
 
-        const mainVal = this.normalize(from.set, prop, element);
+            this.indices[prop] = i = i + inc;
+            to = val[i + inc];
+        }
+
+        if (ended) keyframe = this.reverse ? to.start : to.end;
+        if (keyframe) return this.normalize(keyframe, prop, element);
+
+        const mainVal = this.normalize(val[i].set, prop, element);
         const scndVal = this.normalize(to.set, prop, element);
         const func = FUNCTIONS[to.interpolate || this.clip.interpolate] || FUNCTIONS.ease;
 
-        return interpolate(mainVal, scndVal, (t - from.time) / (to.time - from.time), func);
+        return interpolate(mainVal, scndVal, (t - val[i].time) / (to.time - val[i].time), func);
     }
 
     get(element, cull = true) {
         const properties = {}, end = this.t >= this.T;
-        if (this.t < this.delay || (cull && !end && !isVisible(element))) return properties;
 
         let t = this.t - this.delay, d = this.clip.duration;
-        const isAlt = this.alternate && Math.floor(t / d) % 2 == +!end; // Make more readable and check for correctness
+        if (t < 0 || (cull && !end && !isVisible(element))) return properties;
+
+        const isAlt = this.alternate && Math.floor(t / d) % 2 == +!end;
+
         t = end ? d : t % d;
         t = xor(this.reverse, isAlt) ? d - t : t;
 
         properties.origin = this.clip.origin;
         for (const prop in this.clip.properties) {
-            properties[prop] = this.getInterpolatedValue(prop, this.clip.properties[prop], t, element);
+            properties[prop] = this.getInterpolatedValue(prop, this.clip.properties[prop], t, element, end);
         }
 
         return properties;

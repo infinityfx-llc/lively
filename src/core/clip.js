@@ -48,7 +48,10 @@ export default class Clip {
         }
 
         initials = { ...initials };
-        for (const prop in initials) initials[prop] = convert(initials[prop], prop);
+        for (const prop in initials) {
+            const val = this.sanitize(initials[prop], prop);
+            initials[prop] = val.start || val.set;
+        }
 
         return [properties, initials];
     }

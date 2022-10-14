@@ -32,7 +32,15 @@ export default class AnimationManager {
     }
 
     set(elements) {
-        this.targets = elements.map(el => new Timeline(el, this.culling, this.noDeform));
+        for (let i = 0; i < elements.length; i++) {
+            if (this.targets[i]) {
+                this.targets[i].element = elements[i];
+            } else {
+                this.targets[i] = new Timeline(elements[i], this.culling, this.noDeform);
+            }
+        }
+
+        this.targets.length = elements.length;
     }
 
     play(clip, options) {

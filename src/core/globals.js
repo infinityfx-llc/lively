@@ -40,26 +40,21 @@ export const MERGE_FUNCTIONS = { // OPTIMIZE
     default: (a, b) => (a + b) / 2
 };
 
-const height = ['parentElement', 'clientHeight'];
+const height = el => el.parentElement.clientHeight;
 
 export const RELATIVE_PROPERTIES = {
-    x: ['clientWidth'],
-    y: ['clientHeight'],
-    fontSize: ['parentElement', 'style', 'fontSize'],
-    default: ['parentElement', 'clientWidth'],
+    get: (el, prop) => parseFloat((RELATIVE_PROPERTIES[prop] || RELATIVE_PROPERTIES.default)(el)),
+    default: el => el.parentElement.clientWidth,
+    x: el => el.clientWidth,
+    y: el => el.clientHeight,
+    fontSize: el => getComputeStyle(el.parentElement).fontSize,
     height,
     top: height,
     bottom: height
 };
 
 export const CONVERSIONS = {
-    '%_px': (val, el, prop) => {
-        const path = RELATIVE_PROPERTIES[prop] || RELATIVE_PROPERTIES.default;
-
-        for (const seg of path) el = el[seg];
-
-        return val * parseFloat(el);
-    },
+    '%_px': (val, el, prop) => val * RELATIVE_PROPERTIES.get(el, prop),
     em_px: (val, el) => val * parseFloat(getComputedStyle(el).fontSize),
     rem_px: val => CONVERSIONS.emtopx(val, document.body),
     vw_px: val => val * window.innerWidth,

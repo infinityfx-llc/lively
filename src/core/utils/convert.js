@@ -85,7 +85,7 @@ export const arrToStyle = arr => {
 
 export const Units = {
     fromProperty: prop => prop in DEFAULT_UNITS ? DEFAULT_UNITS[prop] : DEFAULT_UNITS.default,
-    toBase: (val, prop, el, key) => { // WIP
+    toBase: (val, prop, el, key) => {
         if (isObj(val)) {
             return mapObject(val, (val, key) => Units.toBase(val, prop, el, key));
         }

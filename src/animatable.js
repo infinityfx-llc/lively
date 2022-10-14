@@ -1,6 +1,5 @@
 // TODO:
 // allow for links to be used in objects such as link per scale component { x: link, y: link }
-// allow for whileHover and such events to be based on parent or other elements.
 // add index argument to function animation property
 
 import { Children, cloneElement, Component, isValidElement } from 'react';
@@ -27,6 +26,8 @@ export default class Animatable extends Component {
             this.animations[key] = this.parse(this.props.animations[key]);
         }
 
+        this.mounted = new Promise(resolve => this.mount = resolve);
+
         this.children = [];
         this.elements = [];
         this.stagger = isNul(this.props.stagger) ? 0.1 : this.props.stagger;
@@ -46,10 +47,23 @@ export default class Animatable extends Component {
         return isObj(properties) ? new Clip(properties, this.props.initial) : null;
     }
 
-    update() {
-        this.manager.clear();
-        this.manager.purge();
+    async update(purge = true) { // OPTIMIZE
+        this.manager.set(this.elements);
+        if (purge) {
+            this.manager.clear();
+            this.manager.purge();
+        }
         this.manager.initialize(this.animations.default);
+
+        if (!purge) {
+            for (const child of this.children) {
+                if (!child.rendered) {
+                    await child.mounted;
+                    child.play(child.props.onMount, undefined, true);
+                    child.onScroll();
+                }
+            }
+        }
     }
 
     componentDidMount() {
@@ -58,13 +72,14 @@ export default class Animatable extends Component {
         this.eventListener = this.onEvent.bind(this);
         onAny(Animatable.events, this.elements, this.eventListener);
 
-        this.manager.set(this.elements); // maybe on component update update this aswell
-        this.manager.register();
         this.update();
+        this.manager.register();
+        this.rendered = 0;
 
         document.fonts.ready.then(() => {
             this.update();
             this.inViewport = false;
+            this.mount();
 
             if (!this.props.group) {
                 this.play(this.props.onMount);
@@ -83,9 +98,7 @@ export default class Animatable extends Component {
     componentDidUpdate() {
         this.manager.paused = this.props.paused;
 
-        // for (const child of this.children) {
-        //     if (child) child.manager.paused = this.props.paused;
-        // }
+        this.update(false);
     }
 
     dispatch(e) {
@@ -161,7 +174,7 @@ export default class Animatable extends Component {
         };
 
         let parentDelay = 0;
-        for (let i = 0; i < this.childIndex; i++) {
+        for (let i = 0; i < this.children.length; i++) {
             parentDelay = Math.max(parentDelay, this.children[i].play(animation, {
                 reverse,
                 immediate,
@@ -186,7 +199,7 @@ export default class Animatable extends Component {
 
             const props = { pathLength: 1 };
             if (isDirectChild) {
-                const i = this.elementIndex++;
+                const i = this.elements.length++;
                 props.ref = el => {
                     if (el) this.elements[i] = el;
                 }
@@ -194,12 +207,12 @@ export default class Animatable extends Component {
 
             const isAnimatable = Animatable.isInstance(child) && isParent && !child.props.stopPropagation;
             if (isAnimatable) {
-                props.index = this.childIndex++;
+                props.index = this.children.length++;
                 props.group = this.props.group + 1;
                 props.ref = el => {
                     if (el) this.children[props.index] = el;
                 }
-                props.paused = this.props.paused; // TESTING
+                props.paused = this.props.paused;
 
                 if (!this.props.group) props.active = this.props.active; // TESTING
 
@@ -211,7 +224,8 @@ export default class Animatable extends Component {
     }
 
     render() {
-        this.elementIndex = this.childIndex = 0;
+        this.rendered++;
+        this.elements.length = this.children.length = 0;
 
         return this.prerender(this.props.children);
     }

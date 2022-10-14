@@ -13,30 +13,30 @@ export default class LayoutGroup extends Component {
         this.properties = subArray(this.props.include, this.props.exclude);
     }
 
-    getSnapshotBeforeUpdate() {
-        const arr = this.children.map(child => {
+    shouldComponentUpdate() {
+        this.snapshots = this.children.map(child => {
             const el = child?.elements[0];
 
-            return el ? { data: getSnapshot(el), key: child.props.layoutKey } : null;
+            return el ? { snapshot: getSnapshot(el), key: child.props.layoutKey } : {};
         });
 
-        return arr;
+        return true;
     }
 
-    componentDidUpdate(_1, _2, snapshot) {
-        for (let i = 0, j = 0; i < snapshot.length; i++, j++) {
+    componentDidUpdate() {
+        for (let i = 0, j = 0; i < this.snapshots.length; i++, j++) {
             const child = this.children[j];
-            if (!child || !child.elements[0]) continue;
+            if (!child?.elements[0]) continue;
 
-            const prev = snapshot[i];
-            if (!prev || child.props.layoutKey !== prev.key) {
+            if (child.props.layoutKey !== this.snapshots[i].key) {
                 j--;
                 continue;
             }
 
-            const next = getSnapshot(child.elements[0]);
-            child.manager.play(computeMorph(next, prev.data, this.properties, this.props.duration), { composite: true }); // WIP maybe dont use manager directly
-            // implement manager.forceUpdate to update animation without animationFrame
+            child.manager.play(
+                computeMorph(getSnapshot(child.elements[0]), this.snapshots[i].snapshot, this.properties, this.props.duration),
+                { composite: true }
+            );
         }
     }
 

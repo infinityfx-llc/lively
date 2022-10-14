@@ -33,6 +33,8 @@ export default class Timeline {
         for (const prop in this.element.cache) {
             this.element.style[prop] = this.element.cache[prop];
         }
+
+        this.channel = null;
     }
 
     clear() {
@@ -111,6 +113,8 @@ export default class Timeline {
     }
 
     initialize(clip) {
+        if (this.channel) return;
+
         this.apply(this.element, clip.initials);
 
         this.channel = clip.channel;

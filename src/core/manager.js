@@ -57,8 +57,8 @@ export default class AnimationManager {
         }
     }
 
-    initialize(clip) {
-        for (const target of this.targets) target.initialize(clip);
+    initialize(clip, force) {
+        for (const target of this.targets) target.initialize(clip, force);
     }
 
     step(dt) {

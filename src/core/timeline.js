@@ -112,8 +112,8 @@ export default class Timeline {
         if ((transform = transform.filter(val => !!val)).length) el.style.transform = transform.join(' ');
     }
 
-    initialize(clip) {
-        if (this.channel) return;
+    initialize(clip, force) {
+        if (this.channel && !force) return;
 
         this.apply(this.element, clip.initials);
 

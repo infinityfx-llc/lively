@@ -24,7 +24,8 @@ export default class Morph extends Animatable {
 
     shouldComponentUpdate(nextProps) {
         if (this.props.active !== nextProps.active) {
-            this.uuid in TARGETS ? TARGETS[this.uuid].push(this) : TARGETS[this.uuid] = [this];
+            const target = [this, this.elements[0]]; // OPTIMIZE
+            this.uuid in TARGETS ? TARGETS[this.uuid].push(target) : TARGETS[this.uuid] = [target];
         }
 
         return this.props.active !== nextProps.active; // WIP
@@ -32,8 +33,8 @@ export default class Morph extends Animatable {
 
     getSnapshotBeforeUpdate(prevProps) {
         if (this.props.active !== prevProps.active && this.props.active) {
-            for (const target of TARGETS[this.uuid]) {
-                if (target !== this) return getSnapshot(target.elements[0], this.props.group);
+            for (const [target, el] of TARGETS[this.uuid]) {
+                if (target !== this) return getSnapshot(el, this.props.group);
             }
         }
 
@@ -46,7 +47,7 @@ export default class Morph extends Animatable {
         TARGETS[this.uuid] = [];
         if (!target) {
             this.manager.clear();
-            this.manager.initialize(this.animations.unmorph);
+            this.manager.initialize(this.animations.unmorph, true);
             return;
         }
 

@@ -1,6 +1,6 @@
 import { DEFAULT_OBJECTS, MERGE_FUNCTIONS } from './globals';
-import { Aliases, arrToStyle, objToStr } from './utils/convert';
-import { getProperty, isColor, isEmpty, isObj, merge, mergeProperties } from './utils/helper';
+import { Aliases } from './utils/convert';
+import { calculateTransform, getProperty, isColor, isEmpty, merge, mergeProperties } from './utils/helper';
 
 export default class Timeline {
 
@@ -12,7 +12,7 @@ export default class Timeline {
         this.playing = true;
         this.culling = culling;
         this.layout = layout;
-        this.transforms = ['translate', 'scale', 'skew', 'rotate'];
+        this.transforms = ['translate', 'rotate', 'scale', 'skew'];
     }
 
     purge() {
@@ -81,11 +81,11 @@ export default class Timeline {
 
             if (prop == 'scale') {
                 if (this.layout) {
-                    const correction = { x: [1 / val.x[0], val.x[1]], y: [1 / val.y[0], val.y[1]] };
+                    const correction = { x: [1 / val.x[0], '%'], y: [1 / val.y[0], '%'] };
                     for (const child of el.children) child.correction = correction;
 
                     const r = properties.borderRadius || el.cache.borderRadius; // WIP
-                    delete properties.borderRadius; // maybe?
+                    delete properties.borderRadius;
 
                     el.style.borderRadius = `${r[0] / val.x[0]}${r[1]} / ${r[0] / val.y[0]}${r[1]}`;
                     // potentially correct other things as well
@@ -96,7 +96,7 @@ export default class Timeline {
 
             const idx = this.transforms.indexOf(prop);
             if (idx >= 0) {
-                transform[idx] = `${prop}(${isObj(val) ? objToStr(val, ', ', ['x', 'y']) : arrToStyle(val)})`;
+                transform[idx] = val;
                 continue;
             }
 
@@ -105,17 +105,18 @@ export default class Timeline {
             if (isColor(val)) {
                 el.style[prop] = `rgba(${val.r[0]}, ${val.g[0]}, ${val.b[0]}, ${val.a[0]})`;
             } else {
-                el.style[prop] = prop in Aliases ? Aliases[prop](val) : arrToStyle(val);
+                el.style[prop] = (Aliases[prop] || Aliases.default)(val);
             }
         }
 
-        if ((transform = transform.filter(val => !!val)).length) el.style.transform = transform.join(' ');
+        transform = calculateTransform(el, transform, this.transforms);
+        if (transform.length) el.style.transform = transform;
     }
 
     initialize(clip, force) {
         if (this.channel && !force) return;
 
-        this.apply(this.element, clip.initials);
+        this.apply(this.element, { ...clip.initials });
 
         this.channel = clip.channel;
     }

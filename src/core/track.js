@@ -32,7 +32,7 @@ export default class Track {
         let keyframe, to = val[i + inc], idxIsNul = isNul(i);
 
         if (idxIsNul || (this.reverse ? val[i].time < t : val[i].time > t)) {
-            this.indices[prop] = i = this.reverse ? val.length - 1 : 0; // reset indices for repeat
+            this.indices[prop] = i = this.reverse ? val.length - 1 : 0;
 
             if (idxIsNul) {
                 keyframe = this.reverse ? val[i].end : val[i].start;
@@ -70,7 +70,6 @@ export default class Track {
         t = end ? d : t % d;
         t = xor(this.reverse, isAlt) ? d - t : t;
 
-        properties.origin = this.clip.origin;
         for (const prop in this.clip.properties) {
             properties[prop] = this.getInterpolatedValue(prop, this.clip.properties[prop], t, element, end);
         }

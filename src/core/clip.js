@@ -2,14 +2,13 @@ import Channel from './channel';
 import { POSITIONS } from './globals';
 import Link from './link';
 import Track from './track';
-import { convert, originToStr } from './utils/convert';
+import { convert } from './utils/convert';
 import { hasSomeKey, isArr, isEmpty, isFunc, isNul, isObj, mergeObjects } from './utils/helper';
 
 export default class Clip {
 
-    constructor({ duration = 1, delay, repeat, alternate, interpolate, origin = { x: 0.5, y: 0.5 }, ...properties } = {}, initials = {}) {
+    constructor({ duration = 1, delay, repeat, alternate, interpolate, ...properties } = {}, initials = {}) {
         this.duration = duration;
-        this.origin = originToStr(origin);
         this.channel = new Channel(interpolate);
 
         [this.properties, this.initials] = this.parse(properties, initials);
@@ -20,6 +19,8 @@ export default class Clip {
     }
 
     length() {
+        if (this.isEmpty) return 0;
+        
         return this.duration * (this.defaults.repeat || 1) + (this.defaults.delay || 0);
     }
 

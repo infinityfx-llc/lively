@@ -11,7 +11,7 @@ const Scale = Animation.create(({ direction = 'right', ...options }) => {
             break;
     }
 
-    return [{ scale: { x: 1 }, origin, duration: 0.6, ...options }, { scale: { x, y } }];
+    return [{ scale: { x: 1 }, duration: 0.6, ...options }, { scale: { x, y }, origin }];
 });
 
 export default Scale;

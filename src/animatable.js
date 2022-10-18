@@ -160,7 +160,7 @@ export default class Animatable extends Component {
     }
 
     play(animation, { reverse = false, composite = false, immediate = false, delay = 0, callback } = {}, delegate = false) {
-        if (!animation || this.props.disabled || (this.props.group > 0 && !delegate)) return;
+        if (!animation || this.props.disabled || (this.props.group > 0 && !delegate)) return 0;
         if (!isStr(animation)) animation = 'default';
 
         this.dispatch('onAnimationStart');
@@ -168,7 +168,7 @@ export default class Animatable extends Component {
         const duration = clip.length() * this.cascade;
 
         const cb = callback;
-        if (!this.props.group) callback = () => {
+        if (!delegate) callback = () => {
             this.dispatch('onAnimationEnd');
             if (isFunc(cb)) cb();
         };
@@ -183,6 +183,7 @@ export default class Animatable extends Component {
             }, true));
         }
 
+        // FIX group prop not being taken into account for cascade delay
         if ((!reverse || this.props.group) && (reverse || this.children.length)) callback = null;
         this.manager.play(clip, { reverse, composite, immediate, delay: reverse ? parentDelay : delay, callback });
 
@@ -198,14 +199,8 @@ export default class Animatable extends Component {
             if (!isValidElement(child)) return child;
 
             const props = { pathLength: 1 };
-            if (isDirectChild) {
-                const i = this.elements.length++;
-                props.ref = el => {
-                    if (el) this.elements[i] = el;
-                }
-            }
-
             const isAnimatable = Animatable.isInstance(child) && isParent && !child.props.stopPropagation;
+
             if (isAnimatable) {
                 props.index = this.children.length++;
                 props.group = this.props.group + 1;
@@ -217,6 +212,12 @@ export default class Animatable extends Component {
                 if (!this.props.group) props.active = this.props.active; // TESTING
 
                 mergeObjects(props, { ...this.props, ...child.props }, this.constructor.cascadingProps); // OPTIMIZE
+            } else
+            if (isDirectChild) {
+                const i = this.elements.length++;
+                props.ref = el => {
+                    if (el) this.elements[i] = el;
+                }
             }
 
             return cloneElement(child, props, this.prerender(child.props.children, false, !isAnimatable));

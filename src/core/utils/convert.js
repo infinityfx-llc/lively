@@ -54,24 +54,6 @@ export const strToRgba = str => {
 
 export const objToStr = (val, seperator, order = Object.keys(val)) => order.map(key => arrToStyle(val[key])).join(seperator);
 
-export const originToStr = origin => {
-    let { x = 0.5, y = 0.5 } = isObj(origin) ? origin : {};
-
-    if (isStr(origin)) {
-        switch (origin) {
-            case 'left': x = 0;
-                break;
-            case 'right': x = 1;
-                break;
-            case 'top': y = 0;
-                break;
-            case 'bottom': y = 1;
-        }
-    }
-
-    return { x, y };
-};
-
 export const styleToArr = style => {
     const val = style.toString().match(/^(-?[\d.]+)([^\d.]*)$/i);
     if (!val) return [style, null];
@@ -82,6 +64,8 @@ export const styleToArr = style => {
 export const arrToStyle = arr => {
     return (arr[1] == '%' ? arr[0] * 100 : arr[0]) + (isNul(arr[1]) ? '' : arr[1]);
 };
+
+export const transformToStyle = (val, prop) => `${prop}(${isObj(val) ? objToStr(val, ', ', ['x', 'y']) : arrToStyle(val)})`;
 
 export const Units = {
     fromProperty: prop => prop in DEFAULT_UNITS ? DEFAULT_UNITS[prop] : DEFAULT_UNITS.default,
@@ -99,9 +83,7 @@ export const Units = {
         return convert ? [convert(val[0], el, key || prop), unit] : val;
     },
     normalize: (unit, prop) => {
-        if (UNITS.includes(unit) || (isNul(unit) && prop in DEFAULT_UNITS)) return unit;
-
-        return Units.fromProperty(prop);
+        return UNITS.includes(unit) ? unit : Units.fromProperty(prop);
     }
 };
 
@@ -109,7 +91,8 @@ export const Aliases = { // Implement reverse for property parsing
     origin: 'transformOrigin',
     length: 'strokeDashoffset',
     clip: 'clipPath',
-    transformOrigin: val => `${val.x * 100}% ${val.y * 100}%`,
+    default: val => arrToStyle(val),
+    transformOrigin: val => objToStr(val, ' ', ['x', 'y']),
     strokeDashoffset: val => 1 - val[0],
     clipPath: val => `inset(${objToStr(val, ' ', ['top', 'right', 'bottom', 'left'])})`
 };

@@ -1,5 +1,5 @@
 import { MERGE_FUNCTIONS, MORPH_PROPERTIES } from '../globals';
-import { convert, strToRgba, styleToArr } from './convert';
+import { convert, strToRgba, styleToArr, transformToStyle } from './convert';
 
 export const xor = (a, b) => (a && !b) || (!a && b);
 
@@ -47,16 +47,29 @@ export const decomposeTransform = transform => {
 
     const x = Math.sqrt(m.a * m.a + m.b * m.b) * Math.sign(m.a);
     const y = Math.sqrt(m.c * m.c + m.d * m.d) * Math.sign(m.d);
-    const skew = Math.atan2(m.d, m.c) * 180 / Math.PI - 90;
-    const rotate = Math.atan2(m.b, m.a) * 180 / Math.PI;
+    const rotate = Math.atan2(m.d, m.c) * 180 / Math.PI - 90; // CHECK IF CORRECT
+    // const skew = Math.atan2(m.b, m.a) * 180 / Math.PI;
 
     return {
         translate: { x: m.e, y: m.f },
         scale: { x, y },
         rotate,
-        skew: { x: skew, y: 0 }
+        skew: { x: 0, y: 0 }
     };
 };
+
+export const calculateTransform = (el, transform, order) => { // OPTIMIZE
+    const current = decomposeTransform(getComputedStyle(el).transform);
+
+    return order.reduce((str, prop, i) => {
+        let val = current[prop];
+        val = val == 0 || (prop != 'scale' && val.x == 0 && val.y == 0) || (prop == 'scale' && val.x == 1 && val.y == 1) ? 0 : convert(val, prop);
+        val = transform[i] || val;
+
+        if (!val) return str;
+        return str + transformToStyle(val, prop) + ' ';
+    }, '');
+}
 
 export const getProperty = (el, prop) => {
     const styles = getComputedStyle(el);
@@ -65,6 +78,12 @@ export const getProperty = (el, prop) => {
     if (prop in transform) return convert(transform[prop], prop);
 
     if (prop === 'length') return [1 - parseFloat(styles.strokeDashoffset), null];
+
+    if (prop === 'origin') { // TEMP
+        const origin = styles.transformOrigin.split(' ');
+
+        return { x: styleToArr(origin[0]), y: styleToArr(origin[1]) };
+    }
     // parse custom property clip here
 
     const val = styles[prop];

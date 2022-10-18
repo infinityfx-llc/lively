@@ -9,7 +9,6 @@ export default class Channel extends Track {
         super({
             duration: Infinity,
             properties: {},
-            origin: { x: 0.5, y: 0.5 },
             interpolate
         });
 

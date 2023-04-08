@@ -1,8 +1,8 @@
 # Lively
 
 [![NPM package](https://img.shields.io/npm/v/@infinityfx/lively)](https://www.npmjs.com/package/@infinityfx/lively)
-![NPM bundle size](https://img.shields.io/bundlephobia/minzip/@infinityfx/lively)
-![Last commit](https://img.shields.io/github/last-commit/infinityfx-llc/lively)
+![[NPM bundle size](https://img.shields.io/bundlephobia/minzip/@infinityfx/lively)](https://bundlephobia.com/package/@infinityfx/lively)
+![[Last commit](https://img.shields.io/github/last-commit/infinityfx-llc/lively)](https://github.com/infinityfx-llc/lively)
 ![NPM weekly downloads](https://img.shields.io/npm/dw/@infinityfx/lively)
 ![NPM downloads](https://img.shields.io/npm/dt/@infinityfx/lively)
 

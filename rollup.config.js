@@ -1,13 +1,11 @@
 import resolve from '@rollup/plugin-node-resolve';
-import babel from '@rollup/plugin-babel';
 import { terser } from 'rollup-plugin-terser';
 import del from 'rollup-plugin-delete';
+import typescript from '@rollup/plugin-typescript';
 
 const plugins = [
     resolve(),
-    babel({
-        babelHelpers: 'runtime'
-    })
+    typescript({ tsconfig: './tsconfig.json' }),
 ];
 
 if (process.env.NODE_ENV === 'production') plugins.push(
@@ -18,17 +16,12 @@ if (process.env.NODE_ENV === 'production') plugins.push(
 );
 
 export default {
-    input: ['src/index.js', 'src/animations.js', 'src/hooks.js', 'src/auto.js'],
-    external: ['react', 'react-dom', /@babel\/runtime/],
-    output: [
-        {
-            dir: 'dist/esm',
-            format: 'es'
-        },
-        {
-            dir: 'dist/cjs',
-            format: 'cjs'
-        }
-    ],
+    input: ['src/index.ts', 'src/animations.ts', 'src/hooks.ts'],
+    external: ['react', 'react-dom', 'react/jsx-runtime'],
+    output: {
+        dir: 'dist',
+        format: 'es',
+        sourcemap: true
+    },
     plugins
 }

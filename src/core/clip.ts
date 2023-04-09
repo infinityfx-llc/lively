@@ -1,9 +1,10 @@
 import type { Link } from "../hooks/use-link";
 import Action from "./action";
 import Timeline from "./timeline";
+import { lengthToOffset } from "./utils";
 
 type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end';
-type CSSKeys = keyof React.CSSProperties; // add custom props (pathLength, x, y (pos), transform origin)
+type CSSKeys = keyof React.CSSProperties | 'pathLength';
 type AnimatableProperty = string | number | null | {
     set?: string | number;
     start?: string | number;
@@ -17,11 +18,15 @@ type ClipConfig = {
     repeat?: number;
     alternate?: boolean;
     easing?: Easing;
+    reverse?: boolean;
+    composite?: boolean;
 };
 
 export type ClipProperties = ClipConfig & AnimatableProperties;
 
 export type DynamicProperties = { [key in CSSKeys]?: (progress: number) => any };
+
+export type AnimatableInitials = React.CSSProperties & { pathLength?: number | string };
 
 export default class Clip {
 
@@ -33,14 +38,18 @@ export default class Clip {
     repeat: number;
     alternate: boolean;
     easing: Easing;
+    reverse: boolean;
+    composite: boolean;
 
-    constructor({ duration = 1, delay = 0, repeat = 1, alternate = false, easing = 'ease', ...properties }: ClipProperties, initial: React.CSSProperties = {}) {
+    constructor({ duration = 1, delay = 0, repeat = 1, alternate = false, easing = 'ease', reverse = false, composite = false, ...properties }: ClipProperties, initial: AnimatableInitials = {}) {
         const keyframes: {
             [key: number]: Keyframe;
         } = {};
 
-        for (const prop in properties) {
-            const val = properties[prop as CSSKeys], init = initial[prop as CSSKeys];
+        for (let prop in properties) {
+            let val = properties[prop as CSSKeys], init = initial[prop as CSSKeys];
+            prop = prop === 'pathLength' ? 'strokeDashoffset' : prop;
+
             if (val instanceof Function) {
                 if (!('connect' in val)) this.dynamic[prop as CSSKeys] = val;
                 continue;
@@ -58,9 +67,11 @@ export default class Clip {
                 if (key === null) key = arr.length < 2 ? 1 : Math.round(i / (arr.length - 1) * 1000) / 1000;
                 if (!(key in keyframes)) keyframes[key] = { offset: key };
 
-                keyframes[key][prop] = val;
+                keyframes[key][prop] = prop === 'strokeDashoffset' ? lengthToOffset(val) : val;
             }
         }
+
+        if (initial.pathLength) initial.strokeDashoffset = lengthToOffset(initial.pathLength);
 
         this.keyframes = Object.values(keyframes);
         this.initial = initial;
@@ -69,6 +80,8 @@ export default class Clip {
         this.repeat = repeat;
         this.alternate = alternate;
         this.easing = easing;
+        this.reverse = reverse;
+        this.composite = composite;
     }
 
     parse(value: AnimatableProperty | undefined): [number | null, string | number | undefined] {
@@ -81,12 +94,12 @@ export default class Clip {
         }
     }
 
-    static from(data?: ClipProperties | Clip, initial?: React.CSSProperties, timeline?: Timeline) {
+    static from(data?: ClipProperties | Clip, initial?: AnimatableInitials, timeline?: Timeline) {
         if (data !== undefined && !(data instanceof Clip) && timeline) {
             for (const key in data) {
                 const val = data[key as keyof ClipProperties];
 
-                if (val instanceof Function && 'connect' in val) val.connect(timeline.port.bind(timeline, key, val));
+                if (val instanceof Function && 'connect' in val) val.connect(timeline.port.bind(timeline, key === 'pathLength' ? 'strokeDashoffset' : key, val));
             }
         }
 
@@ -100,7 +113,7 @@ export default class Clip {
         return clip;
     }
 
-    play(element: HTMLElement, { composite = false, reverse = false, delay, deform = true, paused = false }: { composite?: boolean; reverse?: boolean; delay?: number; deform?: boolean; paused?: boolean; } = {}) {
+    play(element: HTMLElement, { composite, reverse, delay, deform = true }: { composite: boolean; reverse: boolean; delay?: number; deform?: boolean; }) {
         const action = new Action(element, this.keyframes, {
             duration: this.duration * 1000,
             delay: (delay || this.delay) * 1000,
@@ -112,8 +125,8 @@ export default class Clip {
             composite: composite ? 'add' : 'replace',
             easing: this.easing
         }, this.dynamic);
+        
         if (!deform) action.correct();
-        if (paused) action.pause();
 
         return action;
     }

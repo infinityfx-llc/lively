@@ -44,3 +44,5 @@ export async function sleep(duration: number) {
         setTimeout(resolve, duration);
     });
 };
+
+export const lengthToOffset = (val: any) => 1 - parseFloat(val.toString());

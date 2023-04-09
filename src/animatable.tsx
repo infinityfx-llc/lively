@@ -1,7 +1,7 @@
 'use client';
 
 import { Children, cloneElement, forwardRef, isValidElement, useEffect, useImperativeHandle, useLayoutEffect, useRef } from "react";
-import Clip, { ClipProperties } from "./core/clip";
+import Clip, { AnimatableInitials, ClipProperties } from "./core/clip";
 import Timeline from "./core/timeline";
 import { attachEvent, detachEvent, merge } from "./core/utils";
 
@@ -17,7 +17,7 @@ export type AnimatableProps = {
     animations?: { [key: string]: ClipProperties | Clip };
     playbook?: ({ name: string; trigger: boolean } & PlayOptions)[];
     animate?: ClipProperties | Clip;
-    initial?: React.CSSProperties;
+    initial?: AnimatableInitials;
     stagger?: number;
     staggerLimit?: number;
     deform?: boolean;
@@ -39,13 +39,10 @@ export type AnimatableProps = {
 // - useMount hook multiple refs
 // - look into replacing useMount for unmounting with parent component (to allow for mapping functions)
 // - morph comp
-// - usePath hook
-// - animate path length
 // - spring easing
 // - base correction of of cached styles, cause otherwise on repeat plays they keep changing
 // - move transition logic to parent (same as for unmounting)
 // - fix animation compositing
-// - add reverse and composite as animation properties
 
 const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     children,
@@ -223,7 +220,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
 
                     props.pathLength = 1;
                     props.ref = el => timeline.current.insert(i, el);
-                    props.style = merge({ WebkitBackfaceVisibility: 'hidden' }, initial || clipMap.current.animate.initial, childProps.style);
+                    props.style = merge({ WebkitBackfaceVisibility: 'hidden', strokeDasharray: 1 }, initial || clipMap.current.animate.initial, childProps.style);
                 }
 
             if (!valid) {

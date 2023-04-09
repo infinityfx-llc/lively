@@ -3,6 +3,7 @@ import Action from "./action";
 import StyleCache from "./cache";
 import Clip from "./clip";
 import Track from "./track";
+import { lengthToOffset } from "./utils";
 
 export default class Timeline {
 
@@ -36,7 +37,8 @@ export default class Timeline {
     port(key: string, link: Link<any>, transition: number) {
         if (this.paused) return;
 
-        const val = link();
+        let val = link();
+        if (key === 'strokeDashoffset') val = lengthToOffset(val);
 
         for (const track of this.tracks) {
             if (transition) {
@@ -48,7 +50,7 @@ export default class Timeline {
 
     transition(duration = 0.5) {
         if (this.paused) return;
-        
+
         const data = this.cache.read(this.tracks);
         const keyframes = this.cache.computeDifference(data);
 
@@ -88,7 +90,9 @@ export default class Timeline {
         this.frame = requestAnimationFrame(this.step.bind(this));
     }
 
-    add(clip: Clip, { composite = false, immediate = false, reverse = false, delay = 0 } = {}) {
+    add(clip: Clip, { immediate = false, composite, reverse, delay = 0 }: { immediate?: boolean; composite?: boolean; reverse?: boolean; delay?: number }) {
+        if (composite === undefined) composite = clip.composite;
+        if (reverse === undefined) reverse = clip.reverse;
 
         for (let i = 0; i < this.tracks.length; i++) {
 
@@ -99,9 +103,9 @@ export default class Timeline {
                 deform: this.deform,
                 delay: delay + Math.min(i, this.staggerLimit) * (this.stagger < 0 ? clip.duration / this.tracks.length : this.stagger),
                 composite,
-                reverse,
-                paused: !!queued
+                reverse
             });
+            if (queued) action.pause();
 
             queued ? this.tracks[i].enqueue(action) : this.tracks[i].push(action);
         }

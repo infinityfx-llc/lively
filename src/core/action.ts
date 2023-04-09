@@ -1,4 +1,5 @@
 import type { DynamicProperties } from "./clip";
+import { lengthToOffset } from "./utils";
 
 export default class Action {
 
@@ -52,7 +53,8 @@ export default class Action {
         const progress = this.animation.effect?.getComputedTiming().progress || 0;
 
         for (const key in this.dynamic) {
-            this.element.style[key as never] = this.dynamic[key as keyof DynamicProperties]?.(progress);
+            const val = this.dynamic[key as keyof DynamicProperties]?.(progress);
+            this.element.style[key as never] = key === 'strokeDashoffset' ? lengthToOffset(val) : val;
         }
 
         if (this.deform) return;

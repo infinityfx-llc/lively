@@ -1,4 +1,5 @@
 import type { Link } from "../hooks/use-link";
+import Action from "./action";
 import Timeline from "./timeline";
 
 type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end';
@@ -23,7 +24,6 @@ export type ClipProperties = ClipConfig & AnimatableProperties;
 export default class Clip {
 
     keyframes: Keyframe[];
-    correction: { x: number, y: number, offset: number }[];
     initial: React.CSSProperties;
     duration: number;
     delay: number;
@@ -34,9 +34,6 @@ export default class Clip {
     constructor({ duration = 1, delay = 0, repeat = 1, alternate = false, easing = 'ease', ...properties }: ClipProperties, initial: React.CSSProperties = {}) {
         const keyframes: {
             [key: number]: Keyframe;
-        } = {};
-        const correction: {
-            [key: number]: { x: number, y: number, offset: number };
         } = {};
 
         for (const prop in properties) {
@@ -55,17 +52,11 @@ export default class Clip {
                 if (key === null) key = arr.length < 2 ? 1 : Math.round(i / (arr.length - 1) * 1000) / 1000;
                 if (!(key in keyframes)) keyframes[key] = { offset: key };
 
-                if (prop === 'scale') {
-                    const [x, y] = this.decomposeScale(val);
-                    correction[key] = { offset: key, x, y };
-                }
-
                 keyframes[key][prop] = val;
             }
         }
 
         this.keyframes = Object.values(keyframes);
-        this.correction = Object.values(correction); // account for different sized correction and keyframes arrays
         this.initial = initial;
         this.duration = duration;
         this.delay = delay;
@@ -84,25 +75,6 @@ export default class Clip {
         }
     }
 
-    decomposeScale(val: string | number) {
-        const [xString, yString] = val.toString().split(' ');
-
-        let x = parseFloat(xString);
-        if (/%$/.test(xString)) x /= 100;
-
-        let y = yString ? parseFloat(yString) : x;
-        if (/%$/.test(yString)) y /= 100;
-
-        return [x, y];
-    }
-
-    parseRadius(keyframe: Keyframe, element: HTMLElement) {
-        const br = keyframe.borderRadius ?? getComputedStyle(element).borderRadius;
-        const [radius] = br.toString().split(' ');
-
-        return parseFloat(radius) || 0;
-    }
-
     static from(data?: ClipProperties | Clip, initial?: React.CSSProperties, timeline?: Timeline) {
         if (data !== undefined && !(data instanceof Clip) && timeline) {
             for (const key in data) {
@@ -111,11 +83,11 @@ export default class Clip {
                 if (val instanceof Function) val.connect(timeline.port.bind(timeline, key, val));
             }
         }
-        
+
         return data instanceof Clip ? data : new Clip({ ...data }, initial);
     }
 
-    static transition(elements: HTMLElement[], keyframes: PropertyIndexedKeyframes[], duration = 0.5) {
+    static transition(elements: HTMLElement[], keyframes: PropertyIndexedKeyframes[], duration = 0.5) { // account for deform property
         if (elements.length !== keyframes.length) return;
 
         for (let i = 0; i < elements.length; i++) {
@@ -138,7 +110,7 @@ export default class Clip {
     }
 
     play(element: HTMLElement, { composite = false, reverse = false, delay, deform = true, paused = false }: { composite?: boolean; reverse?: boolean; delay?: number; deform?: boolean; paused?: boolean; } = {}) {
-        const config: KeyframeAnimationOptions = {
+        const action = new Action(element, this.keyframes, {
             duration: this.duration * 1000,
             delay: (delay || this.delay) * 1000,
             iterations: this.repeat,
@@ -148,35 +120,11 @@ export default class Clip {
             fill: 'both',
             composite: composite ? 'add' : 'replace',
             easing: this.easing
-        };
-        let keyframes = this.keyframes;
+        });
+        if (!deform) action.correct();
+        if (paused) action.pause();
 
-        if (!deform && this.correction.length) {
-            keyframes = new Array(keyframes.length);
-
-            for (let i = 0; i < this.keyframes.length; i++) {
-                const radius = this.parseRadius(this.keyframes[i], element);
-
-                keyframes[i] = Object.assign({
-                    borderRadius: `${radius / this.correction[i].x}px / ${radius / this.correction[i].y}px`
-                }, this.keyframes[i]);
-            }
-
-            for (let i = 0; i < element.children.length; i++) {
-                const animation = element.children[i].animate(this.correction.map(({ x, y, offset }) => ({
-                    offset,
-                    transform: `scale(${1 / x}, ${1 / y})`
-                })), config);
-                animation.commitStyles(); // maybe return these animation too (so they can be paused);
-                if (paused) animation.pause();
-            }
-        }
-
-        const animation = element.animate(keyframes, config);
-        animation.commitStyles();
-        if (paused) animation.pause();
-
-        return animation;
+        return action;
     }
 
 }

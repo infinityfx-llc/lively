@@ -8,12 +8,12 @@ const plugins = [
     typescript({ tsconfig: './tsconfig.json' }),
 ];
 
-if (process.env.NODE_ENV === 'production') plugins.push(
-    terser(),
-    del({
-        targets: 'dist/*'
-    })
-);
+if (process.env.NODE_ENV === 'production') {
+    plugins.push(terser());
+    plugins.unshift(del({
+        targets: 'dist/**'
+    }));
+}
 
 export default {
     input: ['src/index.ts', 'src/animations.ts', 'src/hooks.ts'],

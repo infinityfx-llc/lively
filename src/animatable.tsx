@@ -21,15 +21,15 @@ export type AnimatableProps = {
     initial?: React.CSSProperties;
     stagger?: number;
     staggerLimit?: number;
-    viewportMargin?: number;
     deform?: boolean;
+    order?: number;
+    viewportMargin?: number;
     adapative?: boolean | number;
     onMount?: boolean | string;
     onUnmount?: boolean | string;
     onEnter?: boolean | string;
     onLeave?: boolean | string;
     noCascade?: boolean;
-    order?: number;
     text?: boolean;
     disabled?: boolean;
     paused?: boolean;
@@ -43,6 +43,8 @@ export type AnimatableProps = {
 // - morph comp
 // - usePath hook
 // - animate path length
+// - spring easing
+// - base correction of of cached styles, cause otherwise on repeat plays they keep changing
 
 const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     children,
@@ -52,15 +54,15 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     initial,
     stagger,
     staggerLimit,
-    viewportMargin = 0.5,
     deform,
+    order,
+    viewportMargin = 0.5,
     adapative = false,
     onMount = false,
     onUnmount = false,
     onEnter = false,
     onLeave = false,
     noCascade = false,
-    order,
     text = false,
     disabled = false,
     paused = false }, ref) => {
@@ -110,7 +112,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
         }
 
         const delay = (options.reverse ? cascadeDelay : layerDelay) * (cascadeOrder / layer);
-        timeline.current.enqueue(clip, merge({ delay }, options));
+        timeline.current.add(clip, merge({ delay }, options));
 
         return duration + delay;
     };
@@ -219,7 +221,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
                     props.paused = paused;
                     props.ref = el => nodes[i] = el;
 
-                    merge(props, childProps, { animate, initial, animations, stagger, staggerLimit });
+                    merge(props, childProps, { animate, initial, animations, stagger, staggerLimit, deform });
                 }
             } else
                 if (isDirectChild) {

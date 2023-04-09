@@ -28,7 +28,9 @@ export default function useLink<T = any>(initial: T): [Link<T>, (value: T, trans
     function update(value: T, transition = 0) {
         internal.current = value;
 
-        for (const port of ports.current) port(transition);
+        requestAnimationFrame(() => {
+            for (const port of ports.current) port(transition);
+        });
     }
 
     return [link, update];

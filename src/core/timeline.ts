@@ -1,5 +1,6 @@
 import type { Link } from "../hooks/use-link";
 import Clip from "./clip";
+import Track from "./track";
 
 export default class Timeline {
 
@@ -8,8 +9,9 @@ export default class Timeline {
     deform: boolean;
     targets: HTMLElement[] = [];
     targetMap: { [key: number]: number | undefined } = {};
-    tracks: Animation[][] = [];
+    tracks: Track[] = [];
     links: { [key: string]: Link<any> } = {};
+    frame: number = 0;
 
     constructor({ stagger = 0.1, staggerLimit = 10, deform = true }) {
         this.stagger = stagger;
@@ -17,11 +19,19 @@ export default class Timeline {
         this.deform = deform;
     }
 
+    step() {
+        cancelAnimationFrame(this.frame);
+
+        this.tracks.forEach(track => track.step());
+
+        this.frame = requestAnimationFrame(this.step.bind(this));
+    }
+
     time(clip: Clip) {
         return clip.duration + this.stagger * Math.min(this.staggerLimit, this.targets.length - 1);
     }
 
-    port(key: string, link: Link<any>, transition: number) {
+    port(key: string, link: Link<any>, transition: number) { // merge with step()
         const val = link();
 
         for (const el of this.targets) {
@@ -42,53 +52,36 @@ export default class Timeline {
                 this.targets.splice(idx, 1);
                 this.targetMap[key] = undefined;
             }
+
+        this.frame = requestAnimationFrame(this.step.bind(this));
     }
 
-    clear(trackIndex: number, id?: Animation) {
-        const track = this.tracks[trackIndex];
-
-        if (id) {
-            const idx = track.findIndex(val => val === id);
-
-            if (idx >= 0) track.splice(idx, 1);
-            if (track[0]?.playState === 'paused') track[0].play();
-        } else {
-            track.forEach(animation => animation.cancel());
-            this.tracks[trackIndex] = [];
-        }
-    }
-
-    enqueue(clip: Clip, { composite = false, immediate = false, reverse = false, delay = 0 } = {}) {
+    add(clip: Clip, { composite = false, immediate = false, reverse = false, delay = 0 } = {}) {
 
         for (let i = 0; i < this.targets.length; i++) {
-            if (!Array.isArray(this.tracks[i])) this.tracks[i] = [];
+            if (!this.tracks[i]) this.tracks[i] = new Track();
 
-            const queued = this.tracks[i].length && !(composite || immediate);
-            if (immediate) this.clear(i);
+            const queued = this.tracks[i].active.length && !(composite || immediate);
+            if (immediate) this.tracks[i].clear();
 
-            const animation = clip.play(this.targets[i], {
+            const action = clip.play(this.targets[i], {
                 deform: this.deform,
                 delay: delay + Math.min(i, this.staggerLimit) * (this.stagger < 0 ? clip.duration / this.targets.length : this.stagger),
                 composite,
                 reverse,
                 paused: !!queued
             });
-            this.tracks[i].push(animation);
 
-            animation.onfinish = () => this.clear(i, animation);
+            queued ? this.tracks[i].enqueue(action) : this.tracks[i].push(action);
         }
     }
 
     pause() {
-        for (const track of this.tracks) {
-            for (const animation of track) animation.pause();
-        }
+        for (const track of this.tracks) track.pause();
     }
 
     play() {
-        for (const track of this.tracks) {
-            track[0]?.play();
-        }
+        for (const track of this.tracks) track.play();
     }
 
 }

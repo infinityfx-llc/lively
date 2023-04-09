@@ -45,6 +45,7 @@ export type AnimatableProps = {
 // - base correction of of cached styles, cause otherwise on repeat plays they keep changing
 // - move transition logic to parent (same as for unmounting)
 // - fix animation compositing
+// - add reverse and composite as animation properties
 
 const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     children,

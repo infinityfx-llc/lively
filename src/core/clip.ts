@@ -10,7 +10,7 @@ type AnimatableProperty = string | number | null | {
     end?: string | number;
     offset?: number;
 };
-type AnimatableProperties = { [key in CSSKeys]?: Link<any> | AnimatableProperty | AnimatableProperty[] };
+type AnimatableProperties = { [key in CSSKeys]?: Link<any> | ((progress: number) => any) | AnimatableProperty | AnimatableProperty[] };
 type ClipConfig = {
     duration?: number;
     delay?: number;
@@ -21,10 +21,13 @@ type ClipConfig = {
 
 export type ClipProperties = ClipConfig & AnimatableProperties;
 
+export type DynamicProperties = { [key in CSSKeys]?: (progress: number) => any };
+
 export default class Clip {
 
     keyframes: Keyframe[];
     initial: React.CSSProperties;
+    dynamic: DynamicProperties = {};
     duration: number;
     delay: number;
     repeat: number;
@@ -38,7 +41,10 @@ export default class Clip {
 
         for (const prop in properties) {
             const val = properties[prop as CSSKeys], init = initial[prop as CSSKeys];
-            if (val instanceof Function) continue;
+            if (val instanceof Function) {
+                if (!('connect' in val)) this.dynamic[prop as CSSKeys] = val;
+                continue;
+            }
 
             const arr = Array.isArray(val) ? val : [val];
 
@@ -78,9 +84,9 @@ export default class Clip {
     static from(data?: ClipProperties | Clip, initial?: React.CSSProperties, timeline?: Timeline) {
         if (data !== undefined && !(data instanceof Clip) && timeline) {
             for (const key in data) {
-                const val = data[key as keyof ClipProperties] as Link<any>;
+                const val = data[key as keyof ClipProperties];
 
-                if (val instanceof Function) val.connect(timeline.port.bind(timeline, key, val));
+                if (val instanceof Function && 'connect' in val) val.connect(timeline.port.bind(timeline, key, val));
             }
         }
 
@@ -105,7 +111,7 @@ export default class Clip {
             fill: 'both',
             composite: composite ? 'add' : 'replace',
             easing: this.easing
-        });
+        }, this.dynamic);
         if (!deform) action.correct();
         if (paused) action.pause();
 

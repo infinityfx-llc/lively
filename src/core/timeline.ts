@@ -51,15 +51,15 @@ export default class Timeline {
         
         const data = this.cache.read(this.tracks);
         const keyframes = this.cache.computeDifference(data);
-        console.log(data);
 
         for (let i = 0; i < this.tracks.length; i++) {
-            new Action(this.tracks[i].element, keyframes[i], {
+            const action = new Action(this.tracks[i].element, keyframes[i], {
                 duration: duration * 1000,
                 fill: 'both',
                 easing: 'ease',
                 composite: 'add'
             });
+            if (this.deform) action.correct();
         }
 
         this.cache.set(data);

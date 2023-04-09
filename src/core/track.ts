@@ -26,7 +26,7 @@ export default class Track {
     next() {
         this.onupdate?.();
 
-        if (this.playing-- > 0) return;
+        if (--this.playing > 0) return;
 
         this.active = this.queue.length ? this.queue.splice(0, 1) : [];
         this.active.forEach(action => action.play());
@@ -36,6 +36,7 @@ export default class Track {
         this.active.forEach(action => action.remove());
         this.active = [];
         this.queue = [];
+        this.playing = 0;
     }
 
     pause() {

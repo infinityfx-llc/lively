@@ -1,13 +1,16 @@
+import type { DynamicProperties } from "./clip";
+
 export default class Action {
 
     element: HTMLElement;
     computed: CSSStyleDeclaration;
     animation: Animation;
+    dynamic: DynamicProperties;
     paused: boolean = false;
     deform: boolean = true;
     onfinish: (() => void) | null = null;
 
-    constructor(element: HTMLElement, keyframes: Keyframe[] | PropertyIndexedKeyframes, config: KeyframeAnimationOptions) {
+    constructor(element: HTMLElement, keyframes: Keyframe[] | PropertyIndexedKeyframes, config: KeyframeAnimationOptions, dynamic: DynamicProperties = {}) {
         this.element = element;
         this.computed = getComputedStyle(element);
         this.animation = element.animate(keyframes, config);
@@ -16,6 +19,8 @@ export default class Action {
             this.animation.cancel();
             this.onfinish?.();
         }
+
+        this.dynamic = dynamic;
     }
 
     correct() {
@@ -36,13 +41,21 @@ export default class Action {
 
     parseRadius() { // doesnt work with animating border radius currently
         if ('cachedBorderRadius' in this.element) return this.element.cachedBorderRadius as number;
-        
+
         const [radius] = this.computed.borderRadius.toString().split(' ');
         return (this.element as any).cachedBorderRadius = parseFloat(radius) || 0;
     }
 
     step() {
-        if (this.deform || this.paused) return;
+        if (this.paused) return;
+
+        const progress = this.animation.effect?.getComputedTiming().progress || 0;
+
+        for (const key in this.dynamic) {
+            this.element.style[key as never] = this.dynamic[key as keyof DynamicProperties]?.(progress);
+        }
+
+        if (this.deform) return;
 
         const [x, y] = this.decomposeScale(this.computed.scale);
         const radius = this.parseRadius();

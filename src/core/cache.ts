@@ -1,3 +1,5 @@
+import Track from "./track";
+
 type CacheData = {
     x: number;
     y: number;
@@ -13,42 +15,45 @@ type CacheData = {
 export default class StyleCache {
 
     data: CacheData[] = [];
-    isEmpty: boolean = true;
 
-    read(elements: HTMLElement[]) {
-        return elements.map(el => {
-            const { x, y, width, height } = el.getBoundingClientRect();
-            const { borderRadius, opacity, backgroundColor, color, rotate } = getComputedStyle(el);
+    get(element: HTMLElement) {
+        const { x, y, width, height } = element.getBoundingClientRect();
+        const { borderRadius, opacity, backgroundColor, color, rotate } = getComputedStyle(element);
 
-            return {
-                x,
-                y,
-                width,
-                height,
-                borderRadius,
-                opacity,
-                backgroundColor,
-                color,
-                rotate
-            };
-        });
+        return {
+            x: x - window.scrollX,
+            y: y + window.scrollY,
+            width,
+            height,
+            borderRadius,
+            opacity,
+            backgroundColor,
+            color,
+            rotate
+        };
     }
 
-    update(data: CacheData[]) {
+    set(data: CacheData[]) {
         this.data = data;
-        this.isEmpty = !data.length;
     }
 
-    computeDifference(data: CacheData[]) {
+    read(tracks: Track[]): CacheData[] {
+        return tracks.map(track => this.get(track.element));
+    }
+
+    update(index: number, element: HTMLElement) {
+        const data = this.get(element);
+        this.data[index] = data;
+    }
+
+    computeDifference(data: CacheData[]) { // multiple animation to accumulate position and such, but not color, etc..
         const keyframes: PropertyIndexedKeyframes[] = new Array(data.length);
 
         for (let i = 0; i < data.length; i++) {
             keyframes[i] = this.data[i] ? {
                 translate: [`${this.data[i].x - data[i].x}px ${this.data[i].y - data[i].y}px`, '0px 0px'],
                 scale: [this.data[i].width / data[i].width, this.data[i].height / data[i].height]
-            } : {
-                opacity: [0, 1]
-            };
+            } : {};
 
             if (!this.data[i]) continue;
 

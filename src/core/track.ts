@@ -2,9 +2,15 @@ import Action from "./action";
 
 export default class Track {
 
+    element: HTMLElement;
     playing: number = 0;
     active: Action[] = [];
     queue: Action[] = [];
+    onupdate: (() => void) | null = null;
+
+    constructor(element: HTMLElement) {
+        this.element = element;
+    }
 
     push(action: Action) {
         this.active.push(action);
@@ -18,6 +24,8 @@ export default class Track {
     }
 
     next() {
+        this.onupdate?.();
+
         if (this.playing-- > 0) return;
 
         this.active = this.queue.length ? this.queue.splice(0, 1) : [];

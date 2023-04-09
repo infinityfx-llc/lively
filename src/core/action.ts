@@ -7,12 +7,15 @@ export default class Action {
     deform: boolean = true;
     onfinish: (() => void) | null = null;
 
-    constructor(element: HTMLElement, keyframes: Keyframe[], config: KeyframeAnimationOptions) {
+    constructor(element: HTMLElement, keyframes: Keyframe[] | PropertyIndexedKeyframes, config: KeyframeAnimationOptions) {
         this.element = element;
         this.computed = getComputedStyle(element);
         this.animation = element.animate(keyframes, config);
-        this.animation.commitStyles();
-        this.animation.onfinish = () => this.onfinish?.();
+        this.animation.onfinish = () => {
+            if (this.element.offsetParent !== null) this.animation.commitStyles();
+            this.animation.cancel();
+            this.onfinish?.();
+        }
     }
 
     correct() {

@@ -1,4 +1,6 @@
 import type { Link } from "../hooks/use-link";
+import Action from "./action";
+import StyleCache from "./cache";
 import Clip from "./clip";
 import Track from "./track";
 
@@ -7,10 +9,10 @@ export default class Timeline {
     stagger: number;
     staggerLimit: number;
     deform: boolean;
-    targets: HTMLElement[] = [];
-    targetMap: { [key: number]: number | undefined } = {};
+    paused: boolean = false;
+    trackMap: { [key: number]: number | undefined } = {};
     tracks: Track[] = [];
-    links: { [key: string]: Link<any> } = {};
+    cache: StyleCache = new StyleCache;
     frame: number = 0;
 
     constructor({ stagger = 0.1, staggerLimit = 10, deform = true }) {
@@ -28,29 +30,59 @@ export default class Timeline {
     }
 
     time(clip: Clip) {
-        return clip.duration + this.stagger * Math.min(this.staggerLimit, this.targets.length - 1);
+        return clip.duration + this.stagger * Math.min(this.staggerLimit, this.tracks.length - 1);
     }
 
-    port(key: string, link: Link<any>, transition: number) { // merge with step()
+    port(key: string, link: Link<any>, transition: number) {
+        if (this.paused) return;
+
         const val = link();
 
-        for (const el of this.targets) {
+        for (const track of this.tracks) {
             if (transition) {
-                const animation = el.animate({ [key]: val }, { duration: transition * 1000, fill: 'both', easing: 'ease' }); // allow to change this easing
-                animation.commitStyles();
-            } else el.style[key as never] = val;
+                const action = new Action(track.element, { [key]: val }, { duration: transition * 1000, fill: 'both', easing: 'ease' });
+                if (this.deform) action.correct();
+            } else track.element.style[key as never] = val;
         }
     }
 
+    transition(duration = 0.5) {
+        if (this.paused) return;
+        
+        const data = this.cache.read(this.tracks);
+        const keyframes = this.cache.computeDifference(data);
+        console.log(data);
+
+        for (let i = 0; i < this.tracks.length; i++) {
+            new Action(this.tracks[i].element, keyframes[i], {
+                duration: duration * 1000,
+                fill: 'both',
+                easing: 'ease',
+                composite: 'add'
+            });
+        }
+
+        this.cache.set(data);
+    }
+
     insert(key: number, element: HTMLElement | null) {
-        const idx = this.targetMap[key];
+        const idx = this.trackMap[key];
 
         if (element) {
-            idx !== undefined ? this.targets[idx] = element : this.targetMap[key] = this.targets.push(element) - 1;
+            if (idx !== undefined) {
+                this.tracks[idx].element = element;
+            } else {
+                const idx = this.tracks.push(new Track(element)) - 1;
+                this.trackMap[key] = idx;
+                this.tracks[idx].onupdate = () => {
+                    const track = this.tracks[idx];
+                    if (track) this.cache.update(idx, track.element);
+                }
+            }
         } else
             if (idx !== undefined) {
-                this.targets.splice(idx, 1);
-                this.targetMap[key] = undefined;
+                this.tracks.splice(idx, 1);
+                this.trackMap[key] = undefined;
             }
 
         this.frame = requestAnimationFrame(this.step.bind(this));
@@ -58,15 +90,14 @@ export default class Timeline {
 
     add(clip: Clip, { composite = false, immediate = false, reverse = false, delay = 0 } = {}) {
 
-        for (let i = 0; i < this.targets.length; i++) {
-            if (!this.tracks[i]) this.tracks[i] = new Track();
+        for (let i = 0; i < this.tracks.length; i++) {
 
             const queued = this.tracks[i].active.length && !(composite || immediate);
             if (immediate) this.tracks[i].clear();
 
-            const action = clip.play(this.targets[i], {
+            const action = clip.play(this.tracks[i].element, {
                 deform: this.deform,
-                delay: delay + Math.min(i, this.staggerLimit) * (this.stagger < 0 ? clip.duration / this.targets.length : this.stagger),
+                delay: delay + Math.min(i, this.staggerLimit) * (this.stagger < 0 ? clip.duration / this.tracks.length : this.stagger),
                 composite,
                 reverse,
                 paused: !!queued
@@ -78,10 +109,12 @@ export default class Timeline {
 
     pause() {
         for (const track of this.tracks) track.pause();
+        this.paused = true;
     }
 
     play() {
         for (const track of this.tracks) track.play();
+        this.paused = false;
     }
 
 }

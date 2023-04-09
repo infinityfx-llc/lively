@@ -87,21 +87,6 @@ export default class Clip {
         return data instanceof Clip ? data : new Clip({ ...data }, initial);
     }
 
-    static transition(elements: HTMLElement[], keyframes: PropertyIndexedKeyframes[], duration = 0.5) { // account for deform property
-        if (elements.length !== keyframes.length) return;
-
-        for (let i = 0; i < elements.length; i++) {
-            const animation = elements[i].animate(keyframes[i], {
-                duration: duration * 1000,
-                fill: 'both',
-                easing: 'ease',
-                composite: 'replace'
-            });
-
-            animation.commitStyles();
-        }
-    }
-
     unique(config: ClipConfig) {
         const clip = new Clip(config);
         clip.keyframes = this.keyframes;

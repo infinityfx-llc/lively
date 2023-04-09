@@ -4,7 +4,6 @@ import { Children, cloneElement, forwardRef, isValidElement, useEffect, useImper
 import Clip, { ClipProperties } from "./core/clip";
 import Timeline from "./core/timeline";
 import { attachEvent, detachEvent, merge } from "./core/utils";
-import StyleCache from "./core/cache";
 
 type PlayOptions = { composite?: boolean; immediate?: boolean; reverse?: boolean; delay?: number };
 
@@ -38,13 +37,14 @@ export type AnimatableProps = {
 // TODO:
 // - events
 // - useMount hook multiple refs
-// - fix deform correction scaling
 // - look into replacing useMount for unmounting with parent component (to allow for mapping functions)
 // - morph comp
 // - usePath hook
 // - animate path length
 // - spring easing
 // - base correction of of cached styles, cause otherwise on repeat plays they keep changing
+// - move transition logic to parent (same as for unmounting)
+// - fix animation compositing
 
 const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     children,
@@ -76,7 +76,6 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
         staggerLimit: text ? Number.MAX_VALUE : staggerLimit,
         deform
     }));
-    const cache = useRef(new StyleCache());
     const playbookState = useRef<boolean[]>([]);
 
     if (!clipMap.current.__initialized) {
@@ -139,14 +138,8 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
 
     (typeof window === 'undefined' ? useEffect : useLayoutEffect)(() => {
         if (!adapative || cascadeOrder > 1 || typeof window === 'undefined') return;
-        const cached = cache.current.read(timeline.current.targets);
 
-        if (!cache.current.isEmpty) {
-            const keyframes = cache.current.computeDifference(cached);
-            Clip.transition(timeline.current.targets, keyframes, typeof adapative === 'boolean' ? undefined : adapative);
-        }
-
-        cache.current.update(cached);
+        timeline.current.transition(typeof adapative === 'boolean' ? undefined : adapative);
     });
 
     useEffect(() => {
@@ -156,8 +149,8 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
 
             const box = { left: Number.MAX_VALUE, top: Number.MAX_VALUE, right: 0, bottom: 0 };
 
-            for (const el of timeline.current.targets) {
-                const { left, top, right, bottom } = el.getBoundingClientRect();
+            for (const track of timeline.current.tracks) {
+                const { left, top, right, bottom } = track.element.getBoundingClientRect();
 
                 box.left = Math.min(left, box.left);
                 box.top = Math.min(top, box.top);

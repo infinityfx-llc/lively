@@ -3,7 +3,7 @@ import Action from "./action";
 import StyleCache from "./cache";
 import Clip from "./clip";
 import Track from "./track";
-import { lengthToOffset } from "./utils";
+import { IndexedList, lengthToOffset } from "./utils";
 
 export default class Timeline {
 
@@ -11,8 +11,7 @@ export default class Timeline {
     staggerLimit: number;
     deform: boolean;
     paused: boolean = false;
-    trackMap: { [key: number]: number | undefined } = {};
-    tracks: Track[] = [];
+    tracks: IndexedList<Track> = new IndexedList();
     cache: StyleCache = new StyleCache;
     frame: number = 0;
 
@@ -31,7 +30,7 @@ export default class Timeline {
     }
 
     time(clip: Clip) {
-        return clip.duration + this.stagger * Math.min(this.staggerLimit, this.tracks.length - 1);
+        return clip.duration + this.stagger * Math.min(this.staggerLimit, this.tracks.size - 1);
     }
 
     port(key: string, link: Link<any>, transition: number) {
@@ -40,7 +39,7 @@ export default class Timeline {
         let val = link();
         if (key === 'strokeDashoffset') val = lengthToOffset(val);
 
-        for (const track of this.tracks) {
+        for (const track of this.tracks.values) {
             if (transition) {
                 const action = new Action(track.element, { [key]: val }, { duration: transition * 1000, fill: 'both', easing: 'ease' });
                 if (this.deform) action.correct();
@@ -51,73 +50,56 @@ export default class Timeline {
     transition(duration = 0.5) {
         if (this.paused) return;
 
-        const data = this.cache.read(this.tracks);
+        const data = this.cache.read(this.tracks.values);
         const keyframes = this.cache.computeDifference(data);
 
-        for (let i = 0; i < this.tracks.length; i++) {
-            const action = new Action(this.tracks[i].element, keyframes[i], {
+        for (let i = 0; i < this.tracks.size; i++) {
+            const action = new Action(this.tracks.get(i).element, keyframes[i], {
                 duration: duration * 1000,
                 fill: 'both',
                 easing: 'ease',
                 composite: 'add'
             });
             if (this.deform) action.correct();
+
+            // push to track instead?? (so can be paused)
         }
 
         this.cache.set(data);
     }
 
-    insert(key: number, element: HTMLElement | null) {
-        const idx = this.trackMap[key];
-
-        if (element) {
-            if (idx !== undefined) {
-                this.tracks[idx].element = element;
-            } else {
-                const idx = this.tracks.push(new Track(element)) - 1;
-                this.trackMap[key] = idx;
-                this.tracks[idx].onupdate = () => {
-                    const track = this.tracks[idx];
-                    if (track) this.cache.update(idx, track.element);
-                }
-            }
-        } else
-            if (idx !== undefined) {
-                this.tracks.splice(idx, 1);
-                this.trackMap[key] = undefined;
-            }
-
-        this.frame = requestAnimationFrame(this.step.bind(this));
+    insert(key: number, element: HTMLElement | null) { // OPTIMIZE
+        element ? this.tracks.add(key, new Track(element)) : this.tracks.remove(key);
     }
 
     add(clip: Clip, { immediate = false, composite, reverse, delay = 0 }: { immediate?: boolean; composite?: boolean; reverse?: boolean; delay?: number }) {
         if (composite === undefined) composite = clip.composite;
         if (reverse === undefined) reverse = clip.reverse;
 
-        for (let i = 0; i < this.tracks.length; i++) {
+        for (let i = 0; i < this.tracks.size; i++) {
 
-            const queued = this.tracks[i].active.length && !(composite || immediate);
-            if (immediate) this.tracks[i].clear();
+            const queued = this.tracks.get(i).active.length && !(composite || immediate);
+            if (immediate) this.tracks.get(i).clear();
 
-            const action = clip.play(this.tracks[i].element, {
+            const action = clip.play(this.tracks.get(i).element, {
                 deform: this.deform,
-                delay: delay + Math.min(i, this.staggerLimit) * (this.stagger < 0 ? clip.duration / this.tracks.length : this.stagger),
+                delay: delay + Math.min(i, this.staggerLimit) * (this.stagger < 0 ? clip.duration / this.tracks.size : this.stagger),
                 composite,
                 reverse
             });
             if (queued) action.pause();
 
-            queued ? this.tracks[i].enqueue(action) : this.tracks[i].push(action);
+            queued ? this.tracks.get(i).enqueue(action) : this.tracks.get(i).push(action);
         }
     }
 
     pause() {
-        for (const track of this.tracks) track.pause();
+        for (const track of this.tracks.values) track.pause();
         this.paused = true;
     }
 
     play() {
-        for (const track of this.tracks) track.play();
+        for (const track of this.tracks.values) track.play();
         this.paused = false;
     }
 

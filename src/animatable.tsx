@@ -1,6 +1,6 @@
 'use client';
 
-import { Children, cloneElement, forwardRef, isValidElement, useEffect, useImperativeHandle, useLayoutEffect, useRef } from "react";
+import { Children, cloneElement, forwardRef, isValidElement, useEffect, useImperativeHandle, useRef } from "react";
 import Clip, { AnimatableInitials, ClipProperties } from "./core/clip";
 import Timeline from "./core/timeline";
 import { attachEvent, detachEvent, merge } from "./core/utils";
@@ -9,7 +9,9 @@ type PlayOptions = { composite?: boolean; immediate?: boolean; reverse?: boolean
 
 export type AnimatableType = {
     play: (animation: string | boolean, options?: PlayOptions, layer?: number) => number;
+    transition: (transition?: number) => void;
     onUnmount: boolean | string;
+    id: string;
 };
 
 export type AnimatableProps = {
@@ -23,7 +25,6 @@ export type AnimatableProps = {
     deform?: boolean;
     order?: number;
     viewportMargin?: number;
-    adapative?: boolean | number;
     onMount?: boolean | string;
     onUnmount?: boolean | string;
     onEnter?: boolean | string;
@@ -32,17 +33,16 @@ export type AnimatableProps = {
     text?: boolean;
     disabled?: boolean;
     paused?: boolean;
+    id?: string;
 };
 
 // TODO:
-// - events
-// - useMount hook multiple refs
-// - look into replacing useMount for unmounting with parent component (to allow for mapping functions)
+// - fix animation compositing
 // - morph comp
+
+// - events
 // - spring easing
 // - base correction of of cached styles, cause otherwise on repeat plays they keep changing
-// - move transition logic to parent (same as for unmounting)
-// - fix animation compositing
 
 const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     children,
@@ -55,7 +55,6 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     deform,
     order,
     viewportMargin = 0.5,
-    adapative = false,
     onMount = false,
     onUnmount = false,
     onEnter = false,
@@ -63,7 +62,9 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     noCascade = false,
     text = false,
     disabled = false,
-    paused = false }, ref) => {
+    paused = false,
+    id = ''
+}, ref) => {
 
     const cascadeOrder = order !== undefined ? order : 1;
     const isVisible = useRef(false);
@@ -114,9 +115,17 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
         return duration + delay;
     };
 
+    const transition = (transition = 0.5) => {
+        if (cascadeOrder > 1) return;
+
+        timeline.current.transition(transition);
+    };
+
     useImperativeHandle(ref, () => ({
         play,
-        onUnmount
+        transition,
+        onUnmount,
+        id
     }), []);
 
     useEffect(() => {
@@ -134,20 +143,15 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
         }
     }, [playbook]);
 
-    (typeof window === 'undefined' ? useEffect : useLayoutEffect)(() => {
-        if (!adapative || cascadeOrder > 1 || typeof window === 'undefined') return;
-
-        timeline.current.transition(typeof adapative === 'boolean' ? undefined : adapative);
-    });
-
     useEffect(() => {
+        timeline.current.step();
 
         function scroll() {
             if (!onEnter && !onLeave) return;
 
             const box = { left: Number.MAX_VALUE, top: Number.MAX_VALUE, right: 0, bottom: 0 };
 
-            for (const track of timeline.current.tracks) {
+            for (const track of timeline.current.tracks.values) {
                 const { left, top, right, bottom } = track.element.getBoundingClientRect();
 
                 box.left = Math.min(left, box.left);

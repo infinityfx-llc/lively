@@ -1,6 +1,6 @@
 'use client';
 
-import { Children, cloneElement, forwardRef, isValidElement, useEffect, useImperativeHandle, useRef } from "react";
+import { Children, cloneElement, forwardRef, isValidElement, useCallback, useEffect, useImperativeHandle, useRef } from "react";
 import Clip, { AnimatableInitials, ClipProperties } from "./core/clip";
 import Timeline from "./core/timeline";
 import { merge } from "./core/utils";
@@ -34,14 +34,10 @@ export type AnimatableProps = {
 };
 
 // TODO:
-// - add string to playbook trigger ('hover', 'click', etc..) (if works move onEnter/onLeave to hook)
-// - morph id cascading
 // - fix morphs
-
-// - events
-// - spring easing
+// - fix timeline insert on ref/state update
 // - base correction of of cached styles, cause otherwise on repeat plays they keep changing
-// - more usecallback functions
+// - spring easing
 
 const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     children,
@@ -71,6 +67,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
         deform
     }));
     const playbookState = useRef<boolean[]>([]);
+    let nodes: (AnimatableType | null)[] = [];
 
     if (!clipMap.current.__initialized) {
         (clipMap.current as any).__initialized = true;
@@ -81,9 +78,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
         }
     }
 
-    let nodes: (AnimatableType | null)[] = [];
-
-    const play = (animation: string | boolean, options: PlayOptions = {}, layer = 1) => {
+    const play = useCallback((animation: string | boolean, options: PlayOptions = {}, layer = 1) => {
         if (!animation || disabled || (cascadeOrder > 1 && layer < 2)) return 0;
         if (typeof animation !== 'string') animation = 'animate';
         const clip = clipMap.current[animation];
@@ -108,7 +103,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
         timeline.current.add(clip, merge({ delay }, options));
 
         return duration + delay;
-    };
+    }, [disabled, cascadeOrder]);
 
     useImperativeHandle(ref, () => ({
         play,
@@ -140,7 +135,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
 
     let elementIndex = 0;
 
-    const render = (children: React.ReactNode, isDirectChild = true, isParent = true): React.ReactNode => {
+    function render(children: React.ReactNode, isDirectChild = true, isParent = true): React.ReactNode {
         return Children.map(children, child => {
             const valid = isValidElement(child);
             const isAnimatable = valid && child.type === Animatable;
@@ -152,6 +147,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
                 pathLength?: number;
                 style?: React.CSSProperties;
                 ref?: React.Ref<any>;
+                id?: string;
             } = {};
 
             if (isAnimatable) {
@@ -161,6 +157,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
                     props.order = childProps.order !== undefined ? childProps.order : (order !== undefined ? order : 1) + 1;
                     props.paused = paused;
                     props.ref = el => nodes[i] = el;
+                    props.id = id + i;
 
                     merge(props, childProps, { animate, initial, animations, stagger, staggerLimit, deform });
                 }
@@ -192,7 +189,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
 
             return cloneElement(child, props, render(childProps.children, false, !isParent ? false : !isAnimatable));
         });
-    };
+    }
 
     return <>{render(children)}</>;
 });

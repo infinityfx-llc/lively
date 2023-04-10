@@ -9,7 +9,7 @@ const Events: {
 
 export function attachEvent(event: string, callback: (e: any) => void) {
     if (!(event in Events)) {
-        Events[event] = { unique: 0, listeners: [] };
+        Events[event] = { unique: 0, listeners: {} };
 
         window.addEventListener(event, e => {
             for (const cb of Object.values(Events[event].listeners)) cb(e);

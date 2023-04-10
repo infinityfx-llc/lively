@@ -3,7 +3,7 @@
 import { Children, cloneElement, forwardRef, isValidElement, useEffect, useImperativeHandle, useRef } from "react";
 import Clip, { AnimatableInitials, ClipProperties } from "./core/clip";
 import Timeline from "./core/timeline";
-import { attachEvent, detachEvent, merge } from "./core/utils";
+import { merge } from "./core/utils";
 
 type PlayOptions = { composite?: boolean; immediate?: boolean; reverse?: boolean; delay?: number };
 
@@ -24,11 +24,8 @@ export type AnimatableProps = {
     staggerLimit?: number;
     deform?: boolean;
     order?: number;
-    viewportMargin?: number;
     onMount?: boolean | string;
     onUnmount?: boolean | string;
-    onEnter?: boolean | string;
-    onLeave?: boolean | string;
     noCascade?: boolean;
     text?: boolean;
     disabled?: boolean;
@@ -56,11 +53,8 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     staggerLimit,
     deform,
     order,
-    viewportMargin = 0.5,
     onMount = false,
     onUnmount = false,
-    onEnter = false,
-    onLeave = false,
     noCascade = false,
     text = false,
     disabled = false,
@@ -69,7 +63,6 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
 }, ref) => {
 
     const cascadeOrder = order !== undefined ? order : 1;
-    const isVisible = useRef(false);
     const clipMap = useRef<{ [key: string]: Clip }>({});
 
     const timeline = useRef(new Timeline({
@@ -142,50 +135,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     useEffect(() => {
         timeline.current.step();
 
-        function scroll() {
-            if (!onEnter && !onLeave) return;
-
-            const box = { left: Number.MAX_VALUE, top: Number.MAX_VALUE, right: 0, bottom: 0 };
-
-            for (const track of timeline.current.tracks.values) {
-                const { left, top, right, bottom } = track.element.getBoundingClientRect();
-
-                box.left = Math.min(left, box.left);
-                box.top = Math.min(top, box.top);
-                box.right = Math.max(right, box.right);
-                box.bottom = Math.max(bottom, box.bottom);
-            }
-
-            const w = box.right - box.left, h = box.bottom - box.top;
-            box.top += h * viewportMargin;
-            box.bottom -= h * viewportMargin;
-            box.left += w * viewportMargin;
-            box.right -= w * viewportMargin;
-
-            const inView = box.top < window.innerHeight &&
-                box.left < window.innerWidth &&
-                box.bottom > 0 &&
-                box.right > 0;
-
-            if (inView && !isVisible.current && onEnter) {
-                play(onEnter);
-            }
-            if (!inView && isVisible.current) {
-                play(onLeave || onEnter, { reverse: !onLeave });
-            }
-
-            isVisible.current = inView;
-        }
-
-        attachEvent('scroll', scroll);
-
-        (async () => {
-            await document.fonts.ready;
-
-            onMount ? play(onMount, { immediate: true }) : scroll();
-        })();
-
-        return () => detachEvent('scroll', scroll);
+        document.fonts.ready.then(() => play(onMount, { immediate: true }));
     }, []);
 
     let elementIndex = 0;
@@ -217,9 +167,14 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
             } else
                 if (isDirectChild) {
                     const i = elementIndex++;
+                    const ref = valid && (child as any).ref;
 
                     props.pathLength = 1;
-                    props.ref = el => timeline.current.insert(i, el);
+                    props.ref = el => {
+                        timeline.current.insert(i, el);
+                        if (ref && 'current' in ref) ref.current = el;
+                        if (ref instanceof Function) ref(el);
+                    }
                     props.style = merge({ WebkitBackfaceVisibility: 'hidden', strokeDasharray: 1 }, initial || clipMap.current.animate.initial, childProps.style);
                 }
 

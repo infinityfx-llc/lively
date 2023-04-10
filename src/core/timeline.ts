@@ -47,7 +47,7 @@ export default class Timeline {
         }
     }
 
-    transition({ from, duration = 0.5, easing = 'ease' }: { from?: Timeline; duration?: number; easing?: Easing} = {}) {
+    transition({ from, duration = 0.5, easing = 'ease' }: { from?: Timeline; duration?: number; easing?: Easing } = {}) {
         const to = this.cache.read(this.tracks.values);
         const fromData = from && this.cache.read(from.tracks.values);
         const keyframes = this.cache.computeDifference(to, from && from.cache.data);
@@ -74,7 +74,11 @@ export default class Timeline {
     }
 
     insert(key: number, element: HTMLElement | null) {
-        element ? this.tracks.add(key, new Track(element)) : this.tracks.remove(key);
+        // if (!element) {
+        //     const idx = this.tracks.map(key);
+        //     this.tracks.get(idx).clear();
+        // }
+        element ? this.tracks.add(key, new Track(element)) : this.tracks.remove(key); // FIX!!! (state updates/ref updates on animatables causes new Tracks to be generated and loss of animation control)
     }
 
     add(clip: Clip, { immediate = false, composite, reverse, delay = 0 }: { immediate?: boolean; composite?: boolean; reverse?: boolean; delay?: number }) {
@@ -90,7 +94,7 @@ export default class Timeline {
                 composite,
                 reverse
             });
-            
+
             this.tracks.get(i).push(action, composite);
         }
     }

@@ -9,7 +9,7 @@ type PlayOptions = { composite?: boolean; immediate?: boolean; reverse?: boolean
 
 export type AnimatableType = {
     play: (animation: string | boolean, options?: PlayOptions, layer?: number) => number;
-    transition: (transition?: number) => void;
+    timeline: Timeline;
     onUnmount: boolean | string;
     id: string;
 };
@@ -37,12 +37,14 @@ export type AnimatableProps = {
 };
 
 // TODO:
-// - fix animation compositing
-// - morph comp
+// - add string to playbook trigger ('hover', 'click', etc..) (if works move onEnter/onLeave to hook)
+// - morph id cascading
+// - fix morphs
 
 // - events
 // - spring easing
 // - base correction of of cached styles, cause otherwise on repeat plays they keep changing
+// - more usecallback functions
 
 const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     children,
@@ -115,18 +117,12 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
         return duration + delay;
     };
 
-    const transition = (transition = 0.5) => {
-        if (cascadeOrder > 1) return;
-
-        timeline.current.transition(transition);
-    };
-
     useImperativeHandle(ref, () => ({
         play,
-        transition,
+        timeline: timeline.current,
         onUnmount,
         id
-    }), []);
+    }), [onUnmount]);
 
     useEffect(() => {
         if (paused || disabled) timeline.current.pause();

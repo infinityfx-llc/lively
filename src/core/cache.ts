@@ -46,19 +46,26 @@ export default class StyleCache {
         this.data[index] = data;
     }
 
-    computeDifference(data: CacheData[]) { // multiple animation to accumulate position and such, but not color, etc..
-        const keyframes: PropertyIndexedKeyframes[] = new Array(data.length);
+    computeDifference(to: CacheData[], from = this.data) {
+        const keyframes: PropertyIndexedKeyframes[][] = new Array(to.length);
 
-        for (let i = 0; i < data.length; i++) {
-            keyframes[i] = this.data[i] ? {
-                translate: [`${this.data[i].x - data[i].x}px ${this.data[i].y - data[i].y}px`, '0px 0px'],
-                scale: [this.data[i].width / data[i].width, this.data[i].height / data[i].height]
-            } : {};
+        for (let i = 0; i < to.length; i++) {
+            if (!from[i]) {
+                keyframes[i] = [];
 
-            if (!this.data[i]) continue;
+                continue;
+            }
 
-            for (const key of ['borderRadius', 'opacity', 'backgroundColor', 'color', 'rotate']) {
-                keyframes[i][key] = [this.data[i][key as never], data[i][key as never]];
+            keyframes[i] = [
+                {
+                    translate: [`${from[i].x - to[i].x}px ${from[i].y - to[i].y}px`, '0px 0px'],
+                    scale: [from[i].width / to[i].width, from[i].height / to[i].height]
+                },
+                {}
+            ];
+
+            for (const key of ['borderRadius', 'backgroundColor', 'color', 'rotate', 'opacity']) {
+                keyframes[i][1][key] = [from[i][key as never], to[i][key as never]];
             }
         }
 

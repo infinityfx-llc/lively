@@ -1,10 +1,11 @@
 'use client';
 
-import { Children, cloneElement, isValidElement, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Children, cloneElement, isValidElement, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Animatable, { AnimatableType } from "./animatable";
 import { IndexedList } from "./core/utils";
+import type { Easing } from "./core/clip";
 
-export default function LayoutGroup({ children, transition = 0.5 }: { children: React.ReactNode; transition?: number }) {
+export default function LayoutGroup({ children, adaptive = true, transition = {} }: { children: React.ReactNode; adaptive?: boolean; transition?: { duration?: number; easing?: Easing } }) {
     const animatables = useRef<IndexedList<AnimatableType>>(new IndexedList());
 
     let animatableIndex = 0;
@@ -13,16 +14,17 @@ export default function LayoutGroup({ children, transition = 0.5 }: { children: 
             if (!isValidElement(child) || child.type !== Animatable) return child;
 
             const i = animatableIndex++;
-            return cloneElement(child, {
+            const props = child.props.order > 1 ? {} : {
                 id: child.key,
                 ref: (el: any) => {
                     el ? animatables.current.add(i, el) : animatables.current.remove(i);
                 }
-            } as any, render(child.props.children));
+            };
+            return cloneElement(child, props, render(child.props.children));
         });
     };
 
-    const snapshot = (children: React.ReactNode, map: { [key: string]: boolean } = {}) => { // maybe usecallback (also for all other functions)
+    const snapshot = useCallback((children: React.ReactNode, map: { [key: string]: boolean } = {}) => {
         Children.forEach(children, child => {
             if (!isValidElement(child) || child.type !== Animatable || child.key === null) return;
 
@@ -32,7 +34,7 @@ export default function LayoutGroup({ children, transition = 0.5 }: { children: 
         });
 
         return map;
-    };
+    }, []);
 
     const [state, setState] = useState(() => render(children));
 
@@ -53,9 +55,9 @@ export default function LayoutGroup({ children, transition = 0.5 }: { children: 
     }, [children]);
 
     (typeof window === 'undefined' ? useEffect : useLayoutEffect)(() => {
-        if (typeof window === 'undefined') return;
+        if (typeof window === 'undefined' || !adaptive) return;
 
-        animatables.current.forEach(entry => entry.transition(transition));
+        animatables.current.forEach(entry => entry.timeline.transition(transition));
     }, [state]);
 
     return <>{state}</>;

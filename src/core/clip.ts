@@ -3,7 +3,8 @@ import Action from "./action";
 import Timeline from "./timeline";
 import { lengthToOffset } from "./utils";
 
-type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end';
+export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end';
+
 type CSSKeys = keyof React.CSSProperties | 'pathLength';
 type AnimatableProperty = string | number | null | {
     set?: string | number;
@@ -114,18 +115,22 @@ export default class Clip {
     }
 
     play(element: HTMLElement, { composite, reverse, delay, deform = true }: { composite: boolean; reverse: boolean; delay?: number; deform?: boolean; }) {
-        const action = new Action(element, this.keyframes, {
-            duration: this.duration * 1000,
-            delay: (delay || this.delay) * 1000,
-            iterations: this.repeat,
-            direction: this.alternate ?
-                (reverse ? 'alternate-reverse' : 'alternate') :
-                (reverse ? 'reverse' : 'normal'),
-            fill: 'both',
-            composite: composite ? 'add' : 'replace',
-            easing: this.easing
-        }, this.dynamic);
-        
+        const action = new Action(element, {
+            keyframes: this.keyframes,
+            config: {
+                duration: this.duration * 1000,
+                delay: (delay || this.delay) * 1000,
+                iterations: this.repeat,
+                direction: this.alternate ?
+                    (reverse ? 'alternate-reverse' : 'alternate') :
+                    (reverse ? 'reverse' : 'normal'),
+                composite: composite ? 'accumulate' : 'replace',
+                fill: 'both',
+                easing: this.easing
+            },
+            dynamic: this.dynamic
+        });
+
         if (!deform) action.correct();
 
         return action;

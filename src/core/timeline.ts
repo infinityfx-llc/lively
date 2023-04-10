@@ -1,7 +1,7 @@
 import type { Link } from "../hooks/use-link";
 import Action from "./action";
 import StyleCache from "./cache";
-import Clip from "./clip";
+import Clip, { Easing } from "./clip";
 import Track from "./track";
 import { IndexedList, lengthToOffset } from "./utils";
 
@@ -41,34 +41,39 @@ export default class Timeline {
 
         for (const track of this.tracks.values) {
             if (transition) {
-                const action = new Action(track.element, { [key]: val }, { duration: transition * 1000, fill: 'both', easing: 'ease' });
+                const action = new Action(track.element, { keyframes: { [key]: val }, config: { duration: transition * 1000, fill: 'both', easing: 'ease' } });
                 if (this.deform) action.correct();
             } else track.element.style[key as never] = val;
         }
     }
 
-    transition(duration = 0.5) {
-        if (this.paused) return;
-
-        const data = this.cache.read(this.tracks.values);
-        const keyframes = this.cache.computeDifference(data);
+    transition({ from, duration = 0.5, easing = 'ease' }: { from?: Timeline; duration?: number; easing?: Easing} = {}) {
+        const to = this.cache.read(this.tracks.values);
+        const fromData = from && this.cache.read(from.tracks.values);
+        const keyframes = this.cache.computeDifference(to, from && from.cache.data);
 
         for (let i = 0; i < this.tracks.size; i++) {
-            const action = new Action(this.tracks.get(i).element, keyframes[i], {
-                duration: duration * 1000,
-                fill: 'both',
-                easing: 'ease',
-                composite: 'add'
-            });
+            if (!keyframes[i].length) continue;
+
+            const action = new Action(this.tracks.get(i).element, keyframes[i].map((keyframes, i) => ({
+                keyframes,
+                config: {
+                    composite: i > 0 ? 'replace' : 'accumulate',
+                    duration: duration * 1000,
+                    fill: 'both',
+                    easing
+                }
+            })));
             if (this.deform) action.correct();
 
-            // push to track instead?? (so can be paused)
+            // this.tracks.get(i).push(action);
         }
 
-        this.cache.set(data);
+        this.cache.set(to);
+        if (fromData) from.cache.set(fromData); // FIX cache mutation from rapid morph updates
     }
 
-    insert(key: number, element: HTMLElement | null) { // OPTIMIZE
+    insert(key: number, element: HTMLElement | null) {
         element ? this.tracks.add(key, new Track(element)) : this.tracks.remove(key);
     }
 
@@ -77,19 +82,16 @@ export default class Timeline {
         if (reverse === undefined) reverse = clip.reverse;
 
         for (let i = 0; i < this.tracks.size; i++) {
-
-            const queued = this.tracks.get(i).active.length && !(composite || immediate);
             if (immediate) this.tracks.get(i).clear();
 
             const action = clip.play(this.tracks.get(i).element, {
-                deform: this.deform,
                 delay: delay + Math.min(i, this.staggerLimit) * (this.stagger < 0 ? clip.duration / this.tracks.size : this.stagger),
+                deform: this.deform,
                 composite,
                 reverse
             });
-            if (queued) action.pause();
-
-            queued ? this.tracks.get(i).enqueue(action) : this.tracks.get(i).push(action);
+            
+            this.tracks.get(i).push(action, composite);
         }
     }
 

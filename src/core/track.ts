@@ -12,15 +12,16 @@ export default class Track {
         this.element = element;
     }
 
-    push(action: Action) {
-        this.active.push(action);
-        this.playing++;
+    push(action: Action, composite = false) {
+        if (this.active.length && !composite) {
+            this.queue.push(action);
+            action.pause();
+        } else {
+            this.active.push(action);
+            this.playing++;
 
-        action.onfinish = this.next.bind(this);
-    }
-
-    enqueue(action: Action) {
-        this.queue.push(action);
+            action.onfinish = this.next.bind(this);
+        }
     }
 
     next() {

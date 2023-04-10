@@ -1,27 +1,40 @@
 import type { DynamicProperties } from "./clip";
 import { lengthToOffset } from "./utils";
 
+type ActionKeyframes = { keyframes: Keyframe[] | PropertyIndexedKeyframes; config?: KeyframeAnimationOptions; dynamic?: DynamicProperties };
+
 export default class Action {
 
     element: HTMLElement;
     computed: CSSStyleDeclaration;
-    animation: Animation;
-    dynamic: DynamicProperties;
+    animations: Animation[];
+    dynamic: DynamicProperties = {};
     paused: boolean = false;
     deform: boolean = true;
     onfinish: (() => void) | null = null;
 
-    constructor(element: HTMLElement, keyframes: Keyframe[] | PropertyIndexedKeyframes, config: KeyframeAnimationOptions, dynamic: DynamicProperties = {}) {
+    constructor(element: HTMLElement, keyframes: ActionKeyframes | ActionKeyframes[]) {
+        if (!Array.isArray(keyframes)) keyframes = [keyframes];
+
         this.element = element;
         this.computed = getComputedStyle(element);
-        this.animation = element.animate(keyframes, config);
-        this.animation.onfinish = () => {
-            if (this.element.offsetParent !== null) this.animation.commitStyles();
-            this.animation.cancel();
-            this.onfinish?.();
+
+        this.animations = keyframes.map(({ keyframes, config, dynamic }) => {
+            if (dynamic) this.dynamic = dynamic;
+
+            return element.animate(keyframes, config);
+        });
+
+        this.animations[0].onfinish = this.finish.bind(this);
+    }
+
+    finish() {
+        for (const animation of this.animations) {
+            if (this.element.offsetParent !== null) animation.commitStyles();
+            animation.cancel();
         }
 
-        this.dynamic = dynamic;
+        this.onfinish?.();
     }
 
     correct() {
@@ -50,7 +63,7 @@ export default class Action {
     step() {
         if (this.paused) return;
 
-        const progress = this.animation.effect?.getComputedTiming().progress || 0;
+        const progress = this.animations[0].effect?.getComputedTiming().progress || 0;
 
         for (const key in this.dynamic) {
             const val = this.dynamic[key as keyof DynamicProperties]?.(progress);
@@ -72,17 +85,17 @@ export default class Action {
     }
 
     play() {
-        this.animation.play();
+        this.animations.forEach(animation => animation.play());
         this.paused = false;
     }
 
     pause() {
-        this.animation.pause();
+        this.animations.forEach(animation => animation.pause());
         this.paused = true;
     }
 
     remove() {
-        this.animation.cancel();
+        this.animations.forEach(animation => animation.cancel());
     }
 
 }

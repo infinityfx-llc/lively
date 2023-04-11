@@ -58,14 +58,14 @@ export default class StyleCache {
 
             keyframes[i] = [
                 {
-                    translate: [`${from[i].x - to[i].x}px ${from[i].y - to[i].y}px`, '0px 0px'],
+                    translate: [`${from[i].x - to[i].x}px ${from[i].y - to[i].y}px`, '0px 0px'], // these can be retrieved at start of animation/transition
                     scale: [from[i].width / to[i].width, from[i].height / to[i].height]
                 },
                 {}
             ];
 
-            for (const key of ['borderRadius', 'backgroundColor', 'color', 'rotate', 'opacity']) {
-                keyframes[i][1][key] = [from[i][key as never], to[i][key as never]];
+            for (const key of ['borderRadius', 'backgroundColor', 'color', 'rotate', 'opacity']) { // these only need to be cached once or when they are explicitly animated
+                keyframes[i][1][key] = [from[i][key as never], to[i][key as never]]; // also return borderRadius as dynamic to correctly apply deform correction
             }
         }
 

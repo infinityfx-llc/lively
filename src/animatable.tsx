@@ -37,6 +37,7 @@ export type AnimatableProps = {
 // - fix morphs (rapid switching)
 // - base correction of of cached styles, cause otherwise on repeat plays they keep changing
 // - spring easing
+// - allow for stagger index inside link/function properties
 
 const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     children,
@@ -168,7 +169,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
                         if (ref && 'current' in ref) ref.current = el;
                         if (ref instanceof Function) ref(el);
                     }
-                    props.style = merge({ WebkitBackfaceVisibility: 'hidden', strokeDasharray: 1 }, initial || clipMap.current.animate.initial, childProps.style);
+                    props.style = merge({ backfaceVisibility: 'hidden', strokeDasharray: 1 }, initial || clipMap.current.animate.initial, childProps.style);
                 }
 
             if (!valid) {

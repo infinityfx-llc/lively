@@ -4,7 +4,9 @@ import { useRef } from "react";
 
 type Port = (transition: number) => void;
 
-export type Link<T> = ((transform?: (value: T) => any) => T | Link<T>) & { connect: (port: Port) => void };
+type LinkArgument<T> = number | ((value: T, index: number) => any);
+
+export type Link<T> = ((transform?: LinkArgument<T>) => T | Link<T>) & { connect: (port: Port) => void };
 
 export default function useLink<T = any>(initial: T): [Link<T>, (value: T, transition?: number) => void] {
     const internal = useRef<T>(initial);
@@ -14,10 +16,10 @@ export default function useLink<T = any>(initial: T): [Link<T>, (value: T, trans
         if (!ports.current.includes(port)) ports.current.push(port);
     }
 
-    function link(transform?: (value: T) => any) {
-        if (!transform) return internal.current;
+    function link(transform?: LinkArgument<T>) {
+        if (!(transform instanceof Function)) return internal.current;
 
-        const transformedLink = () => transform(internal.current);
+        const transformedLink = (index?: LinkArgument<T>) => transform(internal.current, typeof index === 'number' ? index : 0);
         transformedLink.connect = connect;
 
         return transformedLink;
@@ -26,9 +28,9 @@ export default function useLink<T = any>(initial: T): [Link<T>, (value: T, trans
     link.connect = connect;
 
     function update(value: T, transition = 0) {
-        internal.current = value;
-
         requestAnimationFrame(() => {
+            internal.current = value;
+
             for (const port of ports.current) port(transition);
         });
     }

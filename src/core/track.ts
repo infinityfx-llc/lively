@@ -48,8 +48,8 @@ export default class Track {
         for (const action of this.active) action.play();
     }
 
-    step() {
-        for (const action of this.active) action.step();
+    step(index: number) {
+        for (const action of this.active) action.step(index);
     }
 
 }

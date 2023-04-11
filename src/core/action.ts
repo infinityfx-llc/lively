@@ -41,41 +41,50 @@ export default class Action {
         this.deform = false;
     }
 
-    decomposeScale(val: string | number) {
-        const [xString, yString] = val.toString().split(' ');
+    decomposeScale() {
+        const [xString, yString] = this.computed.scale.split(' ');
 
-        let x = parseFloat(xString);
+        let x = Math.max(parseFloat(xString) || 1, 0.0001);
         if (/%$/.test(xString)) x /= 100;
 
-        let y = yString ? parseFloat(yString) : x;
+        let y = yString ? Math.max(parseFloat(yString), 0.0001) : x;
         if (/%$/.test(yString)) y /= 100;
 
         return [x, y];
     }
 
-    parseRadius() { // doesnt work with animating border radius currently
-        if ('cachedBorderRadius' in this.element) return this.element.cachedBorderRadius as number;
+    computeBorderRadius(value: string) {
+        const arr = value.toString().split(' '); // allow for multiple values (corners)
+        const radius = parseFloat(arr[0]) || 0;
+        const [x, y] = this.deform ? [1, 1] : this.decomposeScale();
 
-        const [radius] = this.computed.borderRadius.toString().split(' ');
-        return (this.element as any).cachedBorderRadius = parseFloat(radius) || 0;
+        return `${radius / x}px / ${radius / y}px`;
     }
 
-    step() {
+    step(index: number) {
         if (this.paused) return;
 
         const progress = this.animations[0].effect?.getComputedTiming().progress || 0;
 
+        // if (!('cachedBorderRadius' in this.element)) (this.element as any).cachedBorderRadius = this.computed.borderRadius;
+        // let borderRadius = (this.element as any).cachedBorderRadius;
+
         for (const key in this.dynamic) {
-            const val = this.dynamic[key as keyof DynamicProperties]?.(progress);
+            const val = this.dynamic[key as keyof DynamicProperties]?.(progress, index);
+
+            // if (key === 'borderRadius') { // also in links (doesnt works with individual styles yet (borderTopLeft, etc...))
+            //     borderRadius = val;
+            //     continue;
+            // }
+
             this.element.style[key as never] = key === 'strokeDashoffset' ? lengthToOffset(val) : val;
         }
 
+        // this.element.style.borderRadius = this.computeBorderRadius(borderRadius);
+
         if (this.deform) return;
 
-        const [x, y] = this.decomposeScale(this.computed.scale);
-        const radius = this.parseRadius();
-
-        this.element.style.borderRadius = `${radius / x}px / ${radius / y}px`;
+        const [x, y] = this.decomposeScale();
 
         for (let i = 0; i < this.element.children.length; i++) {
             const child = this.element.children[i] as HTMLElement;

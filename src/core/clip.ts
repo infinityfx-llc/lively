@@ -1,18 +1,21 @@
 import type { Link } from "../hooks/use-link";
 import Action from "./action";
+import { createDynamicFrom, parseAnimatableProperty } from "./interpolate";
 import Timeline from "./timeline";
 import { lengthToOffset } from "./utils";
 
 export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end';
 
 type CSSKeys = keyof React.CSSProperties | 'pathLength';
-type AnimatableProperty = string | number | null | {
+
+export type AnimatableProperty = string | number | null | {
     set?: string | number;
     start?: string | number;
     end?: string | number;
     offset?: number;
 };
-type AnimatableProperties = { [key in CSSKeys]?: Link<any> | ((progress: number) => any) | AnimatableProperty | AnimatableProperty[] };
+
+type AnimatableProperties = { [key in CSSKeys]?: Link<any> | ((progress: number, index: number) => any) | AnimatableProperty | AnimatableProperty[] };
 type ClipConfig = {
     duration?: number;
     delay?: number;
@@ -25,9 +28,17 @@ type ClipConfig = {
 
 export type ClipProperties = ClipConfig & AnimatableProperties;
 
-export type DynamicProperties = { [key in CSSKeys]?: (progress: number) => any };
+export type DynamicProperties = { [key in CSSKeys]?: (progress: number, index: number) => any };
 
 export type AnimatableInitials = React.CSSProperties & { pathLength?: number | string };
+
+const dynamicStyleMap = {
+    borderRadius: 0,
+    // borderTopLeftRadius: 1,
+    // borderTopRightRadius: 2,
+    // borderBottomRightRadius: 3,
+    // borderBottomLeftRadius: 4
+};
 
 export default class Clip {
 
@@ -61,11 +72,15 @@ export default class Clip {
             if (arr.length < 2 && init !== undefined) arr.unshift(init);
             if (arr[0] === null) init !== undefined ? arr[0] = init : arr.splice(0, 1);
 
+            // if (prop in dynamicStyleMap) {
+            //     this.dynamic[prop as CSSKeys] = createDynamicFrom(prop, arr, easing);
+            //     continue;
+            // }
+
             for (let i = 0; i < arr.length; i++) {
-                let [key, val] = this.parse(arr[i]);
+                const [key, val] = parseAnimatableProperty(arr, i);
                 if (val === undefined) continue;
 
-                if (key === null) key = arr.length < 2 ? 1 : Math.round(i / (arr.length - 1) * 1000) / 1000;
                 if (!(key in keyframes)) keyframes[key] = { offset: key };
 
                 keyframes[key][prop] = prop === 'strokeDashoffset' ? lengthToOffset(val) : val;
@@ -83,16 +98,6 @@ export default class Clip {
         this.easing = easing;
         this.reverse = reverse;
         this.composite = composite;
-    }
-
-    parse(value: AnimatableProperty | undefined): [number | null, string | number | undefined] {
-        if (value === null) return [null, undefined];
-
-        if (typeof value === 'object') {
-            return [value.offset || null, value.set]; // TODO start, end
-        } else {
-            return [null, value];
-        }
     }
 
     static from(data?: ClipProperties | Clip, initial?: AnimatableInitials, timeline?: Timeline) {

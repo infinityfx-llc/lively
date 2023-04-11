@@ -25,7 +25,7 @@ export default class Timeline {
     step() {
         cancelAnimationFrame(this.frame);
 
-        this.tracks.forEach(track => track.step());
+        this.tracks.forEach((track, i) => track.step(i));
 
         this.frame = requestAnimationFrame(this.step.bind(this));
     }
@@ -37,14 +37,13 @@ export default class Timeline {
     port(key: string, link: Link<any>, transition: number) {
         if (this.paused) return;
 
-        let val = link();
-        if (key === 'strokeDashoffset') val = lengthToOffset(val);
+        for (let i = 0; i < this.tracks.size; i++) {
+            let val = key === 'strokeDashoffset' ? lengthToOffset(link(i)) : link(i);
 
-        for (const track of this.tracks.values) {
             if (transition) {
-                const action = new Action(track.element, { keyframes: { [key]: val }, config: { duration: transition * 1000, fill: 'both', easing: 'ease' } });
+                const action = new Action(this.tracks.values[i].element, { keyframes: { [key]: val }, config: { duration: transition * 1000, fill: 'both', easing: 'ease' } });
                 if (this.deform) action.correct();
-            } else track.element.style[key as never] = val;
+            } else this.tracks.values[i].element.style[key as never] = val;
         }
     }
 

@@ -34,8 +34,7 @@ export type AnimatableProps = {
 };
 
 // TODO:
-// - fix morphs
-// - fix timeline insert on ref/state update
+// - fix morphs (rapid switching)
 // - base correction of of cached styles, cause otherwise on repeat plays they keep changing
 // - spring easing
 
@@ -133,8 +132,6 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
         document.fonts.ready.then(() => play(onMount, { immediate: true }));
     }, []);
 
-    let elementIndex = 0;
-
     function render(children: React.ReactNode, isDirectChild = true, isParent = true): React.ReactNode {
         return Children.map(children, child => {
             const valid = isValidElement(child);
@@ -163,12 +160,11 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
                 }
             } else
                 if (isDirectChild) {
-                    const i = elementIndex++;
                     const ref = valid && (child as any).ref;
 
                     props.pathLength = 1;
                     props.ref = el => {
-                        timeline.current.insert(i, el);
+                        timeline.current.insert(el);
                         if (ref && 'current' in ref) ref.current = el;
                         if (ref instanceof Function) ref(el);
                     }
@@ -176,12 +172,10 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
                 }
 
             if (!valid) {
-                if (!isDirectChild) return child;
-                if (text && typeof child === 'string') {
-                    const arr = child.split(''), offset = elementIndex;
-                    elementIndex += arr.length;
+                if (!isDirectChild || !['string', 'number', 'boolean'].includes(typeof child)) return child;
 
-                    return arr.map((char, i) => <span ref={el => timeline.current.insert(offset + i, el)} style={{ minWidth: char === ' ' ? '0.35em' : 0 }}>{char}</span>);
+                if (text && typeof child === 'string') {
+                    return child.split('').map((char, i) => <span ref={el => timeline.current.insert(el)} style={{ minWidth: char === ' ' ? '0.35em' : 0 }}>{char}</span>);
                 }
 
                 return <div {...props}>{child}</div>;

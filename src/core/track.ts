@@ -30,7 +30,7 @@ export default class Track {
         if (--this.playing > 0) return;
 
         this.active = this.queue.length ? this.queue.splice(0, 1) : [];
-        this.active.forEach(action => action.play());
+        this.play();
     }
 
     clear() {

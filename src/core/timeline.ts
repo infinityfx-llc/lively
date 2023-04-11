@@ -7,6 +7,7 @@ import { IndexedList, lengthToOffset } from "./utils";
 
 export default class Timeline {
 
+    index: number = 0;
     stagger: number;
     staggerLimit: number;
     deform: boolean;
@@ -55,7 +56,7 @@ export default class Timeline {
         for (let i = 0; i < this.tracks.size; i++) {
             if (!keyframes[i].length) continue;
 
-            const action = new Action(this.tracks.get(i).element, keyframes[i].map((keyframes, i) => ({
+            const action = new Action(this.tracks.values[i].element, keyframes[i].map((keyframes, i) => ({
                 keyframes,
                 config: {
                     composite: i > 0 ? 'replace' : 'accumulate',
@@ -73,12 +74,14 @@ export default class Timeline {
         if (fromData) from.cache.set(fromData); // FIX cache mutation from rapid morph updates
     }
 
-    insert(key: number, element: HTMLElement | null) {
-        // if (!element) {
-        //     const idx = this.tracks.map(key);
-        //     this.tracks.get(idx).clear();
-        // }
-        element ? this.tracks.add(key, new Track(element)) : this.tracks.remove(key); // FIX!!! (state updates/ref updates on animatables causes new Tracks to be generated and loss of animation control)
+    insert(element: HTMLElement | null) {
+        if (!element) return;
+
+        if (!('TRACK_INDEX' in element)) (element as any).TRACK_INDEX = this.index++;
+        if (!this.tracks.has((element as any).TRACK_INDEX)) this.tracks.add((element as any).TRACK_INDEX, new Track(element));
+
+        // this.tracks.remove(key); // cancel animations when removing track
+        // ^ detect when element.isConnected = false, then remove track
     }
 
     add(clip: Clip, { immediate = false, composite, reverse, delay = 0 }: { immediate?: boolean; composite?: boolean; reverse?: boolean; delay?: number }) {
@@ -86,16 +89,16 @@ export default class Timeline {
         if (reverse === undefined) reverse = clip.reverse;
 
         for (let i = 0; i < this.tracks.size; i++) {
-            if (immediate) this.tracks.get(i).clear();
+            if (immediate) this.tracks.values[i].clear();
 
-            const action = clip.play(this.tracks.get(i).element, {
+            const action = clip.play(this.tracks.values[i].element, {
                 delay: delay + Math.min(i, this.staggerLimit) * (this.stagger < 0 ? clip.duration / this.tracks.size : this.stagger),
                 deform: this.deform,
                 composite,
                 reverse
             });
 
-            this.tracks.get(i).push(action, composite);
+            this.tracks.values[i].push(action, composite);
         }
     }
 

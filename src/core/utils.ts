@@ -47,8 +47,10 @@ export class IndexedList<T = any> {
     indices: number[] = [];
     size: number = 0;
 
-    get(index: number) {
-        return this.values[index];
+    has(index: number) {
+        const i = this.map(index);
+
+        return i >= 0;
     }
 
     add(index: number, value: T) {

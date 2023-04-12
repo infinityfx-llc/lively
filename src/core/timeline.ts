@@ -1,7 +1,7 @@
 import type { Link } from "../hooks/use-link";
 import Clip, { Easing } from "./clip";
 import Track from "./track";
-import { IndexedList, lengthToOffset } from "./utils";
+import { IndexedList } from "./utils";
 
 export default class Timeline {
 
@@ -35,12 +35,14 @@ export default class Timeline {
         if (this.paused) return;
 
         for (let i = 0; i < this.tracks.size; i++) {
-            let val = key === 'strokeDashoffset' ? lengthToOffset(link(i)) : link(i);
+            const val = link(i);
 
             if (transition) {
-                const action = this.tracks.values[i].push({ keyframes: { [key]: val }, config: { duration: transition * 1000, fill: 'both', easing: 'ease' } });
-                if (!this.deform) action.correct();
-            } else this.tracks.values[i].element.style[key as never] = val;
+                const clip = new Clip({ duration: transition * 1000, easing: 'ease', [key]: val }); // check to optimize (no need to create new clip) (only for borderRadius dynamic function parsing/lengthToOffset)
+                clip.play(this.tracks.values[i], {});
+            } else {
+                this.tracks.values[i].apply(key, val);
+            }
         }
     }
 
@@ -48,7 +50,7 @@ export default class Timeline {
 
         for (let i = 0; i < this.tracks.size; i++) {
 
-            this.tracks.values[i].transition(from?.tracks.values[i], { deform: this.deform, duration, easing });
+            this.tracks.values[i].transition(from?.tracks.values[i], { duration, easing });
         }
     }
 
@@ -56,7 +58,7 @@ export default class Timeline {
         if (!element) return;
 
         if (!('TRACK_INDEX' in element)) (element as any).TRACK_INDEX = this.index++;
-        if (!this.tracks.has((element as any).TRACK_INDEX)) this.tracks.add((element as any).TRACK_INDEX, new Track(element));
+        if (!this.tracks.has((element as any).TRACK_INDEX)) this.tracks.add((element as any).TRACK_INDEX, new Track(element, this.deform));
 
         // this.tracks.remove(key); // cancel animations when removing track
         // ^ detect when element.isConnected = false, then remove track
@@ -67,13 +69,11 @@ export default class Timeline {
         for (let i = 0; i < this.tracks.size; i++) {
             if (immediate) this.tracks.values[i].clear();
 
-            const action = clip.play(this.tracks.values[i], {
+            clip.play(this.tracks.values[i], {
                 delay: delay + Math.min(i, this.staggerLimit) * (this.stagger < 0 ? clip.duration / this.tracks.size : this.stagger),
                 composite,
                 reverse
             });
-
-            if (!this.deform) action.correct();
         }
     }
 

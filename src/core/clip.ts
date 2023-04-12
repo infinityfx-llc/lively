@@ -1,8 +1,7 @@
 import type { Link } from "../hooks/use-link";
-import { createDynamicFrom, parseAnimatableProperty } from "./interpolate";
 import Timeline from "./timeline";
 import type Track from "./track";
-import { lengthToOffset } from "./utils";
+import { createDynamicFrom, lengthToOffset, parseAnimatableProperty } from "./utils";
 
 export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end';
 
@@ -64,10 +63,10 @@ export default class Clip {
             if (arr.length < 2 && init !== undefined) arr.unshift(init);
             if (arr[0] === null) init !== undefined ? arr[0] = init : arr.splice(0, 1);
 
-            // if (prop in dynamicStyleMap) {
-            //     this.dynamic[prop as CSSKeys] = createDynamicFrom(prop, arr, easing);
-            //     continue;
-            // }
+            if (prop === 'borderRadius') {
+                this.dynamic[prop as CSSKeys] = createDynamicFrom(prop, arr, easing);
+                continue;
+            }
 
             for (let i = 0; i < arr.length; i++) {
                 const [key, val] = parseAnimatableProperty(arr, i);
@@ -112,7 +111,7 @@ export default class Clip {
     }
 
     play(track: Track, { composite = this.composite, reverse = this.reverse, delay }: { composite?: boolean; reverse?: boolean; delay?: number; }) {
-        return track.push({
+        track.push({
             keyframes: this.keyframes,
             config: {
                 duration: this.duration * 1000,

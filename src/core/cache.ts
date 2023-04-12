@@ -46,16 +46,18 @@ export class StyleCache {
     difference(from: CacheData = this.data) {
         const to = this.read();
 
-        const keyframes: PropertyIndexedKeyframes[] = [
-            {},
-            {
-                translate: [`${from.x - to.x}px ${from.y - to.y}px`, '0px 0px'],
-                scale: [`${to.width === 0 ? 1 : from.width / to.width} ${to.height === 0 ? 1 : from.height / to.height}`, '1 1']
-            }
-        ];
+        const keyframes: PropertyIndexedKeyframes[] = [{}, {}]; // check if empty animation still gets added to track for full duration (thus causing delays)
+
+        const translate = [`${from.x - to.x}px ${from.y - to.y}px`, '0px 0px'];
+        const scale = [`${to.width === 0 ? 1 : from.width / to.width} ${to.height === 0 ? 1 : from.height / to.height}`, '1 1'];
+        if (translate[0] !== translate[1]) keyframes[1].translate = translate;
+        if (scale[0] !== scale[1]) keyframes[1].scale = scale;
 
         for (const key of ['borderRadius', 'backgroundColor', 'color', 'rotate', 'opacity']) { // these only need to be cached once or when they are explicitly animated (yes but might be fixed by .clear()/.finish() on transition)
-            keyframes[0][key] = [from[key as never], to[key as never]]; // also return borderRadius as dynamic to correctly apply deform correction
+            const val = [from[key as never], to[key as never]];
+            if (val[0] === val[1]) continue;
+
+            keyframes[0][key] = val; // also return borderRadius as dynamic to correctly apply deform correction
         }
 
         return keyframes;

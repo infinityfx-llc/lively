@@ -35,8 +35,13 @@ export type AnimatableProps = {
 };
 
 // TODO:
-// - base correction of of cached styles, cause otherwise on repeat plays they keep changing
 // - spring easing
+// - start, end keyframes
+// - check if empty animation still gets added to track for full duration (thus causing delays)
+// - individual borderRadius support
+// - detect when element.isConnected = false, then remove track
+// - morph nesting
+// - cascade animations seem broken
 
 const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     children,

@@ -10,6 +10,7 @@ type PlayOptions = { composite?: boolean; immediate?: boolean; reverse?: boolean
 export type AnimatableType = {
     play: (animation: string | boolean, options?: PlayOptions, layer?: number) => number;
     timeline: Timeline;
+    mounted: boolean;
     onUnmount: boolean | string;
     id: string;
 };
@@ -34,10 +35,8 @@ export type AnimatableProps = {
 };
 
 // TODO:
-// - fix morphs (rapid switching)
 // - base correction of of cached styles, cause otherwise on repeat plays they keep changing
 // - spring easing
-// - allow for stagger index inside link/function properties
 
 const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     children,
@@ -60,6 +59,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
 
     const cascadeOrder = order !== undefined ? order : 1;
     const clipMap = useRef<{ [key: string]: Clip }>({});
+    const mounted = useRef(false);
 
     const timeline = useRef(new Timeline({
         stagger: text ? -1 : stagger,
@@ -108,6 +108,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     useImperativeHandle(ref, () => ({
         play,
         timeline: timeline.current,
+        mounted: mounted.current,
         onUnmount,
         id
     }), [onUnmount]);
@@ -129,6 +130,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
 
     useEffect(() => {
         timeline.current.step();
+        mounted.current = true;
 
         document.fonts.ready.then(() => play(onMount, { immediate: true }));
     }, []);

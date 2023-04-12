@@ -1,7 +1,7 @@
 import type { Link } from "../hooks/use-link";
-import Action from "./action";
 import { createDynamicFrom, parseAnimatableProperty } from "./interpolate";
 import Timeline from "./timeline";
+import type Track from "./track";
 import { lengthToOffset } from "./utils";
 
 export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end';
@@ -31,14 +31,6 @@ export type ClipProperties = ClipConfig & AnimatableProperties;
 export type DynamicProperties = { [key in CSSKeys]?: (progress: number, index: number) => any };
 
 export type AnimatableInitials = React.CSSProperties & { pathLength?: number | string };
-
-const dynamicStyleMap = {
-    borderRadius: 0,
-    // borderTopLeftRadius: 1,
-    // borderTopRightRadius: 2,
-    // borderBottomRightRadius: 3,
-    // borderBottomLeftRadius: 4
-};
 
 export default class Clip {
 
@@ -119,8 +111,8 @@ export default class Clip {
         return clip;
     }
 
-    play(element: HTMLElement, { composite, reverse, delay, deform = true }: { composite: boolean; reverse: boolean; delay?: number; deform?: boolean; }) {
-        const action = new Action(element, {
+    play(track: Track, { composite = this.composite, reverse = this.reverse, delay }: { composite?: boolean; reverse?: boolean; delay?: number; }) {
+        return track.push({
             keyframes: this.keyframes,
             config: {
                 duration: this.duration * 1000,
@@ -134,11 +126,7 @@ export default class Clip {
                 easing: this.easing
             },
             dynamic: this.dynamic
-        });
-
-        if (!deform) action.correct();
-
-        return action;
+        }, composite);
     }
 
 }

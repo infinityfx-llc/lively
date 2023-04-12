@@ -57,7 +57,11 @@ export default function LayoutGroup({ children, adaptive = true, transition = {}
     (typeof window === 'undefined' ? useEffect : useLayoutEffect)(() => {
         if (typeof window === 'undefined' || !adaptive) return;
 
-        animatables.current.forEach(entry => entry.timeline.transition(transition));
+        animatables.current.forEach(entry => {
+            if (!entry.mounted) return;
+
+            entry.timeline.transition(undefined, transition)
+        });
     }, [state]);
 
     return <>{state}</>;

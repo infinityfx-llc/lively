@@ -1,5 +1,3 @@
-import Track from "./track";
-
 type CacheData = {
     x: number;
     y: number;
@@ -12,13 +10,21 @@ type CacheData = {
     rotate: string;
 };
 
-export default class StyleCache {
+export class StyleCache {
 
-    data: CacheData[] = [];
+    element: HTMLElement;
+    data: CacheData;
+    computed: CSSStyleDeclaration;
 
-    get(element: HTMLElement) {
-        const { x, y, width, height } = element.getBoundingClientRect();
-        const { borderRadius, opacity, backgroundColor, color, rotate } = getComputedStyle(element);
+    constructor(element: HTMLElement) {
+        this.element = element;
+        this.computed = getComputedStyle(element);
+        this.data = this.read();
+    }
+
+    read() {
+        const { x, y, width, height } = this.element.getBoundingClientRect();
+        const { borderRadius, opacity, backgroundColor, color, rotate } = this.computed;
 
         return {
             x: x - window.scrollX,
@@ -33,40 +39,23 @@ export default class StyleCache {
         };
     }
 
-    set(data: CacheData[]) {
-        this.data = data;
+    update() {
+        this.data = this.read();
     }
 
-    read(tracks: Track[]): CacheData[] {
-        return tracks.map(track => this.get(track.element));
-    }
+    difference(from: CacheData = this.data) {
+        const to = this.read();
 
-    update(index: number, element: HTMLElement) {
-        const data = this.get(element);
-        this.data[index] = data;
-    }
-
-    computeDifference(to: CacheData[], from = this.data) {
-        const keyframes: PropertyIndexedKeyframes[][] = new Array(to.length);
-
-        for (let i = 0; i < to.length; i++) {
-            if (!from[i]) {
-                keyframes[i] = [];
-
-                continue;
+        const keyframes: PropertyIndexedKeyframes[] = [
+            {},
+            {
+                translate: [`${from.x - to.x}px ${from.y - to.y}px`, '0px 0px'],
+                scale: [`${to.width === 0 ? 1 : from.width / to.width} ${to.height === 0 ? 1 : from.height / to.height}`, '1 1']
             }
+        ];
 
-            keyframes[i] = [
-                {
-                    translate: [`${from[i].x - to[i].x}px ${from[i].y - to[i].y}px`, '0px 0px'], // these can be retrieved at start of animation/transition
-                    scale: [from[i].width / to[i].width, from[i].height / to[i].height]
-                },
-                {}
-            ];
-
-            for (const key of ['borderRadius', 'backgroundColor', 'color', 'rotate', 'opacity']) { // these only need to be cached once or when they are explicitly animated
-                keyframes[i][1][key] = [from[i][key as never], to[i][key as never]]; // also return borderRadius as dynamic to correctly apply deform correction
-            }
+        for (const key of ['borderRadius', 'backgroundColor', 'color', 'rotate', 'opacity']) { // these only need to be cached once or when they are explicitly animated (yes but might be fixed by .clear()/.finish() on transition)
+            keyframes[0][key] = [from[key as never], to[key as never]]; // also return borderRadius as dynamic to correctly apply deform correction
         }
 
         return keyframes;

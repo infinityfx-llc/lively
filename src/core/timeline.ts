@@ -1,6 +1,4 @@
 import type { Link } from "../hooks/use-link";
-import Action from "./action";
-import StyleCache from "./cache";
 import Clip, { Easing } from "./clip";
 import Track from "./track";
 import { IndexedList, lengthToOffset } from "./utils";
@@ -13,7 +11,6 @@ export default class Timeline {
     deform: boolean;
     paused: boolean = false;
     tracks: IndexedList<Track> = new IndexedList();
-    cache: StyleCache = new StyleCache;
     frame: number = 0;
 
     constructor({ stagger = 0.1, staggerLimit = 10, deform = true }) {
@@ -41,36 +38,18 @@ export default class Timeline {
             let val = key === 'strokeDashoffset' ? lengthToOffset(link(i)) : link(i);
 
             if (transition) {
-                const action = new Action(this.tracks.values[i].element, { keyframes: { [key]: val }, config: { duration: transition * 1000, fill: 'both', easing: 'ease' } });
-                if (this.deform) action.correct();
+                const action = this.tracks.values[i].push({ keyframes: { [key]: val }, config: { duration: transition * 1000, fill: 'both', easing: 'ease' } });
+                if (!this.deform) action.correct();
             } else this.tracks.values[i].element.style[key as never] = val;
         }
     }
 
-    transition({ from, duration = 0.5, easing = 'ease' }: { from?: Timeline; duration?: number; easing?: Easing } = {}) {
-        const to = this.cache.read(this.tracks.values);
-        const fromData = from && this.cache.read(from.tracks.values);
-        const keyframes = this.cache.computeDifference(to, from && from.cache.data);
+    transition(from: Timeline | undefined, { duration = 0.5, easing = 'ease' }: { duration?: number; easing?: Easing } = {}) {
 
         for (let i = 0; i < this.tracks.size; i++) {
-            if (!keyframes[i].length) continue;
 
-            const action = new Action(this.tracks.values[i].element, keyframes[i].map((keyframes, i) => ({
-                keyframes,
-                config: {
-                    composite: i > 0 ? 'replace' : 'accumulate',
-                    duration: duration * 1000,
-                    fill: 'both',
-                    easing
-                }
-            })));
-            if (this.deform) action.correct();
-
-            // this.tracks.get(i).push(action);
+            this.tracks.values[i].transition(from?.tracks.values[i], { deform: this.deform, duration, easing });
         }
-
-        this.cache.set(to);
-        if (fromData) from.cache.set(fromData); // FIX cache mutation from rapid morph updates
     }
 
     insert(element: HTMLElement | null) {
@@ -84,20 +63,17 @@ export default class Timeline {
     }
 
     add(clip: Clip, { immediate = false, composite, reverse, delay = 0 }: { immediate?: boolean; composite?: boolean; reverse?: boolean; delay?: number }) {
-        if (composite === undefined) composite = clip.composite;
-        if (reverse === undefined) reverse = clip.reverse;
 
         for (let i = 0; i < this.tracks.size; i++) {
             if (immediate) this.tracks.values[i].clear();
 
-            const action = clip.play(this.tracks.values[i].element, {
+            const action = clip.play(this.tracks.values[i], {
                 delay: delay + Math.min(i, this.staggerLimit) * (this.stagger < 0 ? clip.duration / this.tracks.size : this.stagger),
-                deform: this.deform,
                 composite,
                 reverse
             });
 
-            this.tracks.values[i].push(action, composite);
+            if (!this.deform) action.correct();
         }
     }
 

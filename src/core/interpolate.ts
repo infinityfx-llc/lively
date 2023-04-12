@@ -37,3 +37,5 @@ export function createDynamicFrom(prop: string, keyframes: (AnimatableProperty| 
         return getComputedStyle(element)[prop as never];
     };
 }
+
+// MOVE THIS TO UTILS

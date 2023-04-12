@@ -12,14 +12,6 @@ export default function Morph({ children, shown, id, transition = {} }: { childr
     const [updated, setUpdated] = useState(false);
 
     useEffect(() => {
-        const el = ref.current;
-        if (!el) return;
-
-        const data = el.timeline.cache.read(el.timeline.tracks.values);
-        el.timeline.cache.set(data);
-    }, []);
-
-    useEffect(() => {
         if (!ref.current || !shown) return;
 
         let prev;
@@ -31,7 +23,7 @@ export default function Morph({ children, shown, id, transition = {} }: { childr
 
         if (!prev) return;
 
-        ref.current.timeline.transition({ ...transition, from: prev.timeline });
+        ref.current.timeline.transition(prev.timeline, transition);
 
         setUpdated(!updated);
     }, [shown]);

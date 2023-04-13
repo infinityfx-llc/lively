@@ -1,9 +1,9 @@
 'use client';
 
 import { Children, cloneElement, isValidElement, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import Animatable, { AnimatableType } from "./animatable";
-import { IndexedList } from "./core/utils";
-import type { Easing } from "./core/clip";
+import Animatable, { AnimatableType } from "../animatable";
+import { IndexedList } from "../core/utils";
+import type { Easing } from "../core/clip";
 
 export default function LayoutGroup({ children, adaptive = true, transition = {} }: { children: React.ReactNode; adaptive?: boolean; transition?: { duration?: number; easing?: Easing } }) {
     const animatables = useRef<IndexedList<AnimatableType>>(new IndexedList());

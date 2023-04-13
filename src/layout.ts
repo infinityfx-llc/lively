@@ -1,5 +1,5 @@
-import LayoutGroup from "./layout-group";
-import Morph from "./morph";
+import LayoutGroup from "./layout/layout-group";
+import Morph from "./layout/morph";
 
 export {
     LayoutGroup,

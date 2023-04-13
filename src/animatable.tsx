@@ -35,11 +35,10 @@ export type AnimatableProps = {
 };
 
 // TODO:
-// - spring easing
 // - start, end keyframes
 // - individual borderRadius support
-// - detect when element.isConnected = false, then remove track
 // - morph nesting
+// - text animation testing (hard state transition)
 
 const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     children,

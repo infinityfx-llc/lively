@@ -57,10 +57,12 @@ export default class Timeline {
         if (!element) return;
 
         if (!('TRACK_INDEX' in element)) (element as any).TRACK_INDEX = this.index++;
-        if (!this.tracks.has((element as any).TRACK_INDEX)) this.tracks.add((element as any).TRACK_INDEX, new Track(element, this.deform));
+        if (!this.tracks.has((element as any).TRACK_INDEX)) {
+            const track = new Track(element, this.deform);
+            this.tracks.add((element as any).TRACK_INDEX, track);
 
-        // this.tracks.remove(key); // cancel animations when removing track
-        // ^ detect when element.isConnected = false, then remove track
+            track.onremove = () => this.tracks.remove((element as any).TRACK_INDEX);
+        }
     }
 
     add(clip: Clip, { immediate = false, composite, reverse, delay = 0 }: { immediate?: boolean; composite?: boolean; reverse?: boolean; delay?: number }) {

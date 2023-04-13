@@ -11,6 +11,7 @@ export default class Track {
     active: Action[] = [];
     queue: Action[] = [];
     onupdate: (() => void) | null = null;
+    onremove: (() => void) | null = null;
     cache: StyleCache;
     scaleDelta: [number, number] = [1, 1];
 
@@ -21,20 +22,22 @@ export default class Track {
     }
 
     push(action: Action) {
+        if (!this.element.isConnected) return this.onremove?.();
         action.onfinish = this.next.bind(this);
 
-        if (this.playing && !action.composited) { // dont take composited anis into account for active.length
+        if (this.playing && !action.composited) {
             this.queue.push(action);
             action.animation.pause();
         } else {
             this.active.push(action);
-            this.playing++;
+            if (!action.composited) this.playing++;
         }
 
         return action;
     }
 
     next() {
+        if (!this.element.isConnected) return this.onremove?.();
         this.onupdate?.();
         this.cache.update();
 
@@ -52,7 +55,7 @@ export default class Track {
             return action.composited;
         });
         this.queue = [];
-        this.playing = this.active.length;
+        this.playing = 0;
     }
 
     pause() {

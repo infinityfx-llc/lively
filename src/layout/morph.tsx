@@ -1,8 +1,8 @@
 'use client';
 
 import { Children, cloneElement, isValidElement, useEffect, useId, useRef, useState } from "react";
-import Animatable, { AnimatableType } from "./animatable";
-import { Easing } from "./core/clip";
+import Animatable, { AnimatableType } from "../animatable";
+import { Easing } from "../core/clip";
 
 const Morphs: { [key: string]: { [key: string]: AnimatableType | null } } = {};
 

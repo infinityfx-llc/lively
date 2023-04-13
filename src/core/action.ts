@@ -1,42 +1,34 @@
 import type { DynamicProperties } from "./clip";
 import type Track from "./track";
 
-export type ActionKeyframes = { keyframes: Keyframe[] | PropertyIndexedKeyframes; config?: KeyframeAnimationOptions; dynamic?: DynamicProperties };
-
 export default class Action {
 
+    composited: boolean;
     track: Track;
-    animations: Animation[];
-    dynamic: DynamicProperties = {};
-    paused: boolean = false;
+    animation: Animation;
+    dynamic: DynamicProperties;
     onfinish: (() => void) | null = null;
 
-    constructor(track: Track, keyframes: ActionKeyframes | ActionKeyframes[]) {
-        if (!Array.isArray(keyframes)) keyframes = [keyframes];
-
+    constructor(track: Track, keyframes: Keyframe[] | PropertyIndexedKeyframes, config: KeyframeAnimationOptions, dynamic: DynamicProperties = {}) {
         this.track = track;
-        this.animations = keyframes.map(({ keyframes, config, dynamic }) => {
-            if (dynamic) this.dynamic = dynamic;
+        this.animation = track.element.animate(keyframes, config);
+        this.dynamic = dynamic;
 
-            return track.element.animate(keyframes, config);
-        });
-
-        this.animations[0].onfinish = this.finish.bind(this);
+        this.composited = config.composite === 'accumulate';
+        this.animation.onfinish = this.finish.bind(this);
     }
 
     finish() {
-        for (const animation of this.animations) {
-            if (this.track.element.offsetParent !== null) animation.commitStyles();
-            animation.cancel();
-        }
+        if (this.track.element.offsetParent !== null) this.animation.commitStyles();
+        this.animation.cancel();
 
         this.onfinish?.();
     }
 
     step(index: number) {
-        if (this.paused) return;
+        if (this.animation.playState === 'paused') return;
 
-        const progress = this.animations[0].effect?.getComputedTiming().progress || 0;
+        const progress = this.animation.effect?.getComputedTiming().progress || 0;
 
         for (const prop in this.dynamic) {
             const val = this.dynamic[prop as keyof DynamicProperties]?.(progress, index);
@@ -45,20 +37,6 @@ export default class Action {
         }
 
         this.track.correct();
-    }
-
-    play() {
-        this.animations.forEach(animation => animation.play());
-        this.paused = false;
-    }
-
-    pause() {
-        this.animations.forEach(animation => animation.pause());
-        this.paused = true;
-    }
-
-    remove() {
-        this.animations.forEach(animation => animation.cancel());
     }
 
 }

@@ -1,4 +1,5 @@
 import type { Link } from "../hooks/use-link";
+import Action from "./action";
 import Timeline from "./timeline";
 import type Track from "./track";
 import { createDynamicFrom, lengthToOffset, parseAnimatableProperty } from "./utils";
@@ -43,6 +44,7 @@ export default class Clip {
     easing: Easing;
     reverse: boolean;
     composite: boolean;
+    isEmpty: boolean;
 
     constructor({ duration = 1, delay = 0, repeat = 1, alternate = false, easing = 'ease', reverse = false, composite = false, ...properties }: ClipProperties, initial: AnimatableInitials = {}) {
         const keyframes: {
@@ -62,6 +64,8 @@ export default class Clip {
 
             if (arr.length < 2 && init !== undefined) arr.unshift(init);
             if (arr[0] === null) init !== undefined ? arr[0] = init : arr.splice(0, 1);
+
+            if (arr.length > 1 && arr.every(val => val === arr[0])) continue;
 
             if (prop === 'borderRadius') {
                 this.dynamic[prop as CSSKeys] = createDynamicFrom(prop, arr, easing);
@@ -89,6 +93,7 @@ export default class Clip {
         this.easing = easing;
         this.reverse = reverse;
         this.composite = composite;
+        this.isEmpty = !this.keyframes.length && !Object.keys(this.dynamic).length;
     }
 
     static from(data?: ClipProperties | Clip, initial?: AnimatableInitials, timeline?: Timeline) {
@@ -111,21 +116,21 @@ export default class Clip {
     }
 
     play(track: Track, { composite = this.composite, reverse = this.reverse, delay }: { composite?: boolean; reverse?: boolean; delay?: number; }) {
-        track.push({
-            keyframes: this.keyframes,
-            config: {
-                duration: this.duration * 1000,
-                delay: (delay || this.delay) * 1000,
-                iterations: this.repeat,
-                direction: this.alternate ?
-                    (reverse ? 'alternate-reverse' : 'alternate') :
-                    (reverse ? 'reverse' : 'normal'),
-                composite: composite ? 'accumulate' : 'replace',
-                fill: 'both',
-                easing: this.easing
-            },
-            dynamic: this.dynamic
-        }, composite);
+        if (this.isEmpty) return;
+
+        const action = new Action(track, this.keyframes, {
+            duration: this.duration * 1000,
+            delay: (delay || this.delay) * 1000,
+            iterations: this.repeat,
+            direction: this.alternate ?
+                (reverse ? 'alternate-reverse' : 'alternate') :
+                (reverse ? 'reverse' : 'normal'),
+            composite: composite ? 'accumulate' : 'replace',
+            fill: 'both',
+            easing: this.easing
+        }, this.dynamic);
+
+        track.push(action);
     }
 
 }

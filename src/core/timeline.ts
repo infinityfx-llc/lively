@@ -38,15 +38,14 @@ export default class Timeline {
             const val = link(i);
 
             if (transition) {
-                const clip = new Clip({ duration: transition * 1000, easing: 'ease', [key]: val }); // check to optimize (no need to create new clip) (only for borderRadius dynamic function parsing/lengthToOffset)
-                clip.play(this.tracks.values[i], {});
+                new Clip({ duration: transition, easing: 'ease', [key]: val }).play(this.tracks.values[i], {});
             } else {
                 this.tracks.values[i].apply(key, val);
             }
         }
     }
 
-    transition(from: Timeline | undefined, { duration = 0.5, easing = 'ease' }: { duration?: number; easing?: Easing } = {}) {
+    transition(from: Timeline | undefined, { duration = 0.5, easing = 'ease' }: { duration?: number; easing?: Easing; } = {}) {
 
         for (let i = 0; i < this.tracks.size; i++) {
 

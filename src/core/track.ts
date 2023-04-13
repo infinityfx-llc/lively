@@ -1,4 +1,4 @@
-import Action, { ActionKeyframes } from "./action";
+import type Action from "./action";
 import { StyleCache } from "./cache";
 import type { Easing } from "./clip";
 import { lengthToOffset } from "./utils";
@@ -20,13 +20,12 @@ export default class Track {
         this.cache = new StyleCache(element);
     }
 
-    push(keyframes: ActionKeyframes | ActionKeyframes[], composite = false) {
-        const action = new Action(this, keyframes);
+    push(action: Action) {
         action.onfinish = this.next.bind(this);
 
-        if (this.active.length && !composite) {
+        if (this.playing && !action.composited) { // dont take composited anis into account for active.length
             this.queue.push(action);
-            action.pause();
+            action.animation.pause();
         } else {
             this.active.push(action);
             this.playing++;
@@ -47,39 +46,34 @@ export default class Track {
     }
 
     clear() {
-        this.active.forEach(action => action.remove());
-        this.active = [];
+        this.active = this.active.filter(action => {
+            action.animation.cancel();
+
+            return action.composited;
+        });
         this.queue = [];
-        this.playing = 0;
+        this.playing = this.active.length;
     }
 
     pause() {
-        for (const action of this.active) action.pause();
+        for (const action of this.active) action.animation.pause();
     }
 
     play() {
-        for (const action of this.active) action.play();
+        for (const action of this.active) action.animation.play();
     }
 
     step(index: number) {
         for (const action of this.active) action.step(index);
     }
 
-    transition(previous: Track | undefined, { duration, easing }: { duration: number; easing: Easing; }) {
-        const keyframes = this.cache.difference(previous?.cache.data);
+    transition(previous: Track | undefined, options: { duration: number; easing: Easing; }) {
+        const clips = this.cache.difference(previous?.cache.data, options);
         this.cache.update();
         previous?.cache.update();
-        previous?.clear(); // maybe replace with .finish() for smoother morphs (or composite with current animation, but not for morphs)
+        previous?.clear();
 
-        this.push(keyframes.map((keyframes, i) => ({
-            keyframes,
-            config: {
-                composite: i > 0 ? 'accumulate' : 'replace',
-                duration: duration * 1000,
-                fill: 'both',
-                easing
-            }
-        })));
+        clips.forEach(clip => clip.play(this, {}));
     }
 
     apply(prop: string, val: any) {

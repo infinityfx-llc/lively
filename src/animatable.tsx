@@ -37,11 +37,9 @@ export type AnimatableProps = {
 // TODO:
 // - spring easing
 // - start, end keyframes
-// - check if empty animation still gets added to track for full duration (thus causing delays)
 // - individual borderRadius support
 // - detect when element.isConnected = false, then remove track
 // - morph nesting
-// - cascade animations seem broken
 
 const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     children,
@@ -72,7 +70,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
         deform
     }));
     const playbookState = useRef<boolean[]>([]);
-    let nodes: (AnimatableType | null)[] = [];
+    const nodes = useRef<(AnimatableType | null)[]>([]);
 
     if (!clipMap.current.__initialized) {
         (clipMap.current as any).__initialized = true;
@@ -94,7 +92,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
             layerDelay = (options.delay || 0),
             duration = timeline.current.time(clip);
 
-        for (const node of nodes) {
+        for (const node of nodes.current) {
             if (!node) continue;
 
             const delay = node.play(animation, merge({
@@ -157,11 +155,11 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
 
             if (isAnimatable) {
                 if (!noCascade) {
-                    const i = nodes.length++;
+                    const i = nodes.current.length++;
 
                     props.order = childProps.order !== undefined ? childProps.order : (order !== undefined ? order : 1) + 1;
                     props.paused = paused;
-                    props.ref = el => nodes[i] = el;
+                    props.ref = el => nodes.current[i] = el;
                     props.id = id + i;
 
                     merge(props, childProps, { animate, initial, animations, stagger, staggerLimit, deform });

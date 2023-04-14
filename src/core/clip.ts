@@ -2,16 +2,15 @@ import type { Link } from "../hooks/use-link";
 import Action from "./action";
 import Timeline from "./timeline";
 import type Track from "./track";
-import { createDynamicFrom, lengthToOffset, parseAnimatableProperty } from "./utils";
+import { createDynamicFrom, distributeAnimatableKeyframes, lengthToOffset, normalizeAnimatableKeyframes } from "./utils";
 
 export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end';
 
 type CSSKeys = keyof React.CSSProperties | 'pathLength';
 
 export type AnimatableProperty = string | number | null | {
-    set?: string | number;
-    start?: string | number;
-    end?: string | number;
+    value?: string | number;
+    after?: string | number;
     offset?: number;
 };
 
@@ -65,21 +64,14 @@ export default class Clip {
             if (arr.length < 2 && init !== undefined) arr.unshift(init);
             if (arr[0] === null) init !== undefined ? arr[0] = init : arr.splice(0, 1);
 
-            if (arr.length > 1 && arr.every(val => val === arr[0])) continue;
+            if (!normalizeAnimatableKeyframes(arr)) continue;
 
             if (prop === 'borderRadius') {
-                this.dynamic[prop as CSSKeys] = createDynamicFrom(prop, arr, easing);
+                this.dynamic[prop as CSSKeys] = createDynamicFrom(prop, arr as any, easing);
                 continue;
             }
 
-            for (let i = 0; i < arr.length; i++) {
-                const [key, val] = parseAnimatableProperty(arr, i);
-                if (val === undefined) continue;
-
-                if (!(key in keyframes)) keyframes[key] = { offset: key };
-
-                keyframes[key][prop] = prop === 'strokeDashoffset' ? lengthToOffset(val) : val;
-            }
+            distributeAnimatableKeyframes(prop, arr as any, keyframes);
         }
 
         if (initial.pathLength) initial.strokeDashoffset = lengthToOffset(initial.pathLength);

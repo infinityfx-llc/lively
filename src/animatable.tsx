@@ -35,10 +35,10 @@ export type AnimatableProps = {
 };
 
 // TODO:
-// - start, end keyframes
 // - individual borderRadius support
 // - morph nesting
 // - text animation testing (hard state transition)
+// - maybe allow for animatable inside morph??
 
 const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     children,
@@ -173,7 +173,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
                         if (ref && 'current' in ref) ref.current = el;
                         if (ref instanceof Function) ref(el);
                     }
-                    props.style = merge({ backfaceVisibility: 'hidden', strokeDasharray: 1 }, initial || clipMap.current.animate.initial, childProps.style);
+                    props.style = merge({ backfaceVisibility: 'hidden', willChange: 'transform', strokeDasharray: 1 }, initial || clipMap.current.animate.initial, childProps.style);
                 }
 
             if (!valid) {

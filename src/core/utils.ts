@@ -97,27 +97,55 @@ export class IndexedList<T = any> {
 
 };
 
-export function parseAnimatableProperty(values: (AnimatableProperty | undefined)[], index: number): [number, string | number | undefined] {
-    let offset = values.length < 2 ? 1 : Math.round(index / (values.length - 1) * 1000) / 1000,
-        value = values[index];
+type AnimatableObjectProperty = { value?: string | number; after?: string | number; offset: number; };
 
-    if (value === null) return [offset, undefined];
+export function distributeAnimatableKeyframes(prop: string, keyframes: AnimatableObjectProperty[], map: { [key: number]: Keyframe; } = {}) {
+    const set = (offset: number, value: string | number) => {
+        const key = offset * 10000;
 
-    if (typeof value === 'object') {
-        return [value.offset || offset, value.set]; // TODO start, end
-    } else {
-        return [offset, value];
+        if (!(key in map)) map[key] = { offset };
+        map[key][prop] = prop === 'strokeDashoffset' ? lengthToOffset(value) : value;
+    };
+
+    for (let i = 0; i < keyframes.length; i++) {
+        let { offset, value, after } = keyframes[i];
+
+        if (value !== undefined) {
+            if (after !== undefined && offset === 1) offset = offset - 0.0001;
+            set(offset, value);
+        }
+        if (after !== undefined) {
+            offset = Math.min(offset + 0.0001, 1);
+            set(offset, after);
+        }
     }
+
+    return map;
+}
+
+export function normalizeAnimatableKeyframes(keyframes: (AnimatableProperty | undefined)[]) {
+    let equal = 0, match: any;
+
+    for (let i = 0; i < keyframes.length; i++) {
+        let keyframe = keyframes[i],
+            offset = keyframes.length < 2 ? 1 : Math.round(i / (keyframes.length - 1) * 10000) / 10000;
+        if (i === 0) match = keyframe;
+
+        if (keyframe && typeof keyframe === 'object') {
+            if (!('offset' in keyframe)) keyframe.offset = offset;
+        } else {
+            if (keyframe === match) equal++;
+            keyframes[i] = { offset, value: keyframe !== null ? keyframe : undefined };
+        }
+    }
+
+    return equal < 2 || equal !== keyframes.length;
 }
 
 let element: HTMLDivElement;
 
-export function createDynamicFrom(prop: string, keyframes: (AnimatableProperty| undefined)[], easing: Easing) {
-    const parsed = keyframes.map((_, i) => {
-        const [offset, parsed] = parseAnimatableProperty(keyframes, i);
-
-        return { [prop]: parsed, offset };
-    });
+export function createDynamicFrom(prop: string, keyframes: AnimatableObjectProperty[], easing: Easing) {
+    const parsed = Object.values(distributeAnimatableKeyframes(prop, keyframes));
     let animation: Animation;
 
     return (progress: number) => {
@@ -127,7 +155,7 @@ export function createDynamicFrom(prop: string, keyframes: (AnimatableProperty| 
             element.style.position = 'absolute';
             document.body.appendChild(element);
         }
-        
+
         if (!animation) animation = element.animate(parsed, { easing, duration: 1000, fill: 'forwards' });
         animation.currentTime = 1000 * progress;
 

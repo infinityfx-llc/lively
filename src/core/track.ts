@@ -50,7 +50,7 @@ export default class Track {
 
     clear() {
         this.active = this.active.filter(action => {
-            action.animation.cancel();
+            if (!action.composited) action.animation.cancel();
 
             return action.composited;
         });

@@ -1,6 +1,6 @@
 'use client';
 
-import { Children, cloneElement, forwardRef, isValidElement, useCallback, useEffect, useImperativeHandle, useRef } from "react";
+import { Children, cloneElement, forwardRef, isValidElement, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import Clip, { AnimatableInitials, ClipProperties } from "./core/clip";
 import Timeline from "./core/timeline";
 import { merge } from "./core/utils";
@@ -18,14 +18,13 @@ export type AnimatableType = {
 export type AnimatableProps = {
     children: React.ReactNode;
     animations?: { [key: string]: ClipProperties | Clip };
-    playbook?: ({ name: string; trigger: boolean } & PlayOptions)[];
+    triggers?: ({ name?: string; on: boolean | 'mount' } & PlayOptions)[];
     animate?: ClipProperties | Clip;
     initial?: AnimatableInitials;
     stagger?: number;
     staggerLimit?: number;
     deform?: boolean;
     order?: number;
-    onMount?: boolean | string;
     onUnmount?: boolean | string;
     noCascade?: boolean;
     text?: boolean;
@@ -43,16 +42,14 @@ export type AnimatableProps = {
 const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     children,
     animations,
-    playbook = [],
+    triggers = [],
     animate,
     initial,
     stagger,
     staggerLimit,
     deform,
     order,
-    onMount = false,
     onUnmount = false,
-    noCascade = false,
     text = false,
     disabled = false,
     paused = false,
@@ -68,7 +65,11 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
         staggerLimit: text ? Number.MAX_VALUE : staggerLimit,
         deform
     }));
-    const playbookState = useRef<boolean[]>([]);
+    const triggersState = useRef<(boolean | number)[]>([]);
+    const [events, setEvents] = useState<{ [key: string]: any }>({
+        mount: 0,
+    });
+    const trigger = (name: 'mount') => setEvents({ ...events, [name]: events[name] + 1 });
     const nodes = useRef<(AnimatableType | null)[]>([]);
 
     if (!clipMap.current.__initialized) {
@@ -113,7 +114,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
         mounted: mounted.current,
         onUnmount,
         id
-    }), [onUnmount]);
+    }), [id, onUnmount]);
 
     useEffect(() => {
         if (paused || disabled) timeline.current.pause();
@@ -121,20 +122,24 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     }, [paused, disabled]);
 
     useEffect(() => {
-        for (let i = 0; i < playbook.length; i++) {
-            const { name, trigger, ...options } = playbook[i];
+        for (let i = 0; i < triggers.length; i++) {
+            let { name, on, ...options }: { name?: string, on: boolean | string | number } & PlayOptions = triggers[i];
 
-            if (trigger !== playbookState.current[i] && trigger) play(name, options);
+            if (typeof on === 'string') {
+                if (options.immediate === undefined) options.immediate = true;
+                on = events[on] as number;
+            }
+            if (on !== triggersState.current[i] && on) play(name || 'animate', options);
 
-            playbookState.current[i] = trigger;
+            triggersState.current[i] = on;
         }
-    }, [playbook]);
+    }, [triggers, events]);
 
     useEffect(() => {
         timeline.current.step();
         mounted.current = true;
 
-        document.fonts.ready.then(() => play(onMount, { immediate: true }));
+        document.fonts.ready.then(() => trigger('mount'));
     }, []);
 
     function render(children: React.ReactNode, isDirectChild = true, isParent = true): React.ReactNode {
@@ -153,7 +158,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
             } = {};
 
             if (isAnimatable) {
-                if (!noCascade) {
+                if (!childProps.noCascade) {
                     const i = nodes.current.length++;
 
                     props.order = childProps.order !== undefined ? childProps.order : (order !== undefined ? order : 1) + 1;
@@ -180,7 +185,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
                 if (!isDirectChild || !['string', 'number', 'boolean'].includes(typeof child)) return child;
 
                 if (text && typeof child === 'string') {
-                    return child.split('').map((char, i) => <span ref={el => timeline.current.insert(el)} style={{ minWidth: char === ' ' ? '0.35em' : 0 }}>{char}</span>);
+                    return child.split('').map(char => <span ref={el => timeline.current.insert(el)} style={{ ...props.style, minWidth: char === ' ' ? '0.35em' : 0 }}>{char}</span>);
                 }
 
                 return <div {...props}>{child}</div>;

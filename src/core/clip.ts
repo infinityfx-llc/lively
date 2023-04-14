@@ -2,7 +2,7 @@ import type { Link } from "../hooks/use-link";
 import Action from "./action";
 import Timeline from "./timeline";
 import type Track from "./track";
-import { createDynamicFrom, distributeAnimatableKeyframes, lengthToOffset, normalizeAnimatableKeyframes } from "./utils";
+import { createDynamicFrom, distributeAnimatableKeyframes, normalizeAnimatableKeyframes } from "./utils";
 
 export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end';
 
@@ -74,9 +74,11 @@ export default class Clip {
             distributeAnimatableKeyframes(prop, arr as any, keyframes);
         }
 
-        if (initial.pathLength) initial.strokeDashoffset = lengthToOffset(initial.pathLength);
-
         this.keyframes = Object.values(keyframes);
+
+        initial = this.keyframes.length > 1 ? (this.keyframes[0] as any) : initial;
+        delete initial.offset;
+
         this.initial = initial;
         this.duration = duration;
         this.delay = delay;
@@ -101,8 +103,13 @@ export default class Clip {
     }
 
     unique(config: ClipConfig) {
-        const clip = new Clip(config);
-        clip.keyframes = this.keyframes;
+        const clip = new Clip({});
+
+        for (const key in this) {
+            if (this.hasOwnProperty(key)) {
+                (clip as any)[key] = key in config ? config[key as never] : this[key];
+            }
+        }
 
         return clip;
     }

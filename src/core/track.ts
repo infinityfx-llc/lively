@@ -1,6 +1,6 @@
 import type Action from "./action";
 import { StyleCache } from "./cache";
-import type { Easing } from "./clip";
+import type { CSSKeys, Easing } from "./clip";
 import { lengthToOffset } from "./utils";
 
 export default class Track {
@@ -15,10 +15,10 @@ export default class Track {
     cache: StyleCache;
     scaleDelta: [number, number] = [1, 1];
 
-    constructor(element: HTMLElement, deform: boolean) {
+    constructor(element: HTMLElement, deform: boolean, cachable?: CSSKeys[]) {
         this.element = element;
         this.deform = deform;
-        this.cache = new StyleCache(element);
+        this.cache = new StyleCache(element, cachable);
     }
 
     push(action: Action) {
@@ -70,7 +70,7 @@ export default class Track {
         for (const action of this.active) action.step(index);
     }
 
-    transition(previous: Track | undefined, options: { duration: number; easing: Easing; }) {
+    transition(previous: Track | undefined, options: { duration?: number; easing?: Easing; }) {
         const clips = this.cache.difference(previous?.cache.data, options);
         this.cache.update();
         previous?.cache.update();

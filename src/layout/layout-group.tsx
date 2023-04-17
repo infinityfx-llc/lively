@@ -44,8 +44,10 @@ export default function LayoutGroup({ children, adaptive = true, transition = {}
 
         for (const entry of animatables.current.values) {
             if (entry.onUnmount && !(entry.id in mounted)) {
-                unmounting = Math.max(unmounting, entry.play(entry.onUnmount, {
-                    reverse: typeof entry.onUnmount === 'string' ? false : true,
+                const isString = typeof entry.onUnmount === 'string';
+
+                unmounting = Math.max(unmounting, entry.play(isString ? entry.onUnmount as string : 'animate', {
+                    reverse: !isString,
                     immediate: true
                 }));
             }

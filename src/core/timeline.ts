@@ -1,5 +1,5 @@
 import type { Link } from "../hooks/use-link";
-import Clip, { Easing } from "./clip";
+import Clip, { CSSKeys, Easing } from "./clip";
 import Track from "./track";
 import { IndexedList } from "./utils";
 
@@ -9,14 +9,16 @@ export default class Timeline {
     stagger: number;
     staggerLimit: number;
     deform: boolean;
+    cachable?: CSSKeys[];
     paused: boolean = false;
     tracks: IndexedList<Track> = new IndexedList();
     frame: number = 0;
 
-    constructor({ stagger = 0.1, staggerLimit = 10, deform = true }) {
+    constructor({ stagger = 0.1, staggerLimit = 10, deform = true, cachable }: { stagger?: number; staggerLimit?: number; deform?: boolean; cachable?: CSSKeys[] }) {
         this.stagger = stagger;
         this.staggerLimit = staggerLimit - 1;
         this.deform = deform;
+        this.cachable = cachable;
     }
 
     step() {
@@ -45,11 +47,11 @@ export default class Timeline {
         }
     }
 
-    transition(from: Timeline | undefined, { duration = 0.5, easing = 'ease' }: { duration?: number; easing?: Easing; } = {}) {
+    transition(from: Timeline | undefined, options: { duration?: number; easing?: Easing; } = {}) {
 
         for (let i = 0; i < this.tracks.size; i++) {
 
-            this.tracks.values[i].transition(from?.tracks.values[i], { duration, easing });
+            this.tracks.values[i].transition(from?.tracks.values[i], options);
         }
     }
 
@@ -58,7 +60,7 @@ export default class Timeline {
 
         if (!('TRACK_INDEX' in element)) (element as any).TRACK_INDEX = this.index++;
         if (!this.tracks.has((element as any).TRACK_INDEX)) {
-            const track = new Track(element, this.deform);
+            const track = new Track(element, this.deform, this.cachable);
             this.tracks.add((element as any).TRACK_INDEX, track);
 
             track.onremove = () => this.tracks.remove((element as any).TRACK_INDEX);
@@ -86,6 +88,10 @@ export default class Timeline {
     play() {
         for (const track of this.tracks.values) track.play();
         this.paused = false;
+    }
+
+    cache() {
+        for (const track of this.tracks.values) track.cache.update();
     }
 
 }

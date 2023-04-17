@@ -6,12 +6,13 @@ import { createDynamicFrom, distributeAnimatableKeyframes, normalizeAnimatableKe
 
 export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end';
 
-type CSSKeys = keyof React.CSSProperties | 'pathLength';
+export type CSSKeys = keyof React.CSSProperties | 'pathLength';
 
 export type AnimatableProperty = string | number | null | {
     value?: string | number;
     after?: string | number;
     offset?: number;
+    // easing?: Easing;
 };
 
 type AnimatableProperties = { [key in CSSKeys]?: Link<any> | ((progress: number, index: number) => any) | AnimatableProperty | AnimatableProperty[] };
@@ -75,11 +76,7 @@ export default class Clip {
         }
 
         this.keyframes = Object.values(keyframes);
-
-        initial = this.keyframes.length > 1 ? (this.keyframes[0] as any) : initial;
-        delete initial.offset;
-
-        this.initial = initial;
+        this.initial = this.keyframes.length > 1 ? (this.keyframes[0] as any) : initial;
         this.duration = duration;
         this.delay = delay;
         this.repeat = repeat;

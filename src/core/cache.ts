@@ -1,15 +1,10 @@
-import Clip, { Easing } from "./clip";
+import Clip, { CSSKeys, ClipProperties, Easing } from "./clip";
 
-type CacheData = {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    borderRadius: string;
-    opacity: string;
-    backgroundColor: string;
-    color: string;
-    rotate: string;
+type CacheData = { [key in CSSKeys]?: string } & {
+    _x: number;
+    _y: number;
+    _w: number;
+    _h: number;
 };
 
 export class StyleCache {
@@ -17,53 +12,43 @@ export class StyleCache {
     element: HTMLElement;
     data: CacheData;
     computed: CSSStyleDeclaration;
+    include: CSSKeys[]; // doesnt work with pathLength
 
-    constructor(element: HTMLElement) {
+    constructor(element: HTMLElement, include: CSSKeys[] = ['translate', 'scale', 'borderRadius', 'backgroundColor', 'color', 'rotate', 'opacity']) {
         this.element = element;
+        this.include = include;
         this.computed = getComputedStyle(element);
         this.data = this.read();
     }
 
     read() {
         const { x, y, width, height } = this.element.getBoundingClientRect();
-        const { borderRadius, opacity, backgroundColor, color, rotate } = this.computed;
+        const data: CacheData = { _x: x, _y: y, _w: width, _h: height };
 
-        return {
-            x: x - window.scrollX,
-            y: y + window.scrollY,
-            width,
-            height,
-            borderRadius,
-            opacity,
-            backgroundColor,
-            color,
-            rotate
-        };
+        for (const prop of this.include) data[prop] = this.computed[prop as never];
+
+        return data;
     }
 
     update() {
         this.data = this.read();
     }
 
-    difference(from: CacheData = this.data, { duration, easing }: { duration: number; easing: Easing; }) {
+    difference(from: CacheData = this.data, { duration = 0.5, easing = 'ease' }: { duration?: number; easing?: Easing; }) {
         const to = this.read();
 
-        const keyframes: any = { duration, easing };
-        for (const key of ['borderRadius', 'backgroundColor', 'color', 'rotate', 'opacity']) {
-            keyframes[key] = [from[key as keyof CacheData], to[key as keyof CacheData]];
+        const keyframes1: ClipProperties = { duration, easing, composite: true }, keyframes2: ClipProperties = { duration, easing };
+        for (const key of this.include) {
+            switch (key) {
+                case 'scale': keyframes1[key] = [`${to._w === 0 ? 1 : from._w / to._w} ${to._h === 0 ? 1 : from._h / to._h}`, '1 1'];
+                    break;
+                case 'translate': keyframes1[key] = [`${from._x - to._x}px ${from._y - to._y}px`, '0px 0px'];
+                    break;
+                default: keyframes2[key] = [from[key as never], to[key as never]];
+            }
         }
 
-        return [
-            new Clip({
-                translate: [`${from.x - to.x}px ${from.y - to.y}px`, '0px 0px'],
-                scale: [`${to.width === 0 ? 1 : from.width / to.width} ${to.height === 0 ? 1 : from.height / to.height}`, '1 1'],
-                composite: true,
-                duration,
-                easing
-            }),
-            new Clip(keyframes)
-        ];
+        return [new Clip(keyframes1), new Clip(keyframes2)];
     }
-
 
 }

@@ -2,11 +2,11 @@
 
 import { Children, cloneElement, isValidElement, useEffect, useId, useRef, useState } from "react";
 import Animatable, { AnimatableType } from "../animatable";
-import { Easing } from "../core/clip";
+import { CSSKeys, Easing } from "../core/clip";
 
 const Morphs: { [key: string]: { [key: string]: AnimatableType | null } } = {};
 
-export default function Morph({ children, shown, id, transition = {} }: { children: React.ReactNode; shown: boolean; id: string; transition?: { duration?: number; easing?: Easing } }) {
+export default function Morph({ children, shown, id, include, transition = {} }: { children: React.ReactNode; shown: boolean; id: string; include?: CSSKeys[]; transition?: { duration?: number; easing?: Easing } }) {
     const ref = useRef<AnimatableType | null>(null);
     const uuid = useId();
     const [updated, setUpdated] = useState(false);
@@ -34,7 +34,7 @@ export default function Morph({ children, shown, id, transition = {} }: { childr
 
     if (!Children.only(children) || !isValidElement(children)) return <>{children}</>;
 
-    return <Animatable id={id} ref={el => {
+    return <Animatable cachable={include} id={id} ref={el => {
         ref.current = el;
         if (!(id in Morphs)) Morphs[id] = {};
         if (!(uuid in Morphs[id])) Morphs[id][uuid] = shown ? el : null;

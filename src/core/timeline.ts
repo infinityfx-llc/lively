@@ -1,5 +1,5 @@
 import type { Link } from "../hooks/use-link";
-import Clip, { CSSKeys, Easing } from "./clip";
+import Clip, { AnimatableKey, ClipProperties, Easing } from "./clip";
 import Track from "./track";
 import { IndexedList } from "./utils";
 
@@ -9,12 +9,13 @@ export default class Timeline {
     stagger: number;
     staggerLimit: number;
     deform: boolean;
-    cachable?: CSSKeys[];
+    cachable?: AnimatableKey[];
     paused: boolean = false;
     tracks: IndexedList<Track> = new IndexedList();
     frame: number = 0;
+    connected: boolean = false;
 
-    constructor({ stagger = 0.1, staggerLimit = 10, deform = true, cachable }: { stagger?: number; staggerLimit?: number; deform?: boolean; cachable?: CSSKeys[] }) {
+    constructor({ stagger = 0.1, staggerLimit = 10, deform = true, cachable }: { stagger?: number; staggerLimit?: number; deform?: boolean; cachable?: AnimatableKey[] }) {
         this.stagger = stagger;
         this.staggerLimit = staggerLimit - 1;
         this.deform = deform;
@@ -45,6 +46,21 @@ export default class Timeline {
                 this.tracks.values[i].apply(key, val);
             }
         }
+    }
+
+    connect(clip?: ClipProperties) {
+        if (this.connected || !clip || clip instanceof Clip) return;
+
+        for (let prop in clip) {
+            const val = clip[prop as keyof ClipProperties];
+
+            if (val instanceof Function && 'connect' in val) {
+                val.connect(this.port.bind(this, prop, val));
+                this.port(prop, val, 0);
+            }
+        }
+
+        this.connected = true;
     }
 
     transition(from: Timeline | undefined, options: { duration?: number; easing?: Easing; } = {}) {

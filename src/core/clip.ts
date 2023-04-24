@@ -6,16 +6,19 @@ import { createDynamicFrom, distributeAnimatableKeyframes, normalizeAnimatableKe
 
 export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end';
 
-export type CSSKeys = keyof React.CSSProperties | 'pathLength';
+export type AnimatableKey = keyof React.CSSProperties | 'strokeLength';
 
-export type AnimatableProperty = string | number | null | {
+export type AnimatableKeyframe = string | number | null | {
     value?: string | number;
     after?: string | number;
     offset?: number;
     // easing?: Easing;
 };
 
-type AnimatableProperties = { [key in CSSKeys]?: Link<any> | ((progress: number, index: number) => any) | AnimatableProperty | AnimatableProperty[] };
+type AnimatableProperties = { [key in AnimatableKey]?: Link<any> | ((progress: number, index: number) => any) | AnimatableKeyframe | AnimatableKeyframe[] };
+
+export type AnimatableInitials = React.CSSProperties & { strokeLength?: number | string };
+
 type ClipConfig = {
     duration?: number;
     delay?: number;
@@ -28,9 +31,7 @@ type ClipConfig = {
 
 export type ClipProperties = ClipConfig & AnimatableProperties;
 
-export type DynamicProperties = { [key in CSSKeys]?: (progress: number, index: number) => any };
-
-export type AnimatableInitials = React.CSSProperties & { pathLength?: number | string };
+export type DynamicProperties = { [key in AnimatableKey]?: (progress: number, index: number) => any };
 
 export default class Clip {
 
@@ -52,11 +53,11 @@ export default class Clip {
         } = {};
 
         for (let prop in properties) {
-            let val = properties[prop as CSSKeys], init = initial[prop as CSSKeys];
-            prop = prop === 'pathLength' ? 'strokeDashoffset' : prop;
+            let val = properties[prop as AnimatableKey], init = initial[prop as AnimatableKey];
+            prop = prop === 'strokeLength' ? 'strokeDashoffset' : prop;
 
             if (val instanceof Function) {
-                if (!('connect' in val)) this.dynamic[prop as CSSKeys] = val;
+                if (!('connect' in val)) this.dynamic[prop as AnimatableKey] = val;
                 continue;
             }
 
@@ -68,7 +69,7 @@ export default class Clip {
             if (!normalizeAnimatableKeyframes(arr)) continue;
 
             if (prop === 'borderRadius') {
-                this.dynamic[prop as CSSKeys] = createDynamicFrom(prop, arr as any, easing);
+                this.dynamic[prop as AnimatableKey] = createDynamicFrom(prop, arr as any, easing);
                 continue;
             }
 
@@ -76,7 +77,7 @@ export default class Clip {
         }
 
         this.keyframes = Object.values(keyframes);
-        this.initial = this.keyframes.length > 1 ? (this.keyframes[0] as any) : initial;
+        this.initial = this.keyframes.length > 1 ? (this.keyframes[0] as any) : initial; // convert strokeLength (NOT HAPPENING!)
         this.duration = duration;
         this.delay = delay;
         this.repeat = repeat;
@@ -87,16 +88,8 @@ export default class Clip {
         this.isEmpty = !this.keyframes.length && !Object.keys(this.dynamic).length;
     }
 
-    static from(data?: ClipProperties | Clip, initial?: AnimatableInitials, timeline?: Timeline) {
-        if (data !== undefined && !(data instanceof Clip) && timeline) {
-            for (const key in data) {
-                const val = data[key as keyof ClipProperties];
-
-                if (val instanceof Function && 'connect' in val) val.connect(timeline.port.bind(timeline, key === 'pathLength' ? 'strokeDashoffset' : key, val));
-            }
-        }
-
-        return data instanceof Clip ? data : new Clip({ ...data }, initial);
+    static from(data?: ClipProperties | Clip, initial?: AnimatableInitials) {
+        return data instanceof Clip ? data : new Clip(data || {}, initial);
     }
 
     unique(config: ClipConfig) {

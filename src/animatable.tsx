@@ -1,9 +1,8 @@
-'use client';
-
 import { Children, cloneElement, forwardRef, isValidElement, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
-import Clip, { AnimatableInitials, CSSKeys, ClipProperties } from "./core/clip";
+import Clip, { AnimatableInitials, AnimatableKey, ClipProperties } from "./core/clip";
 import Timeline from "./core/timeline";
-import { attachEvent, detachEvent, merge } from "./core/utils";
+import { attachEvent, combineRefs, detachEvent, merge } from "./core/utils";
+import useTrigger, { Trigger } from "./hooks/use-trigger";
 
 type PlayOptions = { composite?: boolean; immediate?: boolean; reverse?: boolean; delay?: number };
 
@@ -11,36 +10,35 @@ export type AnimatableType = {
     play: (animation: string, options?: PlayOptions, layer?: number) => number;
     timeline: Timeline;
     mounted: boolean;
-    onUnmount: boolean | string;
+    unmount: boolean | string;
     id: string;
 };
 
 export type AnimatableProps = {
     children: React.ReactNode;
     animations?: { [key: string]: ClipProperties | Clip };
-    triggers?: ({ name?: string; on: boolean | 'mount' } & PlayOptions)[];
+    triggers?: ({ name?: string; on: Trigger | 'mount' } & PlayOptions)[];
     animate?: ClipProperties | Clip;
     initial?: AnimatableInitials;
     stagger?: number;
     staggerLimit?: number;
     deform?: boolean;
     order?: number;
-    cachable?: CSSKeys[];
-    onUnmount?: boolean | string;
+    cachable?: AnimatableKey[];
+    unmount?: boolean | string;
     noCascade?: boolean;
-    text?: boolean;
     disabled?: boolean;
     paused?: boolean;
     id?: string;
 };
 
 // TODO:
-// - individual borderRadius support
-// - morph nesting
+// - investigate layoutgroup updating (unmount animation plays randomly)
 // - text animation testing (hard state transition)
 // - maybe allow for animatable inside morph??
 // - support easing array for individual keyframes
-// - fix awkward onUnmount prop
+// - individual borderRadius support
+// - morph nesting
 
 const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     children,
@@ -53,28 +51,22 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     deform,
     order,
     cachable,
-    onUnmount = false,
-    text = false,
+    unmount = false,
     disabled = false,
     paused = false,
     id = ''
 }, ref) => {
 
     const cascadeOrder = order !== undefined ? order : 1;
-    const mounted = useRef(false);
+    const mount = useTrigger();
     const timeline = useRef(new Timeline({
-        stagger: text ? -1 : stagger,
-        staggerLimit: text ? Number.MAX_VALUE : staggerLimit,
+        stagger,
+        staggerLimit,
         deform,
         cachable
     }));
-    const triggersState = useRef<(boolean | number)[]>([]);
-    const [events, setEvents] = useState<{ [key: string]: any }>({
-        mount: 0,
-    });
-    const trigger = (name: 'mount') => setEvents({ ...events, [name]: events[name] + 1 });
     const [clipMap] = useState(() => {
-        const map: { [key: string]: Clip } = { animate: Clip.from(animate, initial, timeline.current) };
+        const map: { [key: string]: Clip } = { animate: Clip.from(animate, initial) };
 
         for (const name in animations) {
             map[name] = Clip.from(animations[name], initial);
@@ -111,10 +103,10 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     useImperativeHandle(ref, () => ({
         play,
         timeline: timeline.current,
-        mounted: mounted.current,
-        onUnmount,
+        mounted: mount.value > 0,
+        unmount,
         id
-    }), [id, onUnmount]);
+    }), [id, mount, unmount]);
 
     useEffect(() => {
         if (paused || disabled) {
@@ -126,35 +118,37 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
 
     useEffect(() => {
         for (let i = 0; i < triggers.length; i++) {
-            let { name, on, ...options }: { name?: string, on: boolean | string | number } & PlayOptions = triggers[i];
+            let { name, on, ...options }: { name?: string, on: Trigger | 'mount' } & PlayOptions = triggers[i];
 
-            if (typeof on === 'string') {
+            if (on === 'mount') {
                 if (options.immediate === undefined) options.immediate = true;
-                on = events[on] as number;
+                on = mount;
             }
-            if (on !== triggersState.current[i] && on) play(name || 'animate', options);
-
-            triggersState.current[i] = on;
+            if (on.value !== on.previous) play(name || 'animate', options);
         }
-    }, [triggers, events]);
+
+        triggers.forEach(({ on }) => { // TEMP!!!
+            if (on === 'mount') on = mount;
+            on.previous = on.value;
+        });
+    }, [triggers, mount]);
 
     useEffect(() => {
         timeline.current.step();
-        mounted.current = true;
-        const resize = () => timeline.current.cache(); // maybe dont do this mid transition
+        timeline.current.connect(animate);
+        const resize = () => timeline.current.cache(); // maybe dont do this mid transition (also transition on resize within layoutgroup)
         attachEvent('resize', resize);
 
-        document.fonts.ready.then(() => trigger('mount'));
+        document.fonts.ready.then(mount);
 
         return () => detachEvent('resize', resize);
     }, []);
 
     function render(children: React.ReactNode, isDirectChild = true, isParent = true): React.ReactNode {
         return Children.map(children, child => {
-            const valid = isValidElement(child);
-            const isAnimatable = valid && child.type === Animatable;
+            if (!isValidElement(child)) return child;
+            const isAnimatable = child.type === Animatable;
 
-            const childProps: any = valid ? child.props : {};
             const props: {
                 order?: number;
                 paused?: boolean;
@@ -165,44 +159,29 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
             } = {};
 
             if (isAnimatable) {
-                if (!childProps.noCascade) {
+                if (!child.props.noCascade) {
                     const i = nodes.current.length++;
 
-                    props.order = childProps.order !== undefined ? childProps.order : (order !== undefined ? order : 1) + 1;
+                    props.order = child.props.order !== undefined ? child.props.order : cascadeOrder + 1;
                     props.paused = paused;
                     props.ref = el => nodes.current[i] = el;
                     props.id = id + i;
 
-                    merge(props, childProps, { animate, initial, animations, stagger, staggerLimit, deform });
+                    merge(props, child.props, { animate, initial, animations, stagger, staggerLimit, deform });
                 }
             } else
                 if (isDirectChild) {
-                    const ref = valid && (child as any).ref;
-
                     props.pathLength = 1;
-                    props.ref = el => {
-                        timeline.current.insert(el);
-                        if (ref && 'current' in ref) ref.current = el;
-                        if (ref instanceof Function) ref(el);
-                    }
-                    props.style = merge({ backfaceVisibility: 'hidden', willChange: 'transform' }, initial || clipMap.animate.initial, childProps.style, { strokeDasharray: 1 });
+                    props.ref = combineRefs(el => timeline.current.insert(el), (child as any).ref);
+                    props.style = merge({ backfaceVisibility: 'hidden', willChange: 'transform' }, clipMap.animate.initial, child.props.style, { strokeDasharray: 1 });
                 }
 
-            if (!valid) {
-                if (!isDirectChild || !['string', 'number', 'boolean'].includes(typeof child)) return child;
-
-                if (text && typeof child === 'string') {
-                    return child.split('').map(char => <span ref={el => timeline.current.insert(el)} style={{ ...props.style, minWidth: char === ' ' ? '0.35em' : 0 }}>{char}</span>);
-                }
-
-                return <div {...props}>{child}</div>;
-            }
-
-            return cloneElement(child, props, render(childProps.children, false, !isParent ? false : !isAnimatable));
+            return cloneElement(child, props, render(child.props.children, false, !isParent ? false : !isAnimatable));
         });
     }
 
     return <>{render(children)}</>;
 });
+Animatable.displayName = 'Animatable';
 
 export default Animatable;

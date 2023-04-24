@@ -1,5 +1,3 @@
-'use client';
-
 import { useEffect, useRef, useState } from "react";
 
 export default function useVisible<T extends Element = any>(threshold = 0.5): [boolean, React.Ref<T>] {

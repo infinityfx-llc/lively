@@ -19,7 +19,7 @@ export default class Action {
     }
 
     finish() {
-        if (this.track.element.offsetParent !== null) this.animation.commitStyles();
+        if (this.track.element.isConnected) this.animation.commitStyles();
         this.animation.cancel();
 
         this.onfinish?.();
@@ -35,8 +35,6 @@ export default class Action {
 
             this.track.set(prop, val);
         }
-
-        this.track.correct();
     }
 
 }

@@ -1,4 +1,4 @@
-import type { AnimatableProperty, Easing } from "./clip";
+import type { AnimatableKeyframe, Easing } from "./clip";
 
 const Events: {
     [key: string]: {
@@ -40,6 +40,15 @@ export function merge(...objects: { [key: string]: any }[]) {
 
     return objects[0];
 };
+
+export function combineRefs(...refs: React.Ref<any>[]) {
+    return (el: any) => {
+        refs.forEach(ref => {
+            if (ref && 'current' in ref) (ref as React.MutableRefObject<any>).current = el;
+            if (ref instanceof Function) ref(el);
+        });
+    };
+}
 
 export const lengthToOffset = (val: any) => 1 - parseFloat(val.toString());
 
@@ -123,7 +132,7 @@ export function distributeAnimatableKeyframes(prop: string, keyframes: Animatabl
     return map;
 }
 
-export function normalizeAnimatableKeyframes(keyframes: (AnimatableProperty | undefined)[]) {
+export function normalizeAnimatableKeyframes(keyframes: (AnimatableKeyframe | undefined)[]) {
     let equal = 0, match: any;
 
     for (let i = 0; i < keyframes.length; i++) {
@@ -144,7 +153,7 @@ export function normalizeAnimatableKeyframes(keyframes: (AnimatableProperty | un
 
 let element: HTMLDivElement;
 
-export function createDynamicFrom(prop: string, keyframes: AnimatableObjectProperty[], easing: Easing) {
+export function createDynamicFrom(prop: string, keyframes: AnimatableObjectProperty[], easing: Easing) { // strokeLength gets double converted when this is used in action with .set() (causing 1 - val to be inverted)
     const parsed = Object.values(distributeAnimatableKeyframes(prop, keyframes));
     let animation: Animation;
 

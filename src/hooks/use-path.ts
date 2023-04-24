@@ -1,5 +1,3 @@
-'use client';
-
 import { useRef, useCallback } from 'react';
 
 export default function usePath(): [(transform: (value: [number, number], index: number) => any) => (progress: number, index: number) => any, React.Ref<SVGPathElement>] {

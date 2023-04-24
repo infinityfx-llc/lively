@@ -1,12 +1,10 @@
-'use client';
-
 import { useRef } from "react";
 
 type Port = (transition: number) => void;
 
 type LinkArgument<T> = number | ((value: T, index: number) => any);
 
-export type Link<T> = ((transform?: LinkArgument<T>) => T | Link<T>) & { connect: (port: Port) => void };
+export type Link<T> = ((transform?: LinkArgument<T>) => any | Link<T>) & { connect: (port: Port) => void };
 
 export default function useLink<T = any>(initial: T): [Link<T>, (value: T, transition?: number) => void] {
     const internal = useRef<T>(initial);
@@ -16,16 +14,18 @@ export default function useLink<T = any>(initial: T): [Link<T>, (value: T, trans
         if (!ports.current.includes(port)) ports.current.push(port);
     }
 
-    function link(transform?: LinkArgument<T>) {
-        if (!(transform instanceof Function)) return internal.current;
+    const createLink = (transform: (value: T, index: number) => any = val => val): Link<T> => {
+        function link(transform?: LinkArgument<T>) {
+            if (!(transform instanceof Function)) return link.transform(internal.current, transform || 0);
 
-        const transformedLink = (index?: LinkArgument<T>) => transform(internal.current, typeof index === 'number' ? index : 0);
-        transformedLink.connect = connect;
+            return createLink(transform);
+        }
 
-        return transformedLink;
+        link.transform = transform;
+        link.connect = connect;
+
+        return link;
     }
-
-    link.connect = connect;
 
     function update(value: T, transition = 0) {
         requestAnimationFrame(() => {
@@ -35,5 +35,5 @@ export default function useLink<T = any>(initial: T): [Link<T>, (value: T, trans
         });
     }
 
-    return [link, update];
+    return [createLink(), update];
 }

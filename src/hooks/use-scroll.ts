@@ -1,5 +1,3 @@
-'use client';
-
 import { useEffect } from "react";
 import useLink from "./use-link";
 import { attachEvent, detachEvent } from "../core/utils";

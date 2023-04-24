@@ -4,7 +4,7 @@ import Move from "./animations/move";
 import Pop from "./animations/pop";
 import Clip, { ClipProperties } from "./core/clip";
 
-type AnimateProps = { children: React.ReactNode; animations?: (ClipProperties | Clip)[]; levels?: number; } & Omit<AnimatableProps, 'animations'>;
+type AnimateProps = { children: React.ReactNode; animations?: (ClipProperties | Clip)[]; levels?: number; } & Omit<AnimatableProps, 'animations' | 'animate' | 'noCascade' | 'order'>;
 
 const Animate = forwardRef<AnimatableType, AnimateProps>(({ children, animations = [Move, Pop], levels = 2, ...props }, ref) => {
 

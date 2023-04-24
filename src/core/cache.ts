@@ -1,6 +1,6 @@
-import Clip, { CSSKeys, ClipProperties, Easing } from "./clip";
+import Clip, { AnimatableKey, ClipProperties, Easing } from "./clip";
 
-type CacheData = { [key in CSSKeys]?: string } & {
+type CacheData = { [key in AnimatableKey]?: string } & {
     _x: number;
     _y: number;
     _w: number;
@@ -12,9 +12,9 @@ export class StyleCache {
     element: HTMLElement;
     data: CacheData;
     computed: CSSStyleDeclaration;
-    include: CSSKeys[]; // doesnt work with pathLength
+    include: AnimatableKey[]; // doesnt work with strokeLength
 
-    constructor(element: HTMLElement, include: CSSKeys[] = ['translate', 'scale', 'borderRadius', 'backgroundColor', 'color', 'rotate', 'opacity']) {
+    constructor(element: HTMLElement, include: AnimatableKey[] = ['translate', 'scale', 'borderRadius', 'backgroundColor', 'color', 'rotate', 'opacity']) {
         this.element = element;
         this.include = include;
         this.computed = getComputedStyle(element);
@@ -23,7 +23,7 @@ export class StyleCache {
 
     read() {
         const { x, y, width, height } = this.element.getBoundingClientRect();
-        const data: CacheData = { _x: x, _y: y, _w: width, _h: height };
+        const data: CacheData = { _x: x + width / 2, _y: y + height / 2, _w: width, _h: height };
 
         for (const prop of this.include) data[prop] = this.computed[prop as never];
 

@@ -1,6 +1,6 @@
 import type Action from "./action";
 import { StyleCache } from "./cache";
-import type { CSSKeys, Easing } from "./clip";
+import type { AnimatableKey, Easing } from "./clip";
 import { lengthToOffset } from "./utils";
 
 export default class Track {
@@ -15,7 +15,7 @@ export default class Track {
     cache: StyleCache;
     scaleDelta: [number, number] = [1, 1];
 
-    constructor(element: HTMLElement, deform: boolean, cachable?: CSSKeys[]) {
+    constructor(element: HTMLElement, deform: boolean, cachable?: AnimatableKey[]) {
         this.element = element;
         this.deform = deform;
         this.cache = new StyleCache(element, cachable);
@@ -56,6 +56,18 @@ export default class Track {
         });
         this.queue = [];
         this.playing = 0;
+        // also call correct here?? (manually set currentTime to desired frame to update)
+    }
+
+    finish() {
+        this.active.forEach(action => {
+            action.onfinish = null;
+            action.animation.finish();
+        });
+        this.active = [];
+        this.queue = [];
+        this.playing = 0;
+        // also call correct here?? (manually set currentTime to desired frame to update)
     }
 
     pause() {
@@ -68,13 +80,17 @@ export default class Track {
 
     step(index: number) {
         for (const action of this.active) action.step(index);
+
+        if (this.active.length) this.correct();
     }
 
     transition(previous: Track | undefined, options: { duration?: number; easing?: Easing; }) {
         const clips = this.cache.difference(previous?.cache.data, options);
-        this.cache.update();
+        // this.clear(); // when self transition maybe finish() current anis as well to prevent cache updating with wrong styles
+        // this.cache.update(); // OR maybe dont explicitly update cache, but do at next()
+        // if (!previous) this.clear();
+        previous?.finish();
         previous?.cache.update();
-        previous?.clear();
 
         clips.forEach(clip => clip.play(this, {}));
     }
@@ -86,6 +102,7 @@ export default class Track {
 
     set(prop: string, val: any) {
         if (prop === 'borderRadius') val = this.computeBorderRadius(val);
+        prop = prop === 'strokeLength' ? 'strokeDashoffset' : prop;
 
         this.element.style[prop as never] = prop === 'strokeDashoffset' ? lengthToOffset(val) : val;
     }

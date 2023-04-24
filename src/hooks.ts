@@ -1,4 +1,5 @@
 import useLink from "./hooks/use-link";
+import useTrigger from "./hooks/use-trigger";
 import useReducedMotion from "./hooks/use-reduced-motion";
 import useScroll from "./hooks/use-scroll";
 import usePath from "./hooks/use-path";
@@ -7,6 +8,7 @@ import useAudio from "./hooks/use-audio";
 
 export {
     useLink,
+    useTrigger,
     useReducedMotion,
     useScroll,
     usePath,

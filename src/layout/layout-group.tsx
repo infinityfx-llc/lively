@@ -1,9 +1,8 @@
-'use client';
-
 import { Children, cloneElement, isValidElement, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Animatable, { AnimatableType } from "../animatable";
 import { IndexedList } from "../core/utils";
 import type { Easing } from "../core/clip";
+import Morph from "./morph";
 
 export default function LayoutGroup({ children, adaptive = true, transition = {} }: { children: React.ReactNode; adaptive?: boolean; transition?: { duration?: number; easing?: Easing } }) {
     const animatables = useRef<IndexedList<AnimatableType>>(new IndexedList());
@@ -11,24 +10,29 @@ export default function LayoutGroup({ children, adaptive = true, transition = {}
     let animatableIndex = 0;
     const render = (children: React.ReactNode): React.ReactNode => {
         return Children.map(children, child => {
-            if (!isValidElement(child) || child.type !== Animatable) return child;
+            if (!isValidElement(child)) return child;
 
-            const i = animatableIndex++;
-            const props = child.props.order > 1 ? {} : {
-                id: child.key,
-                ref: (el: any) => {
-                    el ? animatables.current.add(i, el) : animatables.current.remove(i);
-                }
-            };
+            const props: { id?: string; ref?: React.Ref<any>; } = {};
+            if ((child.type === Animatable || child.type === Morph) && !(child.props.order > 1)) { // also support Typable components
+                const i = animatableIndex++;
+
+                props.id = child.props.id || child.key;
+                props.ref = (el: any) => { // merge refs here as well!! (otherwise cant access Animatables via ref)
+                    el ? animatables.current.add(i, el) : animatables.current.remove(i); // check if remove is necessary
+                };
+            }
+
+            if (child.type === Morph) return cloneElement(child, props);
+
             return cloneElement(child, props, render(child.props.children));
         });
     };
 
     const snapshot = useCallback((children: React.ReactNode, map: { [key: string]: boolean } = {}) => {
         Children.forEach(children, child => {
-            if (!isValidElement(child) || child.type !== Animatable || child.key === null) return;
+            if (!isValidElement(child) || child.type !== Animatable || child.props.id === null) return;
 
-            map[child.key] = true;
+            map[child.props.id] = true;
 
             snapshot(child.props.children, map);
         });
@@ -43,10 +47,10 @@ export default function LayoutGroup({ children, adaptive = true, transition = {}
         let unmounting = 0;
 
         for (const entry of animatables.current.values) {
-            if (entry.onUnmount && !(entry.id in mounted)) {
-                const isString = typeof entry.onUnmount === 'string';
+            if (entry.unmount && !(entry.id in mounted)) {
+                const isString = typeof entry.unmount === 'string';
 
-                unmounting = Math.max(unmounting, entry.play(isString ? entry.onUnmount as string : 'animate', {
+                unmounting = Math.max(unmounting, entry.play(isString ? entry.unmount as string : 'animate', {
                     reverse: !isString,
                     immediate: true
                 }));
@@ -62,7 +66,7 @@ export default function LayoutGroup({ children, adaptive = true, transition = {}
         animatables.current.forEach(entry => {
             if (!entry.mounted) return;
 
-            entry.timeline.transition(undefined, transition)
+            entry.timeline.transition(undefined, transition);
         });
     }, [state]);
 

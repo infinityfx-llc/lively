@@ -26,7 +26,7 @@ export type AnimatableProps = {
     order?: number;
     cachable?: AnimatableKey[];
     unmount?: boolean | string;
-    noCascade?: boolean;
+    noInherit?: boolean;
     disabled?: boolean;
     paused?: boolean;
     id?: string;
@@ -159,7 +159,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
             } = {};
 
             if (isAnimatable) {
-                if (!child.props.noCascade) {
+                if (!child.props.noInherit) {
                     const i = nodes.current.length++;
 
                     props.order = child.props.order !== undefined ? child.props.order : cascadeOrder + 1;

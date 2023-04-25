@@ -1,8 +1,9 @@
 import { Children, cloneElement, isValidElement, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Animatable, { AnimatableType } from "../animatable";
-import { IndexedList } from "../core/utils";
+import { IndexedList, combineRefs } from "../core/utils";
 import type { Easing } from "../core/clip";
 import Morph from "./morph";
+import Typable from "./typable";
 
 export default function LayoutGroup({ children, adaptive = true, transition = {} }: { children: React.ReactNode; adaptive?: boolean; transition?: { duration?: number; easing?: Easing } }) {
     const animatables = useRef<IndexedList<AnimatableType>>(new IndexedList());
@@ -13,13 +14,11 @@ export default function LayoutGroup({ children, adaptive = true, transition = {}
             if (!isValidElement(child)) return child;
 
             const props: { id?: string; ref?: React.Ref<any>; } = {};
-            if ((child.type === Animatable || child.type === Morph) && !(child.props.order > 1)) { // also support Typable components
+            if ((child.type === Animatable || child.type === Morph || child.type === Typable) && !(child.props.order > 1)) {
                 const i = animatableIndex++;
 
                 props.id = child.props.id || child.key;
-                props.ref = (el: any) => { // merge refs here as well!! (otherwise cant access Animatables via ref)
-                    el ? animatables.current.add(i, el) : animatables.current.remove(i); // check if remove is necessary
-                };
+                props.ref = combineRefs(el => el ? animatables.current.add(i, el) : animatables.current.remove(i), (child as any).ref);
             }
 
             if (child.type === Morph) return cloneElement(child, props);

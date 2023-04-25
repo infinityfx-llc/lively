@@ -1,6 +1,5 @@
 import type { Link } from "../hooks/use-link";
 import Action from "./action";
-import Timeline from "./timeline";
 import type Track from "./track";
 import { createDynamicFrom, distributeAnimatableKeyframes, normalizeAnimatableKeyframes } from "./utils";
 

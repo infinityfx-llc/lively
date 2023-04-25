@@ -48,17 +48,6 @@ export default class Track {
         this.play();
     }
 
-    clear() {
-        this.active = this.active.filter(action => {
-            if (!action.composited) action.animation.cancel();
-
-            return action.composited;
-        });
-        this.queue = [];
-        this.playing = 0;
-        // also call correct here?? (manually set currentTime to desired frame to update)
-    }
-
     finish() {
         this.active.forEach(action => {
             action.onfinish = null;
@@ -86,13 +75,11 @@ export default class Track {
 
     transition(previous: Track | undefined, options: { duration?: number; easing?: Easing; }) {
         const clips = this.cache.difference(previous?.cache.data, options);
-        // this.clear(); // when self transition maybe finish() current anis as well to prevent cache updating with wrong styles
-        // this.cache.update(); // OR maybe dont explicitly update cache, but do at next()
-        // if (!previous) this.clear();
+        this.cache.update();
         previous?.finish();
         previous?.cache.update();
 
-        clips.forEach(clip => clip.play(this, {}));
+        if (previous || !this.active.length) clips.forEach(clip => clip.play(this, {})); // NEEDS MORE TESTING (transition doesn't play when other animation is playing currently)
     }
 
     apply(prop: string, val: any) {
@@ -121,7 +108,7 @@ export default class Track {
 
     computeBorderRadius(borderRadius = this.cache.computed.borderRadius) {
         if (this.deform) return borderRadius;
-        
+
         const [_, xString, yString] = borderRadius.match(/([\d\.]+)(?:.*\/.*?([\d\.]+))?/) || ['', '0', '0'];
         const xr = parseFloat(xString) * this.scaleDelta[0];
         const yr = yString ? parseFloat(yString) * this.scaleDelta[1] : xr;

@@ -5,7 +5,18 @@ import { combineRefs } from "../core/utils";
 
 const Morphs: { [key: string]: { [key: string]: AnimatableType | null } } = {};
 
-const Morph = forwardRef(({ children, shown, id, include, transition = {} }: { children: React.ReactNode; shown: boolean; id: string; include?: AnimatableKey[]; transition?: { duration?: number; easing?: Easing } }, forwardedRef: React.ForwardedRef<AnimatableType>) => {
+type MorphProps = {
+    children: React.ReactNode;
+    id: string;
+    shown: boolean;
+    include?: AnimatableKey[];
+    transition?: { duration?: number; easing?: Easing };
+    deform?: boolean;
+    disabled?: boolean;
+    paused?: boolean;
+};
+
+const Morph = forwardRef(({ children, shown, id, include, transition = {}, ...props }: MorphProps, forwardedRef: React.ForwardedRef<AnimatableType>) => {
     const ref = useRef<AnimatableType | null>(null);
     const uuid = useId();
     const [updated, setUpdated] = useState(false);
@@ -36,7 +47,7 @@ const Morph = forwardRef(({ children, shown, id, include, transition = {} }: { c
 
     if (Children.count(children) > 1 || !isValidElement(children)) return <>{children}</>;
 
-    return <Animatable cachable={include} id={id} ref={combineRefs(ref, forwardedRef)}>
+    return <Animatable {...props} cachable={include} id={id} ref={combineRefs(ref, forwardedRef)}>
         {cloneElement(children, { style: { ...children.props.style, opacity: shown ? 1 : 0 } } as any)}
     </Animatable>;
 });

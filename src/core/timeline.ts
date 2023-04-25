@@ -86,7 +86,7 @@ export default class Timeline {
     add(clip: Clip, { immediate = false, composite, reverse, delay = 0 }: { immediate?: boolean; composite?: boolean; reverse?: boolean; delay?: number }) {
 
         for (let i = 0; i < this.tracks.size; i++) {
-            if (immediate) this.tracks.values[i].clear();
+            if (immediate) this.tracks.values[i].finish();
 
             clip.play(this.tracks.values[i], {
                 delay: delay + Math.min(i, this.staggerLimit) * (this.stagger < 0 ? clip.duration / this.tracks.size : this.stagger),

@@ -1,19 +1,23 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import useTrigger, { Trigger } from "./use-trigger";
 
-export default function useVisible<T extends Element = any>(threshold = 0.5): [boolean, React.Ref<T>] {
+export default function useVisible<T extends Element = any>({ enter = true, exit = false, threshold = 0.5 } = {}): [Trigger, React.Ref<T>] {
     const ref = useRef<T>(null);
-    const [visible, setVisible] = useState(false);
+    const trigger = useTrigger();
 
     useEffect(() => {
         if (!ref.current) return;
 
         const observer = new IntersectionObserver(entries => {
-            setVisible(entries[0].isIntersecting);
+            if (entries[0].isIntersecting) {
+                if (enter) trigger();
+            } else
+            if (exit) trigger();
         }, { threshold });
         observer.observe(ref.current);
 
         return () => observer.disconnect();
     }, [ref]);
 
-    return [visible, ref];
+    return [trigger, ref];
 }

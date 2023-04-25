@@ -51,7 +51,12 @@ export default class Track {
     finish() {
         this.active.forEach(action => {
             action.onfinish = null;
-            action.animation.finish();
+            
+            try {
+                action.animation.finish();
+            } catch (ex) {
+                action.animation.cancel();
+            }
         });
         this.active = [];
         this.queue = [];

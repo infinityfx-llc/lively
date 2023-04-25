@@ -30,6 +30,8 @@ Feature complete, lightweight react animation library. Lively lets u create comp
 
 # Get started
 
+### Visit [infinityfx.dev/lively](https://infinityfx.dev/lively) for the complete and most up to date documentation for Lively.
+
 ## Installation
 
 ```sh
@@ -43,7 +45,7 @@ import { Animatable } from '@infinityfx/lively';
 
 ...
 
-<Animatable onMount initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+<Animatable initial={{ opacity: 0 }} animate={{ opacity: 1 }} triggers={[{ on: 'mount' }]}>
     <div class="my-class">
         Lorem ipsum enim amet consequat ut reprehenderit cupidatat et incididunt qui minim culpa. Dolor do laborum nulla pariatur tempor excepteur duis et ipsum.
     </div>
@@ -84,7 +86,7 @@ import { Animatable } from '@infinityfx/lively';
 ...
 
 <Animatable
-    onMount
+    triggers={[{ on: 'mount' }]}
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}>
     <div>...</div>
@@ -101,7 +103,7 @@ import { Scale, Fade } from '@infinityfx/lively/animations';
 
 ...
 
-<Animate onMount animations={[Scale.unique({ duration: 2 }), Fade]}>
+<Animate animations={[Scale.unique({ duration: 2 }), Fade]} triggers={[{ on: 'mount' }]}>
     <div class="my-class">
         ...
     </div>
@@ -119,7 +121,7 @@ import { LayoutGroup } from '@infinityfx/lively/layout';
 ...
 
 <LayoutGroup>
-    <Animatable key="mykey" onUnmount animate={{ opacity: 1 }} initial={{ opacity: 0 }}>
+    <Animatable key="mykey" unmount animate={{ opacity: 1 }} initial={{ opacity: 0 }}>
         <div class="my-class">
             Hello world!
         </div>
@@ -236,8 +238,7 @@ const [link, ref] = usePath();
 The `useAudio` hook can be used to create animations that react to the frequency response of playing audio.
 
 ```jsx
-const source = useRef();
-const link = useAudio(source.current, { bands: 8 });
+const [source, link] = useAudio({ bands: 8 });
 
 ...
 

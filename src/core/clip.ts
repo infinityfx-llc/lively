@@ -1,7 +1,7 @@
 import type { Link } from "../hooks/use-link";
 import Action from "./action";
 import type Track from "./track";
-import { createDynamicFrom, distributeAnimatableKeyframes, normalizeAnimatableKeyframes } from "./utils";
+import { createDynamicFrom, distributeAnimatableKeyframes, merge, normalizeAnimatableKeyframes } from "./utils";
 
 export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end';
 
@@ -76,7 +76,7 @@ export default class Clip {
         }
 
         this.keyframes = Object.values(keyframes);
-        this.initial = this.keyframes.length > 1 ? (this.keyframes[0] as any) : initial; // convert strokeLength (NOT HAPPENING!)
+        this.initial = merge({}, initial, this.keyframes.length > 1 ? (this.keyframes[0] as any) : {}); // convert strokeLength (NOT HAPPENING!)
         this.duration = duration;
         this.delay = delay;
         this.repeat = repeat;

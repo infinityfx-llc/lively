@@ -59,6 +59,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
 
     const cascadeOrder = order !== undefined ? order : 1;
     const mount = useTrigger();
+    const triggersState = useRef(new Array(triggers.length).fill(0));
     const timeline = useRef(new Timeline({
         stagger,
         staggerLimit,
@@ -124,13 +125,10 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
                 if (options.immediate === undefined) options.immediate = true;
                 on = mount;
             }
-            if (on.value !== on.previous) play(name || 'animate', options);
-        }
+            if (on.value !== triggersState.current[i]) play(name || 'animate', options);
 
-        triggers.forEach(({ on }) => { // TEMP!!!
-            if (on === 'mount') on = mount;
-            on.previous = on.value;
-        });
+            triggersState.current[i] = on.value;
+        }
     }, [triggers, mount]);
 
     useEffect(() => {

@@ -13,7 +13,7 @@ export default class Track {
     onupdate: (() => void) | null = null;
     onremove: (() => void) | null = null;
     cache: StyleCache;
-    scaleDelta: [number, number] = [1, 1];
+    scale: [number, number] = [1, 1];
 
     constructor(element: HTMLElement, deform: boolean, cachable?: AnimatableKey[]) {
         this.element = element;
@@ -114,14 +114,17 @@ export default class Track {
     computeBorderRadius(borderRadius = this.cache.computed.borderRadius) {
         if (this.deform) return borderRadius;
 
-        const [_, xString, yString] = borderRadius.match(/([\d\.]+)(?:.*\/.*?([\d\.]+))?/) || ['', '0', '0'];
-        const xr = parseFloat(xString) * this.scaleDelta[0];
-        const yr = yString ? parseFloat(yString) * this.scaleDelta[1] : xr;
+        const arr = borderRadius.split(/\s*\/\s*/);
+        if (arr.length < 2) arr[1] = arr[0];
 
-        this.scaleDelta = this.decomposeScale();
-        // not working with percentages or individual corner based styles
+        const prev = this.scale;
+        this.scale = this.decomposeScale();
 
-        return `${xr / this.scaleDelta[0]}px / ${yr / this.scaleDelta[1]}px`;
+        return arr.map((axis, i) => {
+            return axis.split(' ').map(val => {
+                return parseFloat(val) * prev[i] / this.scale[i] + (val.match(/[^\d\.]+/)?.[0] || 'px');
+            }).join(' ');
+        }).join('/');
     }
 
     correct() {

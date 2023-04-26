@@ -19,7 +19,9 @@ export default class Action {
     }
 
     finish() {
-        if (this.track.element.isConnected) this.animation.commitStyles();
+        try {
+            this.animation.commitStyles();
+        } catch (ex) {}
         this.animation.cancel();
 
         this.onfinish?.();

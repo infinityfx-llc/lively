@@ -1,7 +1,7 @@
 import { useRef, useCallback } from 'react';
 
-export default function usePath(): [(transform: (value: [number, number], index: number) => any) => (progress: number, index: number) => any, React.Ref<SVGPathElement>] {
-    const ref = useRef<SVGPathElement>(null);
+export default function usePath<T extends SVGGeometryElement = any>(): [(transform: (value: [number, number], index: number) => any) => (progress: number, index: number) => any, React.Ref<T>] {
+    const ref = useRef<T>(null);
 
     const link = useCallback((transform: (value: [number, number], index: number) => any) => {
         return (progress: number, index: number) => {

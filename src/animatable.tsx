@@ -3,6 +3,7 @@ import Clip, { AnimatableInitials, AnimatableKey, ClipProperties } from "./core/
 import Timeline from "./core/timeline";
 import { attachEvent, combineRefs, detachEvent, merge } from "./core/utils";
 import useTrigger, { Trigger } from "./hooks/use-trigger";
+// import { Morph } from "./layout";
 
 type PlayOptions = { composite?: boolean; immediate?: boolean; reverse?: boolean; delay?: number };
 
@@ -30,6 +31,7 @@ export type AnimatableProps = {
     disabled?: boolean;
     paused?: boolean;
     id?: string;
+    // shown?: boolean;
 };
 
 // TODO:
@@ -53,8 +55,9 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     cachable,
     unmount = false,
     disabled = false,
-    paused = false,
-    id = ''
+    paused,
+    id = '',
+    // shown
 }, ref) => {
 
     const cascadeOrder = order !== undefined ? order : 1;
@@ -142,10 +145,13 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
         return () => detachEvent('resize', resize);
     }, []);
 
+    let index = 0;
+    
     function render(children: React.ReactNode, isDirectChild = true, isParent = true): React.ReactNode {
         return Children.map(children, child => {
             if (!isValidElement(child)) return child;
             const isAnimatable = child.type === Animatable;
+            // const isAnimatable = child.type === Animatable || child.type === Morph;
 
             const props: {
                 order?: number;
@@ -154,18 +160,19 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
                 style?: React.CSSProperties;
                 ref?: React.Ref<any>;
                 id?: string;
+                // shown?: boolean;
             } = {};
 
             if (isAnimatable) {
                 if (!child.props.noInherit) {
-                    const i = nodes.current.length++;
+                    const i = index++;
 
                     props.order = child.props.order !== undefined ? child.props.order : cascadeOrder + 1;
-                    props.paused = paused;
-                    props.ref = el => nodes.current[i] = el;
+                    props.ref = combineRefs(el => nodes.current[i] = el, (child as any).ref);
                     props.id = id + i;
 
-                    merge(props, child.props, { animate, initial, animations, stagger, staggerLimit, deform });
+                    merge(props, child.props, { animate, initial, animations, stagger, staggerLimit, deform, paused });
+                    // merge(props, child.props, { animate, initial, animations, stagger, staggerLimit, deform, paused, shown });
                 }
             } else
                 if (isDirectChild) {
@@ -174,7 +181,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
                     props.style = merge({ backfaceVisibility: 'hidden', willChange: 'transform' }, clipMap.animate.initial, child.props.style, { strokeDasharray: 1 });
                 }
 
-            return cloneElement(child, props, render(child.props.children, false, !isParent ? false : !isAnimatable));
+            return cloneElement(child, props, render(child.props.children, false, isParent && !isAnimatable));
         });
     }
 

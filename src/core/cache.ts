@@ -23,7 +23,7 @@ export class StyleCache {
 
     read() {
         const { x, y, width, height } = this.element.getBoundingClientRect();
-        const data: CacheData = { _x: x + width / 2, _y: y + height / 2, _w: width, _h: height };
+        const data: CacheData = { _x: x + width / 2 - window.scrollX, _y: y + height / 2 + window.scrollY, _w: width, _h: height };
 
         for (const prop of this.include) data[prop] = this.computed[prop as never];
 

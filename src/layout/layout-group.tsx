@@ -3,7 +3,10 @@ import Animatable, { AnimatableType } from "../animatable";
 import { IndexedList, combineRefs } from "../core/utils";
 import type { Easing } from "../core/clip";
 import Morph from "./morph";
+import Animate from "../animate";
 import Typable from "./typable";
+
+const isAnimatable = (child: React.ReactElement) => child.type === Animatable || child.type === Animate || child.type === Typable || child.type === Morph;
 
 export default function LayoutGroup({ children, adaptive = true, transition = {} }: { children: React.ReactNode; adaptive?: boolean; transition?: { duration?: number; easing?: Easing } }) {
     const animatables = useRef<IndexedList<AnimatableType>>(new IndexedList());
@@ -14,7 +17,7 @@ export default function LayoutGroup({ children, adaptive = true, transition = {}
             if (!isValidElement(child)) return child;
 
             const props: { id?: string; ref?: React.Ref<any>; } = {};
-            if ((child.type === Animatable || child.type === Morph || child.type === Typable) && !(child.props.order > 1)) {
+            if (isAnimatable(child) && !(child.props.order > 1)) {
                 const i = animatableIndex++;
 
                 props.id = child.props.id || child.key;
@@ -29,9 +32,10 @@ export default function LayoutGroup({ children, adaptive = true, transition = {}
 
     const snapshot = useCallback((children: React.ReactNode, map: { [key: string]: boolean } = {}) => {
         Children.forEach(children, child => {
-            if (!isValidElement(child) || child.type !== Animatable || child.props.id === null) return;
+            if (!isValidElement(child)) return;
 
-            map[child.props.id] = true;
+            const key = child.key || child.props.id;
+            if (key !== null && isAnimatable(child)) map[key] = true;
 
             snapshot(child.props.children, map);
         });

@@ -35,7 +35,7 @@ export type AnimatableProps = {
 };
 
 // TODO:
-// - investigate layoutgroup updating (unmount animation plays randomly)
+// - useScroll hook choose element/direction
 // - text animation testing (hard state transition)
 // - maybe allow for animatable inside morph??
 // - support easing array for individual keyframes

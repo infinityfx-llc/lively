@@ -89,7 +89,7 @@ export default class Timeline {
             if (immediate) this.tracks.values[i].finish();
 
             clip.play(this.tracks.values[i], {
-                delay: delay + Math.min(i, this.staggerLimit) * (this.stagger < 0 ? clip.duration / this.tracks.size : this.stagger),
+                delay: delay + Math.min(i, this.staggerLimit) * (this.stagger < 0 ? clip.duration / this.tracks.size : 1) * Math.abs(this.stagger),
                 composite,
                 reverse
             });

@@ -76,7 +76,9 @@ export default class Clip {
         }
 
         this.keyframes = Object.values(keyframes);
-        this.initial = merge({}, initial, this.keyframes.length > 1 ? (this.keyframes[0] as any) : {}); // convert strokeLength (NOT HAPPENING!)
+        this.initial = merge({}, initial, this.keyframes.length > 1 ? (this.keyframes[0] as any) : {});
+        // this.initial.strokeDashoffset = lengthToOffset((this.initial as any).strokeLength);
+        delete this.initial.offset;
         this.duration = duration;
         this.delay = delay;
         this.repeat = repeat;

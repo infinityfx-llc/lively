@@ -1,7 +1,7 @@
 import { Children, cloneElement, forwardRef, isValidElement, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import Clip, { AnimatableInitials, AnimatableKey, ClipProperties } from "./core/clip";
 import Timeline from "./core/timeline";
-import { attachEvent, combineRefs, detachEvent, merge } from "./core/utils";
+import { combineRefs, merge } from "./core/utils";
 import useTrigger, { Trigger } from "./hooks/use-trigger";
 // import { Morph } from "./layout";
 
@@ -138,11 +138,11 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
         timeline.current.step();
         timeline.current.connect(animate);
         const resize = () => timeline.current.cache(); // maybe dont do this mid transition (also transition on resize within layoutgroup)
-        attachEvent('resize', resize);
+        window.addEventListener('resize', resize);
 
         document.fonts.ready.then(mount);
 
-        return () => detachEvent('resize', resize);
+        return () => window.removeEventListener('resize', resize);
     }, []);
 
     let index = 0;

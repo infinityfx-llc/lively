@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import useLink from "./use-link";
-import { attachEvent, detachEvent } from "../core/utils";
 
 export default function useScroll() {
     const [link, update] = useLink(0);
@@ -9,8 +8,8 @@ export default function useScroll() {
         const scroll = () => update(window.scrollY);
         scroll();
 
-        attachEvent('scroll', scroll);
-        return () => detachEvent('scroll', scroll);
+        window.addEventListener('scroll', scroll);
+        return () => window.removeEventListener('scroll', scroll);
     }, []);
 
     return link;

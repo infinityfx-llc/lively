@@ -4,6 +4,7 @@ import type Track from "./track";
 export default class Action {
 
     composited: boolean;
+    commit: boolean = true;
     track: Track;
     animation: Animation;
     dynamic: DynamicProperties;
@@ -20,7 +21,7 @@ export default class Action {
 
     finish() {
         try {
-            this.animation.commitStyles();
+            if (this.commit) this.animation.commitStyles();
         } catch (ex) {}
         this.animation.cancel();
 

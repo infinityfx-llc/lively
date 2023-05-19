@@ -84,7 +84,7 @@ export default class Track {
         previous?.finish();
         previous?.cache.update();
 
-        if (previous || !this.active.length) clips.forEach(clip => clip.play(this, {})); // NEEDS MORE TESTING (transition doesn't play when other animation is playing currently)
+        if (previous || !this.active.length) clips.forEach(clip => clip.play(this, { commit: false })); // NEEDS MORE TESTING (transition doesn't play when other animation is playing currently)
     }
 
     apply(prop: string, val: any) {

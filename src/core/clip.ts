@@ -105,7 +105,7 @@ export default class Clip {
         return clip;
     }
 
-    play(track: Track, { composite = this.composite, reverse = this.reverse, delay }: { composite?: boolean; reverse?: boolean; delay?: number; }) {
+    play(track: Track, { composite = this.composite, reverse = this.reverse, commit = true, delay }: { composite?: boolean; reverse?: boolean; delay?: number; commit?: boolean; }) {
         if (this.isEmpty) return;
 
         const action = new Action(track, this.keyframes, {
@@ -119,6 +119,8 @@ export default class Clip {
             fill: 'both',
             easing: this.easing
         }, this.dynamic);
+        
+        if (!commit) action.commit = false;
 
         track.push(action);
     }

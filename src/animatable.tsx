@@ -18,7 +18,7 @@ export type AnimatableType = {
 export type AnimatableProps = {
     children: React.ReactNode;
     animations?: { [key: string]: ClipProperties | Clip };
-    triggers?: ({ name?: string; on: Trigger | 'mount' } & PlayOptions)[];
+    triggers?: ({ name?: string; on: Trigger | boolean | 'mount' } & PlayOptions)[];
     animate?: ClipProperties | Clip;
     initial?: AnimatableInitials;
     stagger?: number;
@@ -122,15 +122,17 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
 
     useEffect(() => {
         for (let i = 0; i < triggers.length; i++) {
-            let { name, on, ...options }: { name?: string, on: Trigger | 'mount' } & PlayOptions = triggers[i];
+            let { name, on, ...options } = triggers[i];
 
             if (on === 'mount') {
                 if (options.immediate === undefined) options.immediate = true;
                 on = mount;
             }
-            if (on.value !== triggersState.current[i]) play(name || 'animate', options);
 
-            triggersState.current[i] = on.value;
+            const value = typeof on === 'boolean' ? on : on.value;
+            if (value !== triggersState.current[i] && value) play(name || 'animate', options);
+
+            triggersState.current[i] = value;
         }
     }, [triggers, mount]);
 
@@ -151,7 +153,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
         return Children.map(children, child => {
             if (!isValidElement(child)) return child;
             const isAnimatable = child.type === Animatable;
-            // const isAnimatable = child.type === Animatable || child.type === Morph;
+            // const isAnimatable = child.type === Animatable || child.type === Morph; // Typable
 
             const props: {
                 order?: number;

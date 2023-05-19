@@ -80,6 +80,8 @@ export default class Timeline {
             this.tracks.add((element as any).TRACK_INDEX, track);
 
             track.onremove = () => this.tracks.remove((element as any).TRACK_INDEX);
+
+            // on child remount override initial animation styling here
         }
     }
 

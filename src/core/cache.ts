@@ -31,7 +31,7 @@ export class StyleCache {
             data._x += parent.offsetLeft;
             data._y += parent.offsetTop;
 
-            parent = parent.parentElement;
+            parent = parent.offsetParent as HTMLElement;
         }
 
         for (const prop of this.include) data[prop] = this.computed[prop as never];

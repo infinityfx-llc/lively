@@ -62,7 +62,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
 
     const cascadeOrder = order !== undefined ? order : 1;
     const mount = useTrigger();
-    const triggersState = useRef(new Array(triggers.length).fill(0));
+    const triggersState = useRef<(number | boolean)[]>([]);
     const timeline = useRef(new Timeline({
         stagger,
         staggerLimit,
@@ -130,7 +130,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
             }
 
             const value = typeof on === 'boolean' ? on : on.value;
-            if (value !== triggersState.current[i] && value) play(name || 'animate', options);
+            if (mount.value > 0 && value && value !== triggersState.current[i]) play(name || 'animate', options);
 
             triggersState.current[i] = value;
         }

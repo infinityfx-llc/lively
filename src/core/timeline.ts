@@ -14,12 +14,15 @@ export default class Timeline {
     tracks: IndexedList<Track> = new IndexedList();
     frame: number = 0;
     connected: boolean = false;
+    mounted: boolean = false;
+    mountClips: Clip[];
 
-    constructor({ stagger = 0.1, staggerLimit = 10, deform = true, cachable }: { stagger?: number; staggerLimit?: number; deform?: boolean; cachable?: AnimatableKey[] }) {
+    constructor({ stagger = 0.1, staggerLimit = 10, deform = true, cachable, mountClips }: { stagger?: number; staggerLimit?: number; deform?: boolean; cachable?: AnimatableKey[]; mountClips: Clip[]; }) {
         this.stagger = stagger;
         this.staggerLimit = staggerLimit - 1;
         this.deform = deform;
         this.cachable = cachable;
+        this.mountClips = mountClips;
     }
 
     step() {
@@ -79,13 +82,11 @@ export default class Timeline {
             const track = new Track(element, this.deform, this.cachable);
             this.tracks.add((element as any).TRACK_INDEX, track);
 
-            track.onremove = () => this.tracks.remove((element as any).TRACK_INDEX);
-
-            // on child remount override initial animation styling here
+            if (this.mounted) this.mountClips.forEach(clip => clip.play(track, {}));
         }
     }
 
-    add(clip: Clip, { immediate = false, composite, reverse, delay = 0 }: { immediate?: boolean; composite?: boolean; reverse?: boolean; delay?: number }) {
+    add(clip: Clip, { immediate = false, composite, reverse, delay = 0, commit }: { immediate?: boolean; composite?: boolean; reverse?: boolean; delay?: number; commit?: boolean; }) {
 
         for (let i = 0; i < this.tracks.size; i++) {
             if (immediate) this.tracks.values[i].finish();
@@ -93,7 +94,8 @@ export default class Timeline {
             clip.play(this.tracks.values[i], {
                 delay: delay + Math.min(i, this.staggerLimit) * (this.stagger < 0 ? clip.duration / this.tracks.size : 1) * Math.abs(this.stagger),
                 composite,
-                reverse
+                reverse,
+                commit
             });
         }
     }

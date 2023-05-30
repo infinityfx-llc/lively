@@ -1,6 +1,6 @@
 import { Children, cloneElement, forwardRef, isValidElement, useEffect, useId, useRef, useState } from "react";
 import Animatable, { AnimatableType } from "../animatable";
-import { AnimatableKey, Easing } from "../core/clip";
+import Clip, { AnimatableKey, Easing } from "../core/clip";
 import { combineRefs } from "../core/utils";
 
 const Morphs: { [key: string]: { [key: string]: AnimatableType | null } } = {};
@@ -31,7 +31,16 @@ const Morph = forwardRef(({ children, shown, id, include, transition = {}, ...pr
             if (prev = Morphs[id][key]) break;
         }
 
-        if (prev && shown) ref.current.timeline.transition(prev.timeline, transition);
+        if (prev && shown) {
+            ref.current.timeline.transition(prev.timeline, transition);
+        } else
+            if (shown) {
+                ref.current.timeline.add(new Clip({ opacity: [0, 1], ...transition }), { commit: false });  
+            }
+
+        // if (Morphs[id][uuid] && !shown) {
+        //     ref.current?.timeline.add(new Clip({ opacity: [1, 0], visibility: ['visible', 'hidden'], ...transition }), { commit: false });
+        // }
 
         setUpdated(!updated);
     }, [shown]);
@@ -48,7 +57,7 @@ const Morph = forwardRef(({ children, shown, id, include, transition = {}, ...pr
     if (Children.count(children) > 1 || !isValidElement(children)) return <>{children}</>;
 
     return <Animatable {...props} cachable={include} id={id} ref={combineRefs(ref, forwardedRef)}>
-        {cloneElement(children, { style: { ...children.props.style, opacity: shown ? 1 : 0 } } as any)}
+        {cloneElement(children, { style: { ...children.props.style, visibility: shown ? 'visible' : 'hidden' } } as any)}
     </Animatable>;
 });
 Morph.displayName = 'Morph';

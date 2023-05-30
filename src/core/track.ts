@@ -11,7 +11,6 @@ export default class Track {
     active: Action[] = [];
     queue: Action[] = [];
     onupdate: (() => void) | null = null;
-    onremove: (() => void) | null = null;
     cache: StyleCache;
     scale: [number, number] = [1, 1];
 
@@ -22,7 +21,6 @@ export default class Track {
     }
 
     push(action: Action) {
-        if (!this.element.isConnected) return this.onremove?.();
         action.onfinish = this.next.bind(this);
 
         if (this.playing && !action.composited) {
@@ -37,7 +35,6 @@ export default class Track {
     }
 
     next() {
-        if (!this.element.isConnected) return this.onremove?.();
         this.onupdate?.();
         this.cache.update();
 

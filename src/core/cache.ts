@@ -23,9 +23,12 @@ export class StyleCache {
 
     read() {
         const data: CacheData = { _x: 0, _y: 0, _w: this.element.offsetWidth, _h: this.element.offsetHeight };
+        // const offset = getComputedStyle(this.element).transform.match(/(-?\d+),\s(-?\d+)\)/)?.slice(1, 3).map(val => parseInt(val)) || [0, 0];
+        // data._x += data._w / 2 + offset[0];
+        // data._y += data._h / 2 + offset[1];
         data._x += data._w / 2;
         data._y += data._h / 2;
-
+        
         let parent: HTMLElement | null = this.element;
         while (parent) {
             data._x += parent.offsetLeft;

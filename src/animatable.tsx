@@ -63,12 +63,8 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     const cascadeOrder = order !== undefined ? order : 1;
     const mount = useTrigger();
     const triggersState = useRef<(number | boolean)[]>([]);
-    const timeline = useRef(new Timeline({
-        stagger,
-        staggerLimit,
-        deform,
-        cachable
-    }));
+    const nodes = useRef<(AnimatableType | null)[]>([]);
+
     const [clipMap] = useState(() => {
         const map: { [key: string]: Clip } = { animate: Clip.from(animate, initial) };
 
@@ -78,7 +74,18 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
         
         return map;
     });
-    const nodes = useRef<(AnimatableType | null)[]>([]);
+    
+    const timeline = useRef(new Timeline({
+        stagger,
+        staggerLimit,
+        deform,
+        cachable,
+        mountClips: triggers.reduce<Clip[]>((clips, { name, on }) => {
+            if (on === 'mount') clips.push(clipMap[name || 'animate']);
+
+            return clips;
+        }, [])
+    }));
 
     const play = useCallback((animation: string, options: PlayOptions = {}, layer = 1) => {
         const clip = clipMap[animation];
@@ -142,10 +149,19 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
         const resize = () => timeline.current.cache(); // maybe dont do this mid transition (also transition on resize within layoutgroup)
         window.addEventListener('resize', resize);
 
-        document.fonts.ready.then(mount);
+        document.fonts.ready.then(() => {
+            mount();
+            timeline.current.mounted = true;
+        });
 
         return () => window.removeEventListener('resize', resize);
     }, []);
+
+    useEffect(() => {
+        timeline.current.tracks.forEach(track => {
+            if (!track.element.isConnected) timeline.current.tracks.remove((track.element as any).TRACK_INDEX);
+        });
+    }, [children]);
 
     let index = 0;
     

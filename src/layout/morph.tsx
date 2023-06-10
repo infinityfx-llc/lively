@@ -19,7 +19,7 @@ type MorphProps = {
 const Morph = forwardRef(({ children, shown, id, include, transition = {}, ...props }: MorphProps, forwardedRef: React.ForwardedRef<AnimatableType>) => {
     const ref = useRef<AnimatableType | null>(null);
     const uuid = useId();
-    const [updated, setUpdated] = useState(false);
+    const [updated, setUpdated] = useState<{ hidden: boolean; }>({ hidden: false });
 
     useEffect(() => {
         if (!ref.current || !ref.current.mounted) return;
@@ -35,18 +35,22 @@ const Morph = forwardRef(({ children, shown, id, include, transition = {}, ...pr
             ref.current.timeline.transition(prev.timeline, transition);
         } else
             if (shown) {
-                ref.current.timeline.add(new Clip({ opacity: [0, 1], ...transition }), { commit: false });  
+                ref.current.timeline.add(new Clip({ opacity: [0, 1], ...transition }), { commit: false });
             }
 
-        // if (Morphs[id][uuid] && !shown) {
-        //     ref.current?.timeline.add(new Clip({ opacity: [1, 0], visibility: ['visible', 'hidden'], ...transition }), { commit: false });
-        // }
+        (Morphs[id].__shown as any) = Morphs[id].__shown || shown;
 
-        setUpdated(!updated);
+        setUpdated({ hidden: !!Morphs[id][uuid] && !shown });
     }, [shown]);
 
     useEffect(() => {
         if (!(id in Morphs)) Morphs[id] = {};
+
+        if (updated.hidden && (Morphs[id].__shown as any) === false) {
+            ref.current?.timeline.add(new Clip({ opacity: [1, 0], visibility: ['visible', 'hidden'], ...transition }), { commit: false });
+        }
+
+        if (Morphs[id].__shown) Morphs[id].__shown = null;
         Morphs[id][uuid] = shown ? ref.current : null;
 
         return () => {
@@ -60,6 +64,7 @@ const Morph = forwardRef(({ children, shown, id, include, transition = {}, ...pr
         {cloneElement(children, { style: { ...children.props.style, visibility: shown ? 'visible' : 'hidden' } } as any)}
     </Animatable>;
 });
+
 Morph.displayName = 'Morph';
 
 export default Morph;

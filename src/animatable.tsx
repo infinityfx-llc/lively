@@ -168,8 +168,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     function render(children: React.ReactNode, isDirectChild = true, isParent = true): React.ReactNode {
         return Children.map(children, child => {
             if (!isValidElement(child)) return child;
-            const isAnimatable = child.type === Animatable;
-            // const isAnimatable = child.type === Animatable || child.type === Morph; // Typable
+            const isAnimatable = typeof child.type === 'object' && 'isLively' in child.type;
 
             const props: {
                 order?: number;
@@ -189,8 +188,8 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
                     props.ref = combineRefs(el => nodes.current[i] = el, (child as any).ref);
                     props.id = id + i;
 
-                    merge(props, child.props, { animate, initial, animations, stagger, staggerLimit, deform, paused });
-                    // merge(props, child.props, { animate, initial, animations, stagger, staggerLimit, deform, paused, shown });
+                    merge(props, child.props, { animate, initial, animations, stagger, staggerLimit, deform, paused, triggers });
+                    // merge(props, child.props, { animate, initial, animations, stagger, staggerLimit, deform, paused, triggers, shown });
                 }
             } else
                 if (isDirectChild) {
@@ -206,5 +205,6 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
     return <>{render(children)}</>;
 });
 Animatable.displayName = 'Animatable';
+(Animatable as any).isLively = true;
 
 export default Animatable;

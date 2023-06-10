@@ -14,4 +14,7 @@ const Typable = forwardRef(({ children, stagger = 1, staggerLimit = Number.MAX_V
     </Animatable>;
 });
 
+Typable.displayName = 'Typable';
+(Typable as any).isLively = true;
+
 export default Typable;

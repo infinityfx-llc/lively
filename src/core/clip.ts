@@ -105,12 +105,12 @@ export default class Clip {
         return clip;
     }
 
-    play(track: Track, { composite = this.composite, reverse = this.reverse, commit = true, delay }: { composite?: boolean; reverse?: boolean; delay?: number; commit?: boolean; }) {
+    play(track: Track, { composite = this.composite, reverse = this.reverse, commit = true, delay = 0 }: { composite?: boolean; reverse?: boolean; delay?: number; commit?: boolean; }) {
         if (this.isEmpty) return;
 
         const action = new Action(track, this.keyframes, {
             duration: this.duration * 1000,
-            delay: (delay || this.delay) * 1000,
+            delay: (delay + this.delay) * 1000,
             iterations: this.repeat,
             direction: this.alternate ?
                 (reverse ? 'alternate-reverse' : 'alternate') :

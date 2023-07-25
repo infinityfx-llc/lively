@@ -137,10 +137,12 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>(({
             }
 
             const value = typeof on === 'boolean' ? on : on.value;
-            if (mount.value > 0 && value && value !== triggersState.current[i]) play(name || 'animate', options);
+            if (triggersState.current[0] && value && value !== triggersState.current[i + 1]) play(name || 'animate', options);
 
-            triggersState.current[i] = value;
+            triggersState.current[i + 1] = value;
         }
+
+        triggersState.current[0] = 1;
     }, [triggers, mount]);
 
     useEffect(() => {

@@ -10,7 +10,8 @@ export default function useVisible<T extends Element = any>({ enter = true, exit
         if (!ref.current) return;
 
         const { x, y, width, height } = ref.current.getBoundingClientRect();
-        const intersecting = window.innerHeight > y + height * threshold &&
+        const intersecting = (x + y + width + height) > 0 &&
+            window.innerHeight > y + height * threshold &&
             y + height * (1 - threshold) >= 0 &&
             window.innerWidth > x + width * threshold &&
             x + width * (1 - threshold) >= 0;
@@ -31,7 +32,7 @@ export default function useVisible<T extends Element = any>({ enter = true, exit
             window.removeEventListener('scroll', update);
             window.removeEventListener('resize', update);
         }
-    }, []);
+    }, [trigger]);
 
     return [trigger, ref];
 }

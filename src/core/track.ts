@@ -48,7 +48,7 @@ export default class Track {
     finish() {
         this.active.forEach(action => {
             action.onfinish = null;
-            
+
             try {
                 action.animation.finish();
             } catch (ex) {
@@ -84,7 +84,7 @@ export default class Track {
         if (previous || !this.active.length) clips.forEach(clip => clip.play(this, { commit: false })); // NEEDS MORE TESTING (transition doesn't play when other animation is playing currently)
     }
 
-    apply(prop: string, val: any) {
+    apply(prop: string, val: any) { // update cache after this?
         this.set(prop, val);
         this.correct();
     }
@@ -119,7 +119,7 @@ export default class Track {
 
         return arr.map((axis, i) => {
             return axis.split(' ').map(val => {
-                return parseFloat(val) * prev[i] / this.scale[i] + (val.match(/[^\d\.]+/)?.[0] || 'px');
+                return parseFloat(val) * prev[i] / this.scale[i] + (val.match(/[^\d\.]+$/)?.[0] || 'px');
             }).join(' ');
         }).join('/');
     }

@@ -1,11 +1,13 @@
-import { useCallback, useRef } from "react";
+import { useEffect, useRef } from "react";
 import useLink, { Link } from "./use-link";
 
 let audioContext: AudioContext;
 
-export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency = 2000, smoothing = 0.7 } = {}): [(source: HTMLAudioElement) => void, Link<number[]>] {
+export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency = 2000, smoothing = 0.7 } = {}): [React.MutableRefObject<HTMLAudioElement | null>, Link<number[]>] {
     const buffer = useRef(new Float32Array(1024));
     const analyzer = useRef<AnalyserNode>();
+    const source = useRef<MediaElementAudioSourceNode>();
+    const ref = useRef<HTMLAudioElement | null>(null);
     const [link, setLink] = useLink<number[]>(new Array(8).fill(0));
 
     let frame: number;
@@ -42,21 +44,26 @@ export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency =
         setLink(new Array(bands).fill(0), 0.3);
     }
 
-    const ref = useCallback((source: HTMLAudioElement | null) => {
-        if (!source) return;
+    useEffect(() => {
+        const audio = ref.current;
+
+        if (!audio) return;
         if (!audioContext) audioContext = new AudioContext();
+        if (!analyzer.current) analyzer.current = new AnalyserNode(audioContext, { fftSize: 2048, smoothingTimeConstant: smoothing });
+        if (!source.current) source.current = audioContext.createMediaElementSource(audio);
 
-        if (!analyzer.current) {
-            analyzer.current = new AnalyserNode(audioContext, { fftSize: 2048, smoothingTimeConstant: smoothing });
-            analyzer.current.connect(audioContext.destination);
-        }
+        analyzer.current.connect(audioContext.destination);
+        source.current.connect(analyzer.current);
+        audio.addEventListener('play', play);
+        audio.addEventListener('pause', suspend);
+        audio.addEventListener('ended', suspend);
 
-        if (!('mediaSource' in source)) {
-            (source as any).mediaSource = audioContext.createMediaElementSource(source);
-            (source as any).mediaSource.connect(analyzer.current);
-            source.addEventListener('play', play);
-            source.addEventListener('pause', suspend);
-            source.addEventListener('ended', suspend);
+        return () => {
+            analyzer.current?.disconnect();
+            source.current?.disconnect();
+            audio.removeEventListener('play', play);
+            audio.removeEventListener('pause', suspend);
+            audio.removeEventListener('ended', suspend);
         }
     }, []);
 

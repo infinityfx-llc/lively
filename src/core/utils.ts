@@ -1,6 +1,12 @@
 import type { AnimatableKeyframe, Easing } from "./clip";
 
-export function merge(...objects: { [key: string]: any }[]) {
+// type SharedKeys<T, P> = keyof Omit<T | P, keyof (Omit<T, keyof P> & Omit<P, keyof T>)>;
+
+// type MergeObjects<T, P> = T & P & { [K in SharedKeys<T, P>]: Merged<T[K], P[K]> };
+
+// type Merged<T, P> = [T, P] extends [{ [key: string]: unknown }, { [key: string]: unknown }] ? MergeObjects<T, P> : T & P;
+
+export function merge(...objects: { [key: string]: any; }[]) {
     for (let i = 1; i < objects.length; i++) {
         for (const key in objects[i]) {
             if (key in objects[0] && objects[0][key] !== undefined) continue;

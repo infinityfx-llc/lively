@@ -6,6 +6,8 @@ type LinkArgument<T> = number | ((value: T, index: number) => any);
 
 export type Link<T> = ((transform?: LinkArgument<T>) => any | Link<T>) | (() => T) & { connect: (port: Port) => void };
 
+// look into using new implementation from ifx-store
+
 export default function useLink<T = any>(initial: T): [Link<T>, (value: T, transition?: number) => void] {
     const internal = useRef<T>(initial);
     const ports = useRef<Port[]>([]);

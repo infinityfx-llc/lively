@@ -1,5 +1,5 @@
 import resolve from '@rollup/plugin-node-resolve';
-import { terser } from 'rollup-plugin-terser';
+import terser from '@rollup/plugin-terser';
 import del from 'rollup-plugin-delete';
 import typescript from '@rollup/plugin-typescript';
 import banner2 from 'rollup-plugin-banner2';
@@ -19,7 +19,7 @@ if (process.env.NODE_ENV === 'production') {
 
 export default {
     input: ['src/index.ts', 'src/animations.ts', 'src/hooks.ts', 'src/layout.ts'],
-    external: ['react', 'react-dom', 'react/jsx-runtime'],
+    external: ['react', 'react-dom', /react\/jsx-runtime/],
     output: {
         dir: 'dist',
         format: 'es',

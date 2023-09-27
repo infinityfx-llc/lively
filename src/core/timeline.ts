@@ -74,11 +74,11 @@ export default class Timeline {
         }
     }
 
-    insert(element: HTMLElement | null) {
-        if (!element) return;
+    insert(element: any) {
+        if (!(element instanceof HTMLElement)) return;
 
         if (!('TRACK_INDEX' in element)) (element as any).TRACK_INDEX = this.index++;
-        if (!this.tracks.has((element as any).TRACK_INDEX)) {
+        if (!this.tracks.has((element as any).TRACK_INDEX)) { // SEE IF THIS CAN BE OPTIMIZED (maybe no need for IndexedList)
             const track = new Track(element, this.deform, this.cachable);
             this.tracks.add((element as any).TRACK_INDEX, track);
 

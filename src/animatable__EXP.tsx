@@ -9,9 +9,9 @@ type PlayOptions = { composite?: boolean; immediate?: boolean; reverse?: boolean
 export type AnimatableType = {
     play: (animation: string, options?: PlayOptions, layer?: number) => number;
     timeline: Timeline;
-    // mounted: boolean;
-    // unmount: boolean | string;
-    // id: string;
+    children: React.MutableRefObject<AnimatableType | null>[];
+    inherit: boolean | undefined;
+    unmount: boolean | string;
 };
 
 type SharedProps = {
@@ -32,9 +32,7 @@ export type AnimatableProps = {
     order?: number;
     inherit?: boolean;
     cachable?: AnimatableKey[];
-    // unmount?: boolean | string;
-    // id?: string;
-    // shown?: boolean;
+    unmount?: boolean | string;
 } & SharedProps;
 
 export const AnimatableContext = createContext<null | ({
@@ -59,7 +57,8 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         staggerLimit,
         deform,
         cachable,
-        triggers = []
+        triggers = [],
+        unmount
     } = props.inherit && parent ? merge({}, props, parent) : props;
 
     const index = order !== undefined ? order : (props.inherit && parent?.index || 0) + 1;
@@ -99,7 +98,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
             reverse = options.reverse !== undefined ? options.reverse : clip.reverse;
 
         for (const child of children.current) {
-            if (!child.current) continue;
+            if (!child.current?.inherit) continue;
 
             cascadeDelay = Math.max(
                 child.current.play(animation, merge({
@@ -117,7 +116,10 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
 
     useImperativeHandle(combineRefs(self, ref), () => ({
         play,
-        timeline: timeline.current
+        timeline: timeline.current,
+        children: children.current,
+        inherit: props.inherit,
+        unmount
     }), []);
 
     useEffect(() => {
@@ -148,7 +150,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         const resize = () => timeline.current.cache(); // maybe dont do this mid transition (also transition on resize within layoutgroup)
         window.addEventListener('resize', resize);
 
-        if (parent && props.inherit && parent.children.indexOf(self) < 0) parent.children.push(self);
+        if (parent && parent.children.indexOf(self) < 0) parent.children.push(self);
 
         document.fonts.ready.then(() => {
             mount();
@@ -157,6 +159,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
 
         return () => {
             window.removeEventListener('resize', resize);
+            // timeline.current.mounted = false;
 
             if (parent) parent.children.splice(parent.children.indexOf(self), 1);
         }

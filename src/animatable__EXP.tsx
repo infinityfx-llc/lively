@@ -12,6 +12,7 @@ export type AnimatableType = {
     children: React.MutableRefObject<AnimatableType | null>[];
     inherit: boolean | undefined;
     unmount: boolean | string;
+    id: string;
 };
 
 type SharedProps = {
@@ -46,7 +47,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
     const parent = useContext(AnimatableContext);
 
     const {
-        id,
+        id = '',
         order,
         paused,
         disabled,
@@ -119,7 +120,8 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         timeline: timeline.current,
         children: children.current,
         inherit: props.inherit,
-        unmount
+        unmount,
+        id
     }), []);
 
     useEffect(() => {
@@ -182,7 +184,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
             if (!isValidElement(child)) return child;
 
             return cloneElement(child as React.ReactElement, {
-                ref: combineRefs(el => timeline.current.insert(el), (child as any).ref),
+                ref: combineRefs(el => timeline.current.insert(el), (child as any).ref), // check if htmlelement and can receive refs (is forwardable)
                 pathLength: 1,
                 style: merge(
                     {

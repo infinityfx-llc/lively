@@ -6,7 +6,23 @@ type LinkArgument<T> = number | ((value: T, index: number) => any);
 
 export type Link<T> = ((transform?: LinkArgument<T>) => any | Link<T>) | (() => T) & { connect: (port: Port) => void };
 
-// look into using new implementation from ifx-store
+// function createAnimationValue(initial: number) { // maybe rewrite lively based on this?
+//     return (function scale(this: { value: number; prev: number; dt: number; t: number; }, value?: number, transition = 0) {
+//         let r = Math.max(this.t - Date.now(), 0) / (this.dt || 1);
+//         r = (1 - Math.cos(r * Math.PI)) / 2;
+
+//         const current = this.prev * r + this.value * (1 - r);
+
+//         if (value !== undefined) {
+//             this.prev = current;
+//             this.value = value;
+//             this.dt = transition * 1000;
+//             this.t = transition * 1000 + Date.now();
+//         }
+
+//         return current;
+//     }).bind({ value: initial, prev: initial, dt: 0, t: Date.now() });
+// }
 
 export default function useLink<T = any>(initial: T): [Link<T>, (value: T, transition?: number) => void] {
     const internal = useRef<T>(initial);

@@ -1,17 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { Children, isValidElement, useEffect, useRef, useState } from "react";
 import Animatable, { AnimatableType } from "../animatable__EXP";
 import { Easing } from "../core/clip";
 
-function snapshot(children: any, map: { [key: string]: boolean } = {}) {
-    for (const child of (Array.isArray(children) ? children : [children])) {
-        if (child._owner) snapshot((child as any)._owner, map);
-        if (child.sibling) snapshot(child.sibling, map);
-        if (child.child) snapshot(child.child, map);
+function snapshot(children: React.ReactNode, map: { [key: string]: boolean } = {}) {
+    Children.forEach(children, child => {
+        if (!isValidElement(child)) return;
 
-        if (child.type?.displayName === 'Animatable' && child.ref?.current) {
-            map[child.ref.current.id] = true;
+        if ((child.type as any)?.displayName === 'Animatable' && 'id' in child.props) { // maybe use key prop instead of id (also for morph)
+            map[child.props.id] = true;
         }
-    }
+
+        snapshot(child.props.children, map);
+    });
 
     return map;
 }
@@ -29,23 +29,20 @@ export default function LayoutGroup({
     };
 }) {
     const ref = useRef<AnimatableType | null>(null);
+    const cache = useRef(snapshot(children));
     const [content, setContent] = useState(children);
 
     useEffect(() => {
         if (!ref.current) return;
 
-        let delay = 0, map = snapshot(children);
+        let delay = 0, pending = snapshot(children);
         for (const child of ref.current.children) {
-            if (!child.current || !child.current.unmount || child.current.id in map) continue;
-
-            const animation = typeof child.current.unmount === 'string' ? child.current.unmount : 'animate';
-
-            delay = Math.max(
-                child.current.play(animation, { immediate: true, reverse: animation === 'animate' }),
-                delay
-            );
+            if (child.current && child.current.id in cache.current && !(child.current.id in pending)) {
+                delay = Math.max(child.current.unmount(), delay);
+            }
         }
 
+        cache.current = pending;
         setTimeout(() => setContent(children), delay * 1000);
     }, [children]);
 
@@ -53,9 +50,9 @@ export default function LayoutGroup({
         if (!ref.current || !adaptive) return;
 
         for (const child of ref.current.children) {
-            if (!child.current?.timeline.mounted) continue;
-
-            child.current.timeline.transition(undefined, transition);
+            if (child.current?.timeline.mounted) {
+                child.current.timeline.transition(undefined, transition); // on rapid transitions dont finish current one (causes jumpy animation)
+            }
         }
     }, [content]);
 

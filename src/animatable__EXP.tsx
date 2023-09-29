@@ -11,14 +11,14 @@ export type AnimatableType = {
     timeline: Timeline;
     children: React.MutableRefObject<AnimatableType | null>[];
     inherit: boolean | undefined;
-    unmount: boolean | string;
+    unmount: () => number;
     id: string;
 };
 
 type SharedProps = {
     id?: string;
     animations?: { [key: string]: ClipProperties | Clip };
-    triggers?: ({ name?: string; on: Trigger | boolean | 'mount' } & PlayOptions)[];
+    triggers?: ({ name?: string; on: Trigger | boolean | 'mount' | 'unmount' } & PlayOptions)[];
     animate?: ClipProperties | Clip;
     initial?: AnimatableInitials;
     stagger?: number;
@@ -58,8 +58,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         staggerLimit,
         deform,
         cachable,
-        triggers = [],
-        unmount
+        triggers = []
     } = props.inherit && parent ? merge({}, props, parent) : props;
 
     const index = order !== undefined ? order : (props.inherit && parent?.index || 0) + 1;
@@ -91,12 +90,10 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
 
     const play = useCallback((animation: string, options: PlayOptions = {}, layer = 1) => {
         const clip = clipMap[animation];
-        if (!clip || disabled || (index > 1 && layer < 2)) return 0;
+        if (disabled || (index > 1 && layer < 2)) return 0;
 
-        let cascadeDelay = 0,
-            layerDelay = (options.delay || 0),
-            duration = timeline.current.time(clip),
-            reverse = options.reverse !== undefined ? options.reverse : clip.reverse;
+        merge(options, { reverse: clip?.reverse });
+        let cascadeDelay = 0, layerDelay = (options.delay || 0), duration = clip ? timeline.current.time(clip) : 0;
 
         for (const child of children.current) {
             if (!child.current?.inherit) continue;
@@ -109,18 +106,36 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
             );
         }
 
-        const delay = (reverse ? cascadeDelay : layerDelay) * (index / layer);
-        timeline.current.add(clip, merge({ delay }, options));
+        const delay = (options.reverse ? cascadeDelay : layerDelay) * (index / layer);
+        if (clip) timeline.current.add(clip, merge({ delay }, options));
 
         return duration + delay;
     }, [disabled, index]);
 
+    function unmount() { // CHECK TO OPTIMIZE
+        let duration = 0;
+
+        for (const { name, on, ...options } of triggers) {
+            if (on !== 'unmount') continue;
+
+            duration = Math.max(play(name || 'animate', options), duration);
+        }
+
+        for (const child of children.current) {
+            if (!child.current?.inherit) continue;
+
+            duration = Math.max(child.current.unmount(), duration);
+        }
+
+        return duration;
+    }
+
     useImperativeHandle(combineRefs(self, ref), () => ({
         play,
+        unmount,
         timeline: timeline.current,
         children: children.current,
         inherit: props.inherit,
-        unmount,
         id
     }), []);
 
@@ -132,18 +147,17 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         for (let i = 0; i < triggers.length; i++) {
             let { name, on, ...options } = triggers[i];
 
+            if (on === 'unmount') continue;
             if (on === 'mount') {
-                if (options.immediate === undefined) options.immediate = true;
+                merge(options, { immediate: true });
                 on = mount;
             }
 
-            const value = typeof on === 'boolean' ? on : on.value;
-            if (triggersState.current[0] && value && value !== triggersState.current[i + 1]) play(name || 'animate', options);
+            const value = on.value !== undefined ? on.value : on, prev = triggersState.current[i];
+            if (prev !== undefined && value && value !== prev) play(name || 'animate', options);
 
-            triggersState.current[i + 1] = value;
+            triggersState.current[i] = value;
         }
-
-        triggersState.current[0] = 1;
     }, [triggers, mount]);
 
     useEffect(() => {
@@ -161,9 +175,10 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
 
         return () => {
             window.removeEventListener('resize', resize);
-            // timeline.current.mounted = false;
 
-            if (parent) parent.children.splice(parent.children.indexOf(self), 1);
+            const i = parent?.children.indexOf(self) || -1;
+            // @ts-expect-error
+            if (i >= 0) parent.children.splice(i, 1);
         }
     }, []);
 
@@ -181,10 +196,10 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         children: children.current
     }}>
         {Children.map(props.children, child => {
-            if (!isValidElement(child)) return child;
+            if (!isValidElement(child) || child.type instanceof Function) return child;
 
             return cloneElement(child as React.ReactElement, {
-                ref: combineRefs(el => timeline.current.insert(el), (child as any).ref), // check if htmlelement and can receive refs (is forwardable)
+                ref: combineRefs(el => timeline.current.insert(el), (child as any).ref),
                 pathLength: 1,
                 style: merge(
                     {

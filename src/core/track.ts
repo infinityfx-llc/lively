@@ -23,12 +23,12 @@ export default class Track {
     push(action: Action) {
         action.onfinish = this.next.bind(this);
 
-        if (this.playing && !action.composited) {
+        if (this.playing && action.composite === 'none') {
             this.queue.push(action);
             action.animation.pause();
         } else {
             this.active.push(action);
-            if (!action.composited) this.playing++;
+            if (action.composite === 'none') this.playing++;
         }
 
         return action;
@@ -81,7 +81,7 @@ export default class Track {
         previous?.finish();
         previous?.cache.update();
 
-        if (previous || !this.active.length) clips.forEach(clip => clip.play(this, { commit: false })); // NEEDS MORE TESTING (transition doesn't play when other animation is playing currently)
+        clips.forEach(clip => clip.play(this, { commit: false }));
     }
 
     apply(prop: string, val: any) { // update cache after this?

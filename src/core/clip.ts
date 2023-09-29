@@ -18,6 +18,8 @@ type AnimatableProperties = { [key in AnimatableKey]?: Link<any> | ((progress: n
 
 export type AnimatableInitials = React.CSSProperties & { strokeLength?: number | string };
 
+export type CompositeType = 'none' | 'override' | 'combine';
+
 type ClipConfig = {
     duration?: number;
     delay?: number;
@@ -25,7 +27,7 @@ type ClipConfig = {
     alternate?: boolean;
     easing?: Easing;
     reverse?: boolean;
-    composite?: boolean;
+    composite?: CompositeType;
 };
 
 export type ClipProperties = ClipConfig & AnimatableProperties;
@@ -43,10 +45,10 @@ export default class Clip {
     alternate: boolean;
     easing: Easing;
     reverse: boolean;
-    composite: boolean;
+    composite: CompositeType;
     isEmpty: boolean;
 
-    constructor({ duration = 1, delay = 0, repeat = 1, alternate = false, easing = 'ease', reverse = false, composite = false, ...properties }: ClipProperties, initial: AnimatableInitials = {}) {
+    constructor({ duration = 1, delay = 0, repeat = 1, alternate = false, easing = 'ease', reverse = false, composite = 'none', ...properties }: ClipProperties, initial: AnimatableInitials = {}) {
         const keyframes: {
             [key: number]: Keyframe;
         } = {};
@@ -105,7 +107,7 @@ export default class Clip {
         return clip;
     }
 
-    play(track: Track, { composite = this.composite, reverse = this.reverse, commit = true, delay = 0 }: { composite?: boolean; reverse?: boolean; delay?: number; commit?: boolean; }) {
+    play(track: Track, { composite = this.composite, reverse = this.reverse, commit = true, delay = 0 }: { composite?: CompositeType; reverse?: boolean; delay?: number; commit?: boolean; }) {
         if (this.isEmpty) return;
 
         const action = new Action(track, this.keyframes, {
@@ -115,9 +117,9 @@ export default class Clip {
             direction: this.alternate ?
                 (reverse ? 'alternate-reverse' : 'alternate') :
                 (reverse ? 'reverse' : 'normal'),
-            composite: composite ? 'accumulate' : 'replace',
             fill: 'both',
-            easing: this.easing
+            easing: this.easing,
+            composite
         }, this.dynamic);
         
         if (!commit) action.commit = false;

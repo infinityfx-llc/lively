@@ -6,7 +6,7 @@ function snapshot(children: React.ReactNode, map: { [key: string]: boolean } = {
     Children.forEach(children, child => {
         if (!isValidElement(child)) return;
 
-        if ((child.type as any)?.displayName === 'Animatable' && 'id' in child.props) { // maybe use key prop instead of id (also for morph)
+        if ((child.type as any)?.displayName === 'Animatable' && 'id' in child.props) {
             map[child.props.id] = true;
         }
 

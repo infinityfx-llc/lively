@@ -49,7 +49,7 @@ export class StyleCache {
     difference(from: CacheData = this.data, { duration = 0.5, easing = 'ease' }: { duration?: number; easing?: Easing; }) {
         const to = this.read();
 
-        const keyframes1: ClipProperties = { duration, easing, composite: true }, keyframes2: ClipProperties = { duration, easing };
+        const keyframes1: ClipProperties = { duration, easing, composite: 'combine' }, keyframes2: ClipProperties = { duration, easing, composite: 'override' };
         for (const key of this.include) {
             switch (key) {
                 case 'scale': keyframes1[key] = [`${to._w === 0 ? 1 : from._w / to._w} ${to._h === 0 ? 1 : from._h / to._h}`, '1 1'];

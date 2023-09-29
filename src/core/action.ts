@@ -1,21 +1,22 @@
-import type { DynamicProperties } from "./clip";
+import type { CompositeType, DynamicProperties } from "./clip";
 import type Track from "./track";
 
 export default class Action {
 
-    composited: boolean;
+    composite: CompositeType;
     commit: boolean = true;
     track: Track;
     animation: Animation;
     dynamic: DynamicProperties;
     onfinish: (() => void) | null = null;
 
-    constructor(track: Track, keyframes: Keyframe[] | PropertyIndexedKeyframes, config: KeyframeAnimationOptions, dynamic: DynamicProperties = {}) {
-        this.track = track;
-        this.animation = track.element.animate(keyframes, config);
+    constructor(track: Track, keyframes: Keyframe[] | PropertyIndexedKeyframes, config: Omit<KeyframeAnimationOptions, 'composite'> & { composite: CompositeType; }, dynamic: DynamicProperties = {}) {
+        (config as any).composite = config.composite === 'combine' ? 'accumulate' : 'replace';
+        this.animation = track.element.animate(keyframes, config as any as KeyframeAnimationOptions);
         this.dynamic = dynamic;
+        this.track = track;
 
-        this.composited = config.composite === 'accumulate';
+        this.composite = config.composite;
         this.animation.onfinish = this.finish.bind(this);
     }
 

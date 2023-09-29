@@ -33,7 +33,6 @@ export type AnimatableProps = {
     order?: number;
     inherit?: boolean;
     cachable?: AnimatableKey[];
-    unmount?: boolean | string;
 } & SharedProps;
 
 export const AnimatableContext = createContext<null | ({

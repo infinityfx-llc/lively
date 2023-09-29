@@ -18,6 +18,9 @@ type MorphProps = {
     transition?: { duration?: number; easing?: Easing };
 } & AnimatableProps;
 
+// - crossfades
+// - if no morph target, do opacity transition
+
 const Morph = forwardRef<AnimatableType, MorphProps>(({
     children,
     id,

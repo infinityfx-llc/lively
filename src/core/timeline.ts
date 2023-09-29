@@ -1,5 +1,5 @@
 import type { Link } from "../hooks/use-link";
-import Clip, { AnimatableKey, ClipProperties, Easing } from "./clip";
+import Clip, { AnimatableKey, ClipProperties, CompositeType, Easing } from "./clip";
 import Track from "./track";
 import { IndexedList } from "./utils";
 
@@ -34,7 +34,7 @@ export default class Timeline {
     }
 
     time(clip: Clip) {
-        return clip.duration + this.stagger * Math.min(this.staggerLimit, this.tracks.size - 1);
+        return clip.duration + this.stagger * Math.max(Math.min(this.staggerLimit, this.tracks.size - 1), 0);
     }
 
     port(key: string, link: Link<any>, transition: number) {
@@ -86,7 +86,7 @@ export default class Timeline {
         }
     }
 
-    add(clip: Clip, { immediate = false, composite, reverse, delay = 0, commit }: { immediate?: boolean; composite?: boolean; reverse?: boolean; delay?: number; commit?: boolean; }) {
+    add(clip: Clip, { immediate = false, composite, reverse, delay = 0, commit }: { immediate?: boolean; composite?: CompositeType; reverse?: boolean; delay?: number; commit?: boolean; }) {
 
         for (let i = 0; i < this.tracks.size; i++) {
             if (immediate) this.tracks.values[i].finish();

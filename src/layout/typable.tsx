@@ -5,7 +5,7 @@ const Typable = forwardRef(({ children, stagger = 1, staggerLimit = Number.MAX_V
 
     return <Animatable {...props} ref={ref} stagger={stagger * -1} staggerLimit={staggerLimit}>
         {Children.map(children, child => {
-            if (typeof child === 'string') {
+            if (typeof child === 'string') { // maybe apply inline-block display so translate automatically works
                 return child.split('').map(char => <span style={{ minWidth: char === ' ' ? '0.35em' : 0 }}>{char}</span>);
             }
 
@@ -15,6 +15,5 @@ const Typable = forwardRef(({ children, stagger = 1, staggerLimit = Number.MAX_V
 });
 
 Typable.displayName = 'Typable';
-(Typable as any).isLively = true;
 
 export default Typable;

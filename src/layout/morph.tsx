@@ -1,67 +1,70 @@
-import { Children, cloneElement, forwardRef, isValidElement, useEffect, useId, useRef, useState } from "react";
-import Animatable, { AnimatableType } from "../animatable";
-import Clip, { AnimatableKey, Easing } from "../core/clip";
+import { forwardRef, useContext, useEffect, useId, useRef } from "react";
+import Animatable, { AnimatableContext, AnimatableType, AnimatableProps } from "../animatable";
+import { Easing } from "../core/clip";
 import { combineRefs } from "../core/utils";
 
-const Morphs: { [key: string]: { [key: string]: AnimatableType | null } } = {};
+const Morphs: {
+    [key: string]: {
+        [key: string]: {
+            animatable: AnimatableType | null;
+            mounted: boolean;
+        }
+    };
+} = {};
 
 type MorphProps = {
-    children: React.ReactNode;
     id: string;
-    shown: boolean;
-    include?: AnimatableKey[];
     transition?: { duration?: number; easing?: Easing };
-    deform?: boolean;
-    disabled?: boolean;
-    paused?: boolean;
-};
+} & AnimatableProps;
 
-const Morph = forwardRef(({ children, shown, id, include, transition = {}, ...props }: MorphProps, forwardedRef: React.ForwardedRef<AnimatableType>) => {
-    const ref = useRef<AnimatableType | null>(null);
+// - crossfades
+// - if no morph target, do opacity transition
+
+const Morph = forwardRef<AnimatableType, MorphProps>(({
+    children,
+    id,
+    transition = {},
+    ...props
+}, ref) => {
+    const parent = useContext(AnimatableContext);
+    const self = useRef<AnimatableType | null>(null);
+    // const isMount = useRef(true);
     const uuid = useId();
-    const [updated, setUpdated] = useState<{ hidden: boolean; }>({ hidden: false });
+
+    id = parent ? parent.id + id : id;
 
     useEffect(() => {
-        if (!ref.current || !ref.current.mounted) return;
+        if (!self.current) return;
 
-        let prev;
         for (const key in Morphs[id]) {
             if (key === uuid) continue;
 
-            if (prev = Morphs[id][key]) break;
-        }
+            const morph = Morphs[id][key];
+            if (morph.animatable && !morph.mounted) {
+                self.current.timeline.transition(morph.animatable.timeline, transition);
+                Morphs[id][key].animatable = null;
+                // isMount.current = false;
 
-        if (prev && shown) {
-            ref.current.timeline.transition(prev.timeline, transition);
-        } else
-            if (shown) {
-                ref.current.timeline.add(new Clip({ opacity: [0, 1], ...transition }), { commit: false });
+                break;
             }
-
-        (Morphs[id].__shown as any) = Morphs[id].__shown || shown;
-
-        setUpdated({ hidden: !!Morphs[id][uuid] && !shown });
-    }, [shown]);
-
-    useEffect(() => {
-        if (!(id in Morphs)) Morphs[id] = {};
-
-        if (updated.hidden && (Morphs[id].__shown as any) === false) {
-            ref.current?.timeline.add(new Clip({ opacity: [1, 0], visibility: ['visible', 'hidden'], ...transition }), { commit: false });
         }
 
-        if (Morphs[id].__shown) Morphs[id].__shown = null;
-        Morphs[id][uuid] = shown ? ref.current : null;
+        // if (isMount.current) {
+        //     self.current.timeline.add(new Clip({ opacity: [0, 1], ...transition }), { commit: false });
+        // }
 
         return () => {
-            Morphs[id][uuid] = null;
-        };
-    }, [updated]);
+            Morphs[id][uuid].mounted = false;
+        }
+    }, []);
 
-    if (Children.count(children) > 1 || !isValidElement(children)) return <>{children}</>;
+    return <Animatable {...props} id={id} ref={combineRefs(el => {
+        self.current = el;
 
-    return <Animatable {...props} cachable={include} id={id} ref={combineRefs(ref, forwardedRef)}>
-        {cloneElement(children, { style: { ...children.props.style, visibility: shown ? 'visible' : 'hidden' } } as any)}
+        if (!(id in Morphs)) Morphs[id] = {};
+        if (el) Morphs[id][uuid] = { animatable: el, mounted: true };
+    }, ref)}>
+        {children}
     </Animatable>;
 });
 

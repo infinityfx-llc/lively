@@ -1,5 +1,5 @@
-import LayoutGroup from "./layout/layout-group__EXP";
-import Morph from "./layout/morph__EXP";
+import LayoutGroup from "./layout/layout-group";
+import Morph from "./layout/morph";
 import Typable from "./layout/typable";
 
 export {

@@ -1,77 +1,62 @@
-import { Children, cloneElement, isValidElement, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Children, isValidElement, useEffect, useRef, useState } from "react";
 import Animatable, { AnimatableType } from "../animatable";
-import { IndexedList, combineRefs } from "../core/utils";
-import type { Easing } from "../core/clip";
-import Morph from "./morph";
-import Animate from "../animate";
-import Typable from "./typable";
+import { Easing } from "../core/clip";
 
-const isAnimatable = (child: React.ReactElement) => child.type === Animatable || child.type === Animate || child.type === Typable || child.type === Morph;
+function snapshot(children: React.ReactNode, map: { [key: string]: boolean } = {}) {
+    Children.forEach(children, child => {
+        if (!isValidElement(child)) return;
 
-export default function LayoutGroup({ children, adaptive = true, transition = {} }: { children: React.ReactNode; adaptive?: boolean; transition?: { duration?: number; easing?: Easing } }) {
-    const animatables = useRef<IndexedList<AnimatableType>>(new IndexedList());
+        if ((child.type as any)?.displayName === 'Animatable' && 'id' in child.props) {
+            map[child.props.id] = true;
+        }
 
-    let animatableIndex = 0;
-    const render = (children: React.ReactNode): React.ReactNode => {
-        return Children.map(children, child => {
-            if (!isValidElement(child)) return child;
+        snapshot(child.props.children, map);
+    });
 
-            const props: { id?: string; ref?: React.Ref<any>; } = {};
-            if (isAnimatable(child) && !(child.props.order > 1)) {
-                const i = animatableIndex++;
+    return map;
+}
 
-                props.id = child.props.id || child.key;
-                props.ref = combineRefs(el => el ? animatables.current.add(i, el) : animatables.current.remove(i), (child as any).ref);
-            }
-
-            if (child.type === Morph) return cloneElement(child, props);
-
-            return cloneElement(child, props, render(child.props.children));
-        });
+export default function LayoutGroup({
+    children,
+    adaptive = true,
+    transition = {}
+}: {
+    children: React.ReactNode;
+    adaptive?: boolean;
+    transition?: {
+        duration?: number;
+        easing?: Easing;
     };
-
-    const snapshot = useCallback((children: React.ReactNode, map: { [key: string]: boolean } = {}) => {
-        Children.forEach(children, child => {
-            if (!isValidElement(child)) return;
-
-            const key = child.key || child.props.id;
-            if (key !== null && isAnimatable(child)) map[key] = true;
-
-            snapshot(child.props.children, map);
-        });
-
-        return map;
-    }, []);
-
-    const [state, setState] = useState(() => render(children));
+}) {
+    const ref = useRef<AnimatableType | null>(null);
+    const cache = useRef(snapshot(children));
+    const [content, setContent] = useState(children);
 
     useEffect(() => {
-        const mounted = snapshot(children);
-        let unmounting = 0;
+        if (!ref.current) return;
 
-        for (const entry of animatables.current.values) {
-            if (entry.unmount && !(entry.id in mounted)) {
-                const isString = typeof entry.unmount === 'string';
-
-                unmounting = Math.max(unmounting, entry.play(isString ? entry.unmount as string : 'animate', {
-                    reverse: !isString,
-                    immediate: true
-                }));
+        let delay = 0, pending = snapshot(children);
+        for (const child of ref.current.children) {
+            if (child.current && child.current.id in cache.current && !(child.current.id in pending)) {
+                delay = Math.max(child.current.unmount(), delay);
             }
         }
 
-        setTimeout(() => setState(render(children)), unmounting * 1000);
+        cache.current = pending;
+        setTimeout(() => setContent(children), delay * 1000);
     }, [children]);
 
-    (typeof window === 'undefined' ? useEffect : useLayoutEffect)(() => {
-        if (typeof window === 'undefined' || !adaptive) return;
+    useEffect(() => { // maybe use layoutEffect??
+        if (!ref.current || !adaptive) return;
 
-        animatables.current.forEach(entry => {
-            if (!entry.mounted) return;
+        for (const child of ref.current.children) {
+            if (child.current?.timeline.mounted) {
+                child.current.timeline.transition(undefined, transition);
+            }
+        }
+    }, [content]);
 
-            entry.timeline.transition(undefined, transition);
-        });
-    }, [state]);
-
-    return <>{state}</>;
+    return <Animatable ref={ref}>
+        {content}
+    </Animatable>
 }

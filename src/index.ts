@@ -1,5 +1,5 @@
-import Animatable from "./animatable__EXP";
-import Animate from "./animate__EXP";
+import Animatable from "./animatable";
+import Animate from "./animate";
 
 export {
     Animatable,

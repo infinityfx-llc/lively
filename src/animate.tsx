@@ -11,13 +11,11 @@ const Animate = forwardRef<AnimatableType, AnimateProps>(({ children, animations
     function render(children: React.ReactNode, level = levels) {
         let idx = levels - level, clip;
 
-        while (!(clip = animations[idx]) && idx >= 0) {
-            idx--;
-        }
+        while (!(clip = animations[idx]) && idx >= 0) idx--;
 
         if (level < 1 || Children.count(children) < 1) return children;
 
-        return <Animatable {...props} ref={ref} animate={clip}>
+        return <Animatable {...props} ref={ref} animate={clip} inherit={level < levels}>
             {Children.map(children, child => {
                 if (!isValidElement(child)) return child;
 

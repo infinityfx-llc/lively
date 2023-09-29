@@ -28,7 +28,7 @@ export default class Timeline {
     step() {
         cancelAnimationFrame(this.frame);
 
-        this.tracks.forEach((track, i) => track.step(i));
+        this.tracks.values.forEach((track, i) => track.step(i));
 
         this.frame = requestAnimationFrame(this.step.bind(this));
     }
@@ -78,7 +78,7 @@ export default class Timeline {
         if (!(element instanceof HTMLElement)) return;
 
         if (!('TRACK_INDEX' in element)) (element as any).TRACK_INDEX = this.index++;
-        if (!this.tracks.has((element as any).TRACK_INDEX)) { // SEE IF THIS CAN BE OPTIMIZED (maybe no need for IndexedList)
+        if (!this.tracks.has((element as any).TRACK_INDEX)) {
             const track = new Track(element, this.deform, this.cachable);
             this.tracks.add((element as any).TRACK_INDEX, track);
 

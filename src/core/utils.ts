@@ -53,15 +53,15 @@ export class IndexedList<T = any> {
         }
     }
 
-    remove(index: number) {
-        const i = this.map(index);
+    // remove(index: number) {
+    //     const i = this.map(index);
 
-        if (i >= 0) {
-            this.values.splice(i, 1);
-            this.indices.splice(i, 1);
-            this.size--;
-        }
-    }
+    //     if (i >= 0) {
+    //         this.values.splice(i, 1);
+    //         this.indices.splice(i, 1);
+    //         this.size--;
+    //     }
+    // }
 
     map(index: number) {
         let start = 0, end = this.size - 1;
@@ -77,9 +77,9 @@ export class IndexedList<T = any> {
         return ~start;
     }
 
-    forEach(iterator: (value: T, index: number) => void) {
-        this.values.forEach(iterator);
-    }
+    // forEach(iterator: (value: T, index: number) => void) {
+    //     this.values.forEach(iterator);
+    // }
 
 };
 

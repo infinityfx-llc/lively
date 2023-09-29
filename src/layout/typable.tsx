@@ -5,11 +5,12 @@ const Typable = forwardRef(({ children, stagger = 1, staggerLimit = Number.MAX_V
 
     return <Animatable {...props} ref={ref} stagger={stagger * -1} staggerLimit={staggerLimit}>
         {Children.map(children, child => {
-            if (typeof child === 'string') { // maybe apply inline-block display so translate automatically works
-                return child.split('').map(char => <span style={{ minWidth: char === ' ' ? '0.35em' : 0 }}>{char}</span>);
-            }
+            if (typeof child !== 'string' && typeof child !== 'number') return child;
 
-            return typeof child === 'number' || typeof child === 'boolean' ? <div>{child}</div> : child;
+            return child
+                .toString()
+                .split('')
+                .map(char => <span style={{ display: 'inline-block', minWidth: char === ' ' ? '0.35em' : 0 }}>{char}</span>);
         })}
     </Animatable>;
 });

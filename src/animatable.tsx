@@ -176,7 +176,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
             window.removeEventListener('resize', resize);
 
             const i = parent?.children.indexOf(self) || -1;
-            // @ts-expect-error
+            // @ts-expect-error FIX TYPING!!
             if (i >= 0) parent.children.splice(i, 1);
         }
     }, []);

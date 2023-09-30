@@ -12,11 +12,12 @@ export type AnimatableType = {
     children: React.MutableRefObject<AnimatableType | null>[];
     inherit: boolean | undefined;
     unmount: () => number;
+    adaptive: boolean;
     id: string;
 };
 
 type SharedProps = {
-    id?: string;
+    group?: string;
     animations?: { [key: string]: ClipProperties | Clip };
     triggers?: ({ name?: string; on: Trigger | boolean | 'mount' | 'unmount' } & PlayOptions)[];
     animate?: ClipProperties | Clip;
@@ -30,8 +31,10 @@ type SharedProps = {
 
 export type AnimatableProps = {
     children: React.ReactNode;
+    id?: string;
     order?: number;
     inherit?: boolean;
+    adaptive?: boolean;
     cachable?: AnimatableKey[];
 } & SharedProps;
 
@@ -47,6 +50,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
 
     const {
         id = '',
+        group,
         order,
         paused,
         disabled,
@@ -57,6 +61,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         staggerLimit,
         deform,
         cachable,
+        adaptive = false,
         triggers = []
     } = props.inherit && parent ? merge({}, props, parent) : props;
 
@@ -135,6 +140,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         timeline: timeline.current,
         children: children.current,
         inherit: props.inherit,
+        adaptive,
         id
     }), []);
 
@@ -168,8 +174,9 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         if (parent && parent.children.indexOf(self) < 0) parent.children.push(self);
 
         document.fonts.ready.then(() => {
-            mount();
+            if (!timeline.current.test) mount();
             timeline.current.mounted = true;
+            timeline.current.test = true;
         });
 
         return () => {
@@ -182,7 +189,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
     }, []);
 
     return <AnimatableContext.Provider value={{
-        id,
+        group,
         index,
         animate,
         initial,

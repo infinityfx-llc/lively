@@ -3,7 +3,7 @@ import Action from "./action";
 import type Track from "./track";
 import { createDynamicFrom, distributeAnimatableKeyframes, merge, normalizeAnimatableKeyframes } from "./utils";
 
-export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end';
+export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end'; // allow for bezier curves
 
 export type AnimatableKey = keyof React.CSSProperties | 'strokeLength';
 

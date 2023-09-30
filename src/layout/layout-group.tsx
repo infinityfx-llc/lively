@@ -18,15 +18,10 @@ function snapshot(children: React.ReactNode, map: { [key: string]: boolean } = {
 
 export default function LayoutGroup({
     children,
-    adaptive = true,
-    transition = {}
+    transition
 }: {
     children: React.ReactNode;
-    adaptive?: boolean;
-    transition?: {
-        duration?: number;
-        easing?: Easing;
-    };
+    transition?: { duration?: number; easing?: Easing };
 }) {
     const ref = useRef<AnimatableType | null>(null);
     const cache = useRef(snapshot(children));
@@ -46,11 +41,11 @@ export default function LayoutGroup({
         setTimeout(() => setContent(children), delay * 1000);
     }, [children]);
 
-    useEffect(() => { // maybe use layoutEffect??
-        if (!ref.current || !adaptive) return;
+    useEffect(() => {
+        if (!ref.current) return;
 
         for (const child of ref.current.children) {
-            if (child.current?.timeline.mounted) {
+            if (child.current?.timeline.mounted && child.current.adaptive) {
                 child.current.timeline.transition(undefined, transition);
             }
         }

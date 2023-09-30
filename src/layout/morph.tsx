@@ -1,71 +1,65 @@
-import { forwardRef, useContext, useEffect, useId, useRef } from "react";
+import { forwardRef, useContext, useEffect, useRef } from "react";
 import Animatable, { AnimatableContext, AnimatableType, AnimatableProps } from "../animatable";
 import { Easing } from "../core/clip";
 import { combineRefs } from "../core/utils";
+import Timeline from "../core/timeline";
 
-const Morphs: {
-    [key: string]: {
-        [key: string]: {
-            animatable: AnimatableType | null;
-            mounted: boolean;
-        }
-    };
+// - crossfades
+// - unmount animation when no morph target
+
+const Groups: {
+    [key: string]: Timeline[];
 } = {};
 
 type MorphProps = {
-    id: string;
+    group: string;
     transition?: { duration?: number; easing?: Easing };
 } & AnimatableProps;
 
-// - crossfades
-// - if no morph target, do opacity transition
-
 const Morph = forwardRef<AnimatableType, MorphProps>(({
     children,
-    id,
     transition = {},
+    group,
     ...props
 }, ref) => {
     const parent = useContext(AnimatableContext);
     const self = useRef<AnimatableType | null>(null);
-    // const isMount = useRef(true);
-    const uuid = useId();
 
-    id = parent ? parent.id + id : id;
+    group = parent ? parent.group + group : group;
 
     useEffect(() => {
         if (!self.current) return;
+        const timeline = self.current.timeline;
 
-        for (const key in Morphs[id]) {
-            if (key === uuid) continue;
+        for (let i = 0; i < Groups[group].length; i++) {
+            const target = Groups[group][i];
+            if (!target || target.mounted || target === self.current.timeline) continue;
 
-            const morph = Morphs[id][key];
-            if (morph.animatable && !morph.mounted) {
-                self.current.timeline.transition(morph.animatable.timeline, transition);
-                Morphs[id][key].animatable = null;
-                // isMount.current = false;
-
-                break;
-            }
+            timeline.transition(target, transition);
+            timeline.test = true;
+            Groups[group].splice(i, 1);
+            break;
         }
 
-        // if (isMount.current) {
-        //     self.current.timeline.add(new Clip({ opacity: [0, 1], ...transition }), { commit: false });
-        // }
-
         return () => {
-            Morphs[id][uuid].mounted = false;
+            timeline.mounted = false;
+            // setTimeout(() => { // DOESNT WORK
+            //     if (group) {
+            //         const i = Groups[group].indexOf(timeline);
+            //         if (i >= 0) Groups[group].splice(i, 1);
+            //     }
+            // });
         }
     }, []);
 
-    return <Animatable {...props} id={id} ref={combineRefs(el => {
+    return <Animatable {...props} group={group} ref={combineRefs(el => {
         self.current = el;
 
-        if (!(id in Morphs)) Morphs[id] = {};
-        if (el) Morphs[id][uuid] = { animatable: el, mounted: true };
+        if (!(group in Groups)) Groups[group] = [];
+        if (el && !Groups[group].includes(el.timeline)) Groups[group].push(el.timeline);
     }, ref)}>
         {children}
-    </Animatable>;
+    </Animatable >;
 });
 
 Morph.displayName = 'Morph';

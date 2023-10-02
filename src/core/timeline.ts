@@ -1,7 +1,9 @@
 import type { Link } from "../hooks/use-link";
-import Clip, { AnimatableKey, ClipProperties, CompositeType, Easing } from "./clip";
-import Track from "./track";
+import Clip, { AnimatableKey, ClipProperties, CompositeType } from "./clip";
+import Track, { TransitionOptions } from "./track";
 import { IndexedList } from "./utils";
+
+export type PlayOptions = { composite?: CompositeType; immediate?: boolean; reverse?: boolean; delay?: number; commit?: boolean; };
 
 export default class Timeline {
 
@@ -15,7 +17,7 @@ export default class Timeline {
     frame: number = 0;
     connected: boolean = false;
     mounted: boolean = false;
-    test: boolean = false; // TEMP
+    rendered: boolean = false;
     mountClips: Clip[];
 
     constructor({ stagger = 0.1, staggerLimit = 10, deform = true, cachable, mountClips }: { stagger?: number; staggerLimit?: number; deform?: boolean; cachable?: AnimatableKey[]; mountClips: Clip[]; }) {
@@ -67,7 +69,7 @@ export default class Timeline {
         this.connected = true;
     }
 
-    transition(from: Timeline | undefined, options: { duration?: number; easing?: Easing; } = {}) {
+    transition(from: Timeline | undefined, options: TransitionOptions = {}) {
 
         for (let i = 0; i < this.tracks.size; i++) {
 
@@ -87,7 +89,7 @@ export default class Timeline {
         }
     }
 
-    add(clip: Clip, { immediate = false, composite, reverse, delay = 0, commit }: { immediate?: boolean; composite?: CompositeType; reverse?: boolean; delay?: number; commit?: boolean; }) {
+    add(clip: Clip, { immediate = false, composite, reverse, delay = 0, commit }: PlayOptions) {
 
         for (let i = 0; i < this.tracks.size; i++) {
             if (immediate) this.tracks.values[i].finish();

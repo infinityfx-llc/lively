@@ -1,7 +1,7 @@
 import type { Link } from "../hooks/use-link";
 import Action from "./action";
 import type Track from "./track";
-import { createDynamicFrom, distributeAnimatableKeyframes, merge, normalizeAnimatableKeyframes } from "./utils";
+import { distributeAnimatableKeyframes, merge, normalizeAnimatableKeyframes } from "./utils";
 
 export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end'; // allow for bezier curves
 
@@ -69,16 +69,11 @@ export default class Clip {
 
             if (!normalizeAnimatableKeyframes(arr)) continue;
 
-            if (prop === 'borderRadius') {
-                this.dynamic[prop as AnimatableKey] = createDynamicFrom(prop, arr as any, easing);
-                continue;
-            }
-
             distributeAnimatableKeyframes(prop, arr as any, keyframes);
         }
 
         this.keyframes = Object.values(keyframes);
-        this.initial = merge({}, initial, this.keyframes.length > 1 ? (this.keyframes[0] as any) : {});
+        this.initial = merge({}, initial, this.keyframes.length ? (this.keyframes[0] as any) : {});
         // this.initial.strokeDashoffset = lengthToOffset((this.initial as any).strokeLength);
         delete this.initial.offset;
         this.duration = this.keyframes.length ? duration : 0;
@@ -122,7 +117,7 @@ export default class Clip {
             composite
         }, this.dynamic);
         
-        if (!commit) action.commit = false;
+        action.commit = commit;
 
         track.push(action);
     }

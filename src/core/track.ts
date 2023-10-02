@@ -3,6 +3,8 @@ import { StyleCache } from "./cache";
 import type { AnimatableKey, Easing } from "./clip";
 import { lengthToOffset } from "./utils";
 
+export type TransitionOptions = { duration?: number; easing?: Easing; reverse?: boolean; };
+
 export default class Track {
 
     element: HTMLElement;
@@ -75,8 +77,9 @@ export default class Track {
         if (this.active.length) this.correct();
     }
 
-    transition(previous: Track | undefined, options: { duration?: number; easing?: Easing; }) {
-        const clips = this.cache.difference(previous?.cache.data, options);
+    transition(previous: Track | undefined, options: TransitionOptions) {
+        // const clips = this.cache.difference(previous?.cache.data, options);
+        const clips = this.cache.difference(previous?.cache.read(), options);
         this.cache.update();
         previous?.finish();
         previous?.cache.update();
@@ -90,7 +93,6 @@ export default class Track {
     }
 
     set(prop: string, val: any) {
-        if (prop === 'borderRadius') val = this.computeBorderRadius(val);
         prop = prop === 'strokeLength' ? 'strokeDashoffset' : prop;
 
         this.element.style[prop as never] = prop === 'strokeDashoffset' ? lengthToOffset(val) : val;
@@ -109,8 +111,6 @@ export default class Track {
     }
 
     computeBorderRadius(borderRadius = this.cache.computed.borderRadius) {
-        if (this.deform) return borderRadius;
-
         const arr = borderRadius.split(/\s*\/\s*/);
         if (arr.length < 2) arr[1] = arr[0];
 

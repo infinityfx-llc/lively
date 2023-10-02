@@ -1,64 +1,100 @@
-import { forwardRef, useContext, useEffect, useRef } from "react";
+import { cloneElement, forwardRef, useContext, useEffect, useRef, useState } from "react";
 import Animatable, { AnimatableContext, AnimatableType, AnimatableProps } from "../animatable";
-import { Easing } from "../core/clip";
 import { combineRefs } from "../core/utils";
 import Timeline from "../core/timeline";
+import { TransitionOptions } from "../core/track";
 
-// - crossfades
-// - unmount animation when no morph target
+// - crossfades (difficult, because easing is not symmetric in reverse)
 
 const Groups: {
-    [key: string]: Timeline[];
+    [key: string]: {
+        targets: Set<Timeline>;
+        visible: boolean;
+    }
 } = {};
 
 type MorphProps = {
+    children: React.ReactElement;
     group: string;
-    transition?: { duration?: number; easing?: Easing };
-} & AnimatableProps;
+    transition?: Omit<TransitionOptions, 'reverse'>;
+    show?: boolean;
+} & Omit<AnimatableProps, 'children'>;
 
 const Morph = forwardRef<AnimatableType, MorphProps>(({
     children,
-    transition = {},
+    transition = {}, // should be able to be inherited
+    show = true,
     group,
     ...props
 }, ref) => {
     const parent = useContext(AnimatableContext);
     const self = useRef<AnimatableType | null>(null);
+    const [rendered, setRendered] = useState(show);
 
-    group = parent ? parent.group + group : group;
+    group = parent?.group ? `${parent.group}__${group}` : group;
 
     useEffect(() => {
         if (!self.current) return;
         const timeline = self.current.timeline;
 
-        for (let i = 0; i < Groups[group].length; i++) {
-            const target = Groups[group][i];
-            if (!target || target.mounted || target === self.current.timeline) continue;
+        let target;
+        Groups[group].targets.forEach(timeline => {
+            if (timeline.rendered) target = timeline;
+        });
 
-            timeline.transition(target, transition);
-            timeline.test = true;
-            Groups[group].splice(i, 1);
-            break;
+        if (show && !timeline.rendered) {
+            Groups[group].visible = true;
+
+            if (target) {
+                timeline.transition(target, transition);
+            } else {
+                self.current.mount();
+            }
         }
 
-        return () => {
-            timeline.mounted = false;
-            // setTimeout(() => { // DOESNT WORK
-            //     if (group) {
-            //         const i = Groups[group].indexOf(timeline);
-            //         if (i >= 0) Groups[group].splice(i, 1);
-            //     }
-            // });
-        }
-    }, []);
+        setRendered(show);
+    }, [show]);
 
-    return <Animatable {...props} group={group} ref={combineRefs(el => {
+    useEffect(() => {
+        if (!self.current) return;
+        const timeline = self.current.timeline;
+
+        if (!show && timeline.rendered && !Groups[group].visible) {
+            self.current?.unmount();
+        }
+
+        setTimeout(() => Groups[group].visible = false);
+        timeline.rendered = show;
+    }, [rendered]);
+
+    // useEffect(() => {
+    //     if (!self.current) return;
+    //     const timeline = self.current.timeline;
+
+    //     for (let i = 0; i < Groups[group].length; i++) {
+    //         const target = Groups[group][i];
+    //         if (!target || target.mounted || target === self.current.timeline || timeline.test) continue;
+    //         timeline.test = true;
+
+    //         timeline.transition(target, transition);
+    //         Groups[group].splice(i, 1);
+    //         break;
+    //     }
+
+    //     return () => {
+    //         timeline.mounted = false;
+    //         // timeline.tracks.values.forEach(track => track.finish()); // mabye do this in animatable? (then also dont need to care about mount using immediate!)
+    //     }
+    // }, []);
+
+    return <Animatable {...props} manual group={group} ref={combineRefs(el => {
         self.current = el;
+        if (el && !el.timeline.mounted) el.timeline.rendered = show;
 
-        if (!(group in Groups)) Groups[group] = [];
-        if (el && !Groups[group].includes(el.timeline)) Groups[group].push(el.timeline);
+        if (!(group in Groups)) Groups[group] = { targets: new Set(), visible: false };
+        if (el) Groups[group].targets.add(el.timeline);
     }, ref)}>
-        {children}
+        {cloneElement(children, { style: { ...children.props.style, visibility: show ? undefined : 'hidden' } } as any)}
     </Animatable >;
 });
 

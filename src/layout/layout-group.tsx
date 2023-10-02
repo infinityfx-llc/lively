@@ -16,6 +16,8 @@ function snapshot(children: React.ReactNode, map: { [key: string]: boolean } = {
     return map;
 }
 
+// simultanous unmount / mount
+
 export default function LayoutGroup({
     children,
     transition
@@ -32,7 +34,7 @@ export default function LayoutGroup({
 
         let delay = 0, pending = snapshot(children);
         for (const child of ref.current.children) {
-            if (child.current && child.current.id in cache.current && !(child.current.id in pending)) {
+            if (child.current && !child.current.manual && child.current.id in cache.current && !(child.current.id in pending)) {
                 delay = Math.max(child.current.unmount(), delay);
             }
         }

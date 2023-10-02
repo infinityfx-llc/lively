@@ -1,4 +1,5 @@
 import Clip, { AnimatableKey, ClipProperties, Easing } from "./clip";
+import { TransitionOptions } from "./track";
 
 type CacheData = { [key in AnimatableKey]?: string } & {
     _x: number;
@@ -46,10 +47,10 @@ export class StyleCache {
         this.data = this.read();
     }
 
-    difference(from: CacheData = this.data, { duration = 0.5, easing = 'ease' }: { duration?: number; easing?: Easing; }) {
+    difference(from: CacheData = this.data, { duration = 0.5, easing = 'ease', reverse = false }: TransitionOptions) {
         const to = this.read();
 
-        const keyframes1: ClipProperties = { duration, easing, composite: 'combine' }, keyframes2: ClipProperties = { duration, easing, composite: 'override' };
+        const keyframes1: ClipProperties = { duration, easing, reverse, composite: 'combine' }, keyframes2: ClipProperties = { ...keyframes1, composite: 'override' };
         for (const key of this.include) {
             switch (key) {
                 case 'scale': keyframes1[key] = [`${to._w === 0 ? 1 : from._w / to._w} ${to._h === 0 ? 1 : from._h / to._h}`, '1 1'];

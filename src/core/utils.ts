@@ -53,16 +53,6 @@ export class IndexedList<T = any> {
         }
     }
 
-    // remove(index: number) {
-    //     const i = this.map(index);
-
-    //     if (i >= 0) {
-    //         this.values.splice(i, 1);
-    //         this.indices.splice(i, 1);
-    //         this.size--;
-    //     }
-    // }
-
     map(index: number) {
         let start = 0, end = this.size - 1;
 
@@ -76,10 +66,6 @@ export class IndexedList<T = any> {
 
         return ~start;
     }
-
-    // forEach(iterator: (value: T, index: number) => void) {
-    //     this.values.forEach(iterator);
-    // }
 
 };
 
@@ -126,25 +112,4 @@ export function normalizeAnimatableKeyframes(keyframes: (AnimatableKeyframe | un
     }
 
     return equal < 2 || equal !== keyframes.length;
-}
-
-let element: HTMLDivElement;
-
-export function createDynamicFrom(prop: string, keyframes: AnimatableObjectProperty[], easing: Easing) { // strokeLength gets double converted when this is used in action with .set() (causing 1 - val to be inverted)
-    const parsed = Object.values(distributeAnimatableKeyframes(prop, keyframes));
-    let animation: Animation;
-
-    return (progress: number) => {
-        if (!element) {
-            element = document.createElement('div');
-            element.style.visibility = 'hidden';
-            element.style.position = 'absolute';
-            document.body.appendChild(element);
-        }
-
-        if (!animation) animation = element.animate(parsed, { easing, duration: 1000, fill: 'forwards' });
-        animation.currentTime = 1000 * progress;
-
-        return getComputedStyle(element)[prop as never];
-    };
 }

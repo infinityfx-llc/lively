@@ -1,10 +1,8 @@
 import { Children, cloneElement, createContext, forwardRef, isValidElement, useCallback, useContext, useEffect, useImperativeHandle, useRef, useState } from "react";
 import Clip, { AnimatableInitials, AnimatableKey, ClipProperties } from "./core/clip";
 import useTrigger, { Trigger } from "./hooks/use-trigger";
-import Timeline from "./core/timeline";
+import Timeline, { PlayOptions } from "./core/timeline";
 import { combineRefs, merge } from "./core/utils";
-
-type PlayOptions = { composite?: boolean; immediate?: boolean; reverse?: boolean; delay?: number };
 
 export type AnimatableType = {
     play: (animation: string, options?: PlayOptions, layer?: number) => number;
@@ -12,7 +10,9 @@ export type AnimatableType = {
     children: React.MutableRefObject<AnimatableType | null>[];
     inherit: boolean | undefined;
     unmount: () => number;
+    mount: () => void;
     adaptive: boolean;
+    manual: boolean;
     id: string;
 };
 
@@ -36,6 +36,7 @@ export type AnimatableProps = {
     inherit?: boolean;
     adaptive?: boolean;
     cachable?: AnimatableKey[];
+    manual?: boolean;
 } & SharedProps;
 
 export const AnimatableContext = createContext<null | ({
@@ -62,6 +63,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         deform,
         cachable,
         adaptive = false,
+        manual = false,
         triggers = []
     } = props.inherit && parent ? merge({}, props, parent) : props;
 
@@ -122,6 +124,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         for (const { name, on, ...options } of triggers) {
             if (on !== 'unmount') continue;
 
+            merge(options, { commit: false });
             duration = Math.max(play(name || 'animate', options), duration);
         }
 
@@ -137,12 +140,14 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
     useImperativeHandle(combineRefs(self, ref), () => ({
         play,
         unmount,
+        mount,
         timeline: timeline.current,
         children: children.current,
         inherit: props.inherit,
         adaptive,
+        manual,
         id
-    }), []);
+    }), [mount]);
 
     useEffect(() => {
         paused || disabled ? timeline.current.pause() : timeline.current.play();
@@ -154,7 +159,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
 
             if (on === 'unmount') continue;
             if (on === 'mount') {
-                merge(options, { immediate: true });
+                merge(options, { immediate: true }); // might be unnecessary if only calling mount() when timeline.mounted is false
                 on = mount;
             }
 
@@ -174,9 +179,8 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         if (parent && parent.children.indexOf(self) < 0) parent.children.push(self);
 
         document.fonts.ready.then(() => {
-            if (!timeline.current.test) mount();
+            if (!manual && !timeline.current.mounted) mount();
             timeline.current.mounted = true;
-            timeline.current.test = true;
         });
 
         return () => {
@@ -212,8 +216,8 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
                         backfaceVisibility: 'hidden',
                         willChange: 'transform'
                     },
-                    clipMap.animate.initial,
                     (child as any).props.style,
+                    clipMap.animate.initial,
                     {
                         strokeDasharray: 1
                     }

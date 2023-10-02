@@ -63,7 +63,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         deform,
         cachable,
         adaptive = false,
-        manual = false,
+        manual = false, // NEW (OPTIMIZE)
         triggers = []
     } = props.inherit && parent ? merge({}, props, parent) : props;
 
@@ -140,12 +140,12 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
     useImperativeHandle(combineRefs(self, ref), () => ({
         play,
         unmount,
-        mount,
+        mount, // NEW (OPTIMIZE)
         timeline: timeline.current,
         children: children.current,
         inherit: props.inherit,
         adaptive,
-        manual,
+        manual, // NEW (OPTIMIZE)
         id
     }), [mount]);
 

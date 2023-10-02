@@ -58,7 +58,7 @@ export default class Clip {
             prop = prop === 'strokeLength' ? 'strokeDashoffset' : prop;
 
             if (val instanceof Function) {
-                if (!('connect' in val)) this.dynamic[prop as AnimatableKey] = val;
+                if (!('onchange' in val)) this.dynamic[prop as AnimatableKey] = val;
                 continue;
             }
 

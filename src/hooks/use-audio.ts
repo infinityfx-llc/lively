@@ -8,7 +8,7 @@ export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency =
     const analyzer = useRef<AnalyserNode>();
     const source = useRef<MediaElementAudioSourceNode>();
     const ref = useRef<HTMLAudioElement | null>(null);
-    const [link, setLink] = useLink<number[]>(new Array(8).fill(0));
+    const link = useLink<number[]>(new Array(8).fill(0));
 
     let frame: number;
     function update() {
@@ -28,7 +28,7 @@ export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency =
             arr[i] = Math.max(0, (100 + val) / 70);
         }
 
-        setLink(arr, 0);
+        link.set(arr, 0);
 
         frame = requestAnimationFrame(update);
     }
@@ -41,7 +41,7 @@ export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency =
     function suspend() {
         cancelAnimationFrame(frame);
 
-        setLink(new Array(bands).fill(0), 0.3);
+        link.set(new Array(bands).fill(0), 0.3);
     }
 
     useEffect(() => {

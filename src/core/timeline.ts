@@ -40,16 +40,16 @@ export default class Timeline {
         return clip.duration + this.stagger * Math.max(Math.min(this.staggerLimit, this.tracks.size - 1), 0);
     }
 
-    port(key: string, link: Link<any>, transition: number) {
+    port(prop: string, link: Link<any>, dt: number) {
         if (this.paused) return;
 
         for (let i = 0; i < this.tracks.size; i++) {
-            const val = link(i);
+            const track = this.tracks.values[i], value = link(i);
 
-            if (transition) {
-                new Clip({ duration: transition, easing: 'ease', [key]: val }).play(this.tracks.values[i], {});
+            if (dt) {
+                new Clip({ duration: dt, easing: 'ease', [prop]: value }).play(track, { composite: 'override' });
             } else {
-                this.tracks.values[i].apply(key, val);
+                track.apply(prop, value);
             }
         }
     }
@@ -60,8 +60,9 @@ export default class Timeline {
         for (let prop in clip) {
             const val = clip[prop as keyof ClipProperties];
 
-            if (val instanceof Function && 'connect' in val) {
-                val.connect(this.port.bind(this, prop, val));
+            if (val instanceof Function && 'onchange' in val) {
+                val.onchange(this.port.bind(this, prop, val));
+
                 this.port(prop, val, 0);
             }
         }

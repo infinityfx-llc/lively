@@ -78,8 +78,7 @@ export default class Track {
     }
 
     transition(previous: Track | undefined, options: TransitionOptions) {
-        // const clips = this.cache.difference(previous?.cache.data, options);
-        const clips = this.cache.difference(previous?.cache.read(), options);
+        const clips = this.cache.difference(previous?.cache.data, options);
         this.cache.update();
         previous?.finish();
         previous?.cache.update();

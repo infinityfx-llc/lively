@@ -78,7 +78,7 @@ export default class Timeline {
     }
 
     insert(element: any) {
-        if (!(element instanceof HTMLElement)) return;
+        if (!(element instanceof HTMLElement || element instanceof SVGElement)) return;
 
         if (!('TRACK_INDEX' in element)) (element as any).TRACK_INDEX = this.index++;
         if (!this.tracks.has((element as any).TRACK_INDEX)) {

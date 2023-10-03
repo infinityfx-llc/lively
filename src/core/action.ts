@@ -11,12 +11,12 @@ export default class Action {
     onfinish: (() => void) | null = null;
 
     constructor(track: Track, keyframes: Keyframe[] | PropertyIndexedKeyframes, config: Omit<KeyframeAnimationOptions, 'composite'> & { composite: CompositeType; }, dynamic: DynamicProperties = {}) {
+        this.composite = config.composite;
         (config as any).composite = config.composite === 'combine' ? 'accumulate' : 'replace';
         this.animation = track.element.animate(keyframes, config as any as KeyframeAnimationOptions);
         this.dynamic = dynamic;
         this.track = track;
 
-        this.composite = config.composite;
         this.animation.onfinish = this.finish.bind(this);
     }
 

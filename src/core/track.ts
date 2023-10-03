@@ -7,7 +7,7 @@ export type TransitionOptions = { duration?: number; easing?: Easing; reverse?: 
 
 export default class Track {
 
-    element: HTMLElement;
+    element: HTMLElement | SVGElement;
     deform: boolean;
     playing: number = 0;
     active: Action[] = [];
@@ -16,7 +16,7 @@ export default class Track {
     cache: StyleCache;
     scale: [number, number] = [1, 1];
 
-    constructor(element: HTMLElement, deform: boolean, cachable?: AnimatableKey[]) {
+    constructor(element: HTMLElement | SVGElement, deform: boolean, cachable?: AnimatableKey[]) {
         this.element = element;
         this.deform = deform;
         this.cache = new StyleCache(element, cachable);

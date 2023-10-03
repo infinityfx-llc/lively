@@ -76,14 +76,14 @@ export default class Clip {
         this.initial = merge({}, initial, this.keyframes.length ? (this.keyframes[0] as any) : {});
         // this.initial.strokeDashoffset = lengthToOffset((this.initial as any).strokeLength);
         delete this.initial.offset;
-        this.duration = this.keyframes.length ? duration : 0;
+        this.isEmpty = !this.keyframes.length && !Object.keys(this.dynamic).length;
+        this.duration = this.isEmpty ? 0 : duration;
         this.delay = delay;
         this.repeat = repeat;
         this.alternate = alternate;
         this.easing = easing;
         this.reverse = reverse;
         this.composite = composite;
-        this.isEmpty = !this.keyframes.length && !Object.keys(this.dynamic).length;
     }
 
     static from(data?: ClipProperties | Clip, initial?: AnimatableInitials) {

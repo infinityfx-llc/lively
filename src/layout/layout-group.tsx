@@ -53,7 +53,7 @@ export default function LayoutGroup({
         }
     }, [content]);
 
-    return <Animatable ref={ref}>
+    return <Animatable ref={ref} cachable={[]}>
         {content}
     </Animatable>
 }

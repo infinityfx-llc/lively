@@ -217,7 +217,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
                         strokeDasharray: 1
                     }
                 ),
-                'data-lively-offset-boundary': true // TESTING REQUIRED
+                'data-lively-offset-boundary': cachable?.includes('translate') || cachable === undefined ? true : undefined
             });
         })}
     </AnimatableContext.Provider>;

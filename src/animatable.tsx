@@ -194,6 +194,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         animations,
         stagger,
         staggerLimit,
+        triggers,
         deform,
         paused,
         disabled,

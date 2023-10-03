@@ -1,16 +1,17 @@
 import { Children, cloneElement, createContext, forwardRef, isValidElement, useCallback, useContext, useEffect, useImperativeHandle, useRef, useState } from "react";
 import Clip, { AnimatableInitials, AnimatableKey, ClipProperties } from "./core/clip";
-import useTrigger, { Trigger } from "./hooks/use-trigger";
+import { Trigger } from "./hooks/use-trigger";
 import Timeline, { PlayOptions } from "./core/timeline";
 import { combineRefs, merge } from "./core/utils";
 
+type StaticTrigger = 'mount' | 'unmount';
+
 export type AnimatableType = {
     play: (animation: string, options?: PlayOptions, layer?: number) => number;
+    trigger: (trigger: StaticTrigger, options?: PlayOptions) => number;
     timeline: Timeline;
     children: React.MutableRefObject<AnimatableType | null>[];
     inherit: boolean | undefined;
-    unmount: () => number;
-    mount: () => void;
     adaptive: boolean;
     manual: boolean;
     id: string;
@@ -19,7 +20,7 @@ export type AnimatableType = {
 type SharedProps = {
     group?: string;
     animations?: { [key: string]: ClipProperties | Clip };
-    triggers?: ({ name?: string; on: Trigger | boolean | 'mount' | 'unmount' } & PlayOptions)[];
+    triggers?: ({ name?: string; on: Trigger | boolean | StaticTrigger } & PlayOptions)[];
     animate?: ClipProperties | Clip;
     initial?: AnimatableInitials;
     stagger?: number;
@@ -69,7 +70,6 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
 
     const index = order !== undefined ? order : (props.inherit && parent?.index || 0) + 1;
     const triggersState = useRef<(number | boolean)[]>([]);
-    const mount = useTrigger();
 
     const [clipMap] = useState(() => {
         const map: { [key: string]: Clip } = { animate: Clip.from(animate, initial) };
@@ -118,20 +118,19 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         return duration + delay;
     }, [disabled, index]);
 
-    function unmount() { // CHECK TO OPTIMIZE
+    function trigger(trigger: StaticTrigger, options: PlayOptions = {}) {
         let duration = 0;
 
-        for (const { name, on, ...options } of triggers) {
-            if (on !== 'unmount') continue;
+        for (const { name, on, ...config } of triggers) {
+            if (on !== trigger) continue;
 
-            merge(options, { commit: false });
-            duration = Math.max(play(name || 'animate', options), duration);
+            duration = Math.max(play(name || 'animate', merge(config, options)), duration);
         }
 
         for (const child of children.current) {
-            if (!child.current?.inherit) continue;
+            if (!child.current?.inherit || trigger !== 'unmount') continue;
 
-            duration = Math.max(child.current.unmount(), duration);
+            duration = Math.max(child.current.trigger(trigger, options), duration);
         }
 
         return duration;
@@ -139,15 +138,14 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
 
     useImperativeHandle(combineRefs(self, ref), () => ({
         play,
-        unmount,
-        mount, // NEW (OPTIMIZE)
+        trigger,
         timeline: timeline.current,
         children: children.current,
         inherit: props.inherit,
         adaptive,
         manual, // NEW (OPTIMIZE)
         id
-    }), [mount]);
+    }));
 
     useEffect(() => {
         paused || disabled ? timeline.current.pause() : timeline.current.play();
@@ -157,18 +155,14 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         for (let i = 0; i < triggers.length; i++) {
             let { name, on, ...options } = triggers[i];
 
-            if (on === 'unmount') continue;
-            if (on === 'mount') {
-                merge(options, { immediate: true }); // might be unnecessary if only calling mount() when timeline.mounted is false
-                on = mount;
-            }
+            if (typeof on === 'string') continue;
 
             const value = on.value !== undefined ? on.value : on, prev = triggersState.current[i];
             if (prev !== undefined && value && value !== prev) play(name || 'animate', options);
 
             triggersState.current[i] = value;
         }
-    }, [triggers, mount]);
+    }, [triggers]);
 
     useEffect(() => {
         timeline.current.step();
@@ -179,7 +173,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         if (parent && parent.children.indexOf(self) < 0) parent.children.push(self);
 
         document.fonts.ready.then(() => {
-            if (!manual && !timeline.current.mounted) mount();
+            if (!manual && !timeline.current.mounted) trigger('mount');
             timeline.current.mounted = true;
         });
 

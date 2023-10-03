@@ -35,7 +35,7 @@ export default function LayoutGroup({
         let delay = 0, pending = snapshot(children);
         for (const child of ref.current.children) {
             if (child.current && !child.current.manual && child.current.id in cache.current && !(child.current.id in pending)) {
-                delay = Math.max(child.current.unmount(), delay);
+                delay = Math.max(child.current.trigger('unmount'), delay);
             }
         }
 

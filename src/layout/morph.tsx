@@ -5,6 +5,7 @@ import Timeline from "../core/timeline";
 import { TransitionOptions } from "../core/track";
 
 // - crossfades (difficult, because easing is not symmetric in reverse)
+// - dont use visibility prop but actually unmount stuff (delay this for unmount animation)
 
 const Groups: {
     [key: string]: {
@@ -48,7 +49,7 @@ const Morph = forwardRef<AnimatableType, MorphProps>(({
             if (target) {
                 timeline.transition(target, transition);
             } else {
-                self.current.mount();
+                self.current.trigger('mount', { commit: false });
             }
         }
 
@@ -60,7 +61,7 @@ const Morph = forwardRef<AnimatableType, MorphProps>(({
         const timeline = self.current.timeline;
 
         if (!show && timeline.rendered && !Groups[group].visible) {
-            self.current?.unmount();
+            self.current?.trigger('unmount', { commit: false });
         }
 
         setTimeout(() => Groups[group].visible = false);

@@ -17,7 +17,6 @@ export default class Timeline {
     frame: number = 0;
     connected: boolean = false;
     mounted: boolean = false;
-    rendered: boolean = false;
     mountClips: Clip[];
 
     constructor({ stagger = 0.1, staggerLimit = 10, deform = true, cachable, mountClips }: { stagger?: number; staggerLimit?: number; deform?: boolean; cachable?: AnimatableKey[]; mountClips: Clip[]; }) {

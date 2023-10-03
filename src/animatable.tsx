@@ -64,7 +64,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         deform,
         cachable,
         adaptive = false,
-        manual = false, // NEW (OPTIMIZE)
+        manual = false,
         triggers = []
     } = props.inherit && parent ? merge({}, props, parent) : props;
 
@@ -143,7 +143,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         children: children.current,
         inherit: props.inherit,
         adaptive,
-        manual, // NEW (OPTIMIZE)
+        manual,
         id
     }));
 
@@ -215,7 +215,8 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
                     {
                         strokeDasharray: 1
                     }
-                )
+                ),
+                'data-lively-offset-boundary': true // TESTING REQUIRED
             });
         })}
     </AnimatableContext.Provider>;

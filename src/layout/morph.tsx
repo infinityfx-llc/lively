@@ -1,11 +1,10 @@
-import { cloneElement, forwardRef, useContext, useEffect, useRef, useState } from "react";
+import { forwardRef, useContext, useEffect, useRef, useState } from "react";
 import Animatable, { AnimatableContext, AnimatableType, AnimatableProps } from "../animatable";
 import { combineRefs } from "../core/utils";
 import Timeline from "../core/timeline";
 import { TransitionOptions } from "../core/track";
 
 // - crossfades (difficult, because easing is not symmetric in reverse)
-// - dont use visibility prop but actually unmount stuff (delay this for unmount animation)
 
 const Groups: {
     [key: string]: {
@@ -15,11 +14,10 @@ const Groups: {
 } = {};
 
 type MorphProps = {
-    children: React.ReactElement;
     group: string;
     transition?: Omit<TransitionOptions, 'reverse'>;
     show?: boolean;
-} & Omit<AnimatableProps, 'children'>;
+} & AnimatableProps;
 
 const Morph = forwardRef<AnimatableType, MorphProps>(({
     children,
@@ -30,7 +28,9 @@ const Morph = forwardRef<AnimatableType, MorphProps>(({
 }, ref) => {
     const parent = useContext(AnimatableContext);
     const self = useRef<AnimatableType | null>(null);
-    const [rendered, setRendered] = useState(show);
+
+    const [prev, setPrev] = useState(show);
+    const [state, setState] = useState(show);
 
     group = parent?.group ? `${parent.group}__${group}` : group;
 
@@ -38,35 +38,41 @@ const Morph = forwardRef<AnimatableType, MorphProps>(({
         if (!self.current) return;
         const timeline = self.current.timeline;
 
-        let target;
-        Groups[group].targets.forEach(timeline => {
-            if (timeline.rendered) target = timeline;
+        let morphTarget;
+        Groups[group].targets.forEach(target => {
+            if (target.mounted && target !== timeline) morphTarget = target;
         });
 
-        if (show && !timeline.rendered) {
+        if (show && !timeline.mounted) {
             Groups[group].visible = true;
 
-            if (target) {
-                timeline.transition(target, transition);
+            if (morphTarget) {
+                timeline.transition(morphTarget, transition);
             } else {
-                self.current.trigger('mount', { commit: false });
+                self.current.trigger('mount');
             }
         }
 
-        setRendered(show);
+        setState(show);
     }, [show]);
 
     useEffect(() => {
         if (!self.current) return;
         const timeline = self.current.timeline;
 
-        if (!show && timeline.rendered && !Groups[group].visible) {
-            self.current?.trigger('unmount', { commit: false });
+        if (!show && timeline.mounted) {
+            if (!Groups[group].visible) {
+                const dt = self.current?.trigger('unmount');
+                setTimeout(() => setPrev(false), dt * 1000);
+            }
+
+            Groups[group].targets.delete(timeline);
         }
+        if (show || Groups[group].visible) setPrev(show);
 
         setTimeout(() => Groups[group].visible = false);
-        timeline.rendered = show;
-    }, [rendered]);
+        timeline.mounted = show;
+    }, [state]);
 
     // useEffect(() => {
     //     if (!self.current) return;
@@ -88,14 +94,19 @@ const Morph = forwardRef<AnimatableType, MorphProps>(({
     //     }
     // }, []);
 
+    if (!show && prev === show) return null;
+
     return <Animatable {...props} manual group={group} ref={combineRefs(el => {
-        self.current = el;
-        if (el && !el.timeline.mounted) el.timeline.rendered = show;
+        // self.current = el;
+        // if (el && !el.timeline.mounted) el.timeline.rendered = show;
 
         if (!(group in Groups)) Groups[group] = { targets: new Set(), visible: false };
-        if (el) Groups[group].targets.add(el.timeline);
+        if (el) {
+            Groups[group].targets.add(el.timeline);
+            self.current = el;
+        }
     }, ref)}>
-        {cloneElement(children, { style: { ...children.props.style, visibility: show ? undefined : 'hidden' } } as any)}
+        {children}
     </Animatable >;
 });
 

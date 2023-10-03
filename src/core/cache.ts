@@ -36,6 +36,7 @@ export class StyleCache {
             data._y += parent.offsetTop;
 
             parent = parent.offsetParent as HTMLElement;
+            if (parent?.dataset.livelyOffsetBoundary) break;
         }
 
         for (const prop of this.include) data[prop] = this.computed[prop as never];

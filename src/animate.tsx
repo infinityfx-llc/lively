@@ -27,4 +27,6 @@ const Animate = forwardRef<AnimatableType, AnimateProps>(({ children, animations
     return <>{render(children)}</>;
 });
 
+Animate.displayName = 'Animate';
+
 export default Animate;

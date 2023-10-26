@@ -4,7 +4,7 @@ import Move from "./animations/move";
 import Pop from "./animations/pop";
 import Clip, { ClipProperties } from "./core/clip";
 
-type AnimateProps = { children: React.ReactNode; animations?: (ClipProperties | Clip)[]; levels?: number; } & Omit<AnimatableProps, 'animations' | 'animate' | 'noInherit' | 'order'>;
+type AnimateProps = { children: React.ReactNode; animations?: (ClipProperties | Clip)[]; levels?: number; } & Omit<AnimatableProps, 'animations' | 'animate' | 'order'>;
 
 const Animate = forwardRef<AnimatableType, AnimateProps>(({ children, animations = [Move, Pop], levels = 2, ...props }, ref) => {
 
@@ -15,7 +15,7 @@ const Animate = forwardRef<AnimatableType, AnimateProps>(({ children, animations
 
         if (level < 1 || Children.count(children) < 1) return children;
 
-        return <Animatable {...props} ref={ref} animate={clip} inherit={level < levels}>
+        return <Animatable {...props} ref={ref} animate={clip} inherit={level < levels ? true : props.inherit}>
             {Children.map(children, child => {
                 if (!isValidElement(child)) return child;
 

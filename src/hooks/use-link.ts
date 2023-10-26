@@ -7,7 +7,6 @@ export type Link<T> = {
     (index?: number): T;
     onchange: (callback: ChangeListener) => void;
     set: (value: T, transition?: number) => void;
-    time: () => number;
 };
 
 export default function useLink<T = any>(initial: T) {

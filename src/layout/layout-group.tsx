@@ -17,6 +17,50 @@ function snapshot(children: React.ReactNode, map: { [key: string]: boolean } = {
     return map;
 }
 
+function compare(a: any, b: any) {
+    const typeA = typeof a,
+        typeB = typeof b;
+    if (typeA !== typeB) return false;
+
+    if (isValidElement(a)) {
+        if (!isValidElement(b)) return false;
+
+        return compare(a.props, b.props);
+    }
+
+    if (Array.isArray(a)) {
+        if (!Array.isArray(b) || a.length !== b.length) return false;
+
+        for (let i = 0; i < a.length; i++) {
+            if (!compare(a[i], b[i])) return false;
+        }
+
+    } else
+        if (typeA === 'object' && a !== null && b !== null) {
+            const keysA = Object.keys(a),
+                keysB = Object.keys(b);
+
+            if (keysA.length !== keysB.length) return false;
+
+            for (let i = 0; i < keysA.length; i++) {
+                if (!(keysA[i] in b) || !compare(a[keysA[i]], b[keysB[i]])) return false;
+            }
+        } else {
+
+            return a === b;
+        }
+
+    return true;
+}
+
+function isEqual(a: any, b: any) {
+    try {
+        return compare(a, b);
+    } catch (err) {
+        return false;
+    }
+}
+
 // simultanous unmount / mount
 
 export default function LayoutGroup({
@@ -31,7 +75,7 @@ export default function LayoutGroup({
     const [content, setContent] = useState(children);
 
     useEffect(() => {
-        if (!ref.current) return;
+        if (!ref.current || isEqual(content, children)) return;
 
         let delay = 0, pending = snapshot(children);
         for (const child of ref.current.children) {

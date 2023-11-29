@@ -28,8 +28,6 @@ function compare(a: any, b: any) {
         return compare(a.props, b.props);
     }
 
-    if (typeA === 'function' && typeB === 'function') return true;
-
     if (Array.isArray(a)) {
         if (!Array.isArray(b) || a.length !== b.length) return false;
 
@@ -53,7 +51,7 @@ function compare(a: any, b: any) {
         return true;
     }
 
-    return a === b;
+    return (typeA === 'function' && typeA === typeB) || a === b;
 }
 
 function isEqual(a: any, b: any) {
@@ -71,7 +69,7 @@ export default function LayoutGroup({
     transition
 }: {
     children: React.ReactNode;
-    transition?: { duration?: number; easing?: Easing };
+    transition?: { duration?: number; easing?: Easing; };
 }) {
     const ref = useRef<AnimatableType | null>(null);
     const cache = useRef(snapshot(children));

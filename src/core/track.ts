@@ -47,19 +47,27 @@ export default class Track {
         this.play();
     }
 
-    finish() {
+    clear(partial?: boolean) {
         this.active.forEach(action => {
             action.onfinish = null;
 
             try {
-                action.animation.finish();
+                if (!partial) {
+                    action.animation.finish();
+                } else
+                    if (!action.commit && action.composite !== 'combine') {
+                        action.animation.cancel();
+                    }
             } catch (ex) {
                 action.animation.cancel();
             }
         });
-        this.active = [];
-        this.queue = [];
-        this.playing = 0;
+
+        if (!partial) {
+            this.active = [];
+            this.queue = [];
+            this.playing = 0;
+        }
         // also call correct here?? (manually set currentTime to desired frame to update)
     }
 
@@ -78,9 +86,11 @@ export default class Track {
     }
 
     transition(previous: Track | undefined, options: TransitionOptions) {
+        this.clear(true);
+
         const clips = this.cache.difference(previous?.cache.data, options);
         this.cache.update();
-        previous?.finish();
+        previous?.clear();
         previous?.cache.update();
 
         clips.forEach(clip => clip.play(this, { commit: false }));

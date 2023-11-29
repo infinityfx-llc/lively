@@ -1,4 +1,4 @@
-import Clip, { AnimatableKey, ClipProperties, Easing } from "./clip";
+import Clip, { AnimatableKey, ClipProperties } from "./clip";
 import { TransitionOptions } from "./track";
 
 type CacheData = { [key in AnimatableKey]?: string } & {

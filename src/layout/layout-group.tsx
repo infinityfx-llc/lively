@@ -23,10 +23,12 @@ function compare(a: any, b: any) {
     if (typeA !== typeB) return false;
 
     if (isValidElement(a)) {
-        if (!isValidElement(b)) return false;
+        if (!isValidElement(b) || a.key !== b.key) return false;
 
         return compare(a.props, b.props);
     }
+
+    if (typeA === 'function' && typeB === 'function') return true;
 
     if (Array.isArray(a)) {
         if (!Array.isArray(b) || a.length !== b.length) return false;
@@ -35,22 +37,23 @@ function compare(a: any, b: any) {
             if (!compare(a[i], b[i])) return false;
         }
 
-    } else
-        if (typeA === 'object' && a !== null && b !== null) {
-            const keysA = Object.keys(a),
-                keysB = Object.keys(b);
+        return true;
+    }
 
-            if (keysA.length !== keysB.length) return false;
+    if (typeA === 'object' && a !== null && b !== null) {
+        const keysA = Object.keys(a),
+            keysB = Object.keys(b);
 
-            for (let i = 0; i < keysA.length; i++) {
-                if (!(keysA[i] in b) || !compare(a[keysA[i]], b[keysB[i]])) return false;
-            }
-        } else {
+        if (keysA.length !== keysB.length) return false;
 
-            return a === b;
+        for (let i = 0; i < keysA.length; i++) {
+            if (!(keysA[i] in b) || !compare(a[keysA[i]], b[keysB[i]])) return false;
         }
 
-    return true;
+        return true;
+    }
+
+    return a === b;
 }
 
 function isEqual(a: any, b: any) {

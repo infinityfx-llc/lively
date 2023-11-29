@@ -1,6 +1,6 @@
 {
 	"name": "@infinityfx/lively",
-	"version": "3.2.7",
+	"version": "3.2.8",
 	"type": "module",
 	"description": "Feature complete, lightweight react animation library.",
 	"main": "dist/index.js",
@@ -26,7 +26,7 @@
 		}
 	},
 	"repository": "infinityfx-llc/lively",
-	"author": "InfinityFX <contact@infinity-fx.com> (https://infinity-fx.com)",
+	"author": "InfinityFX <contact@infinity-fx.com> (https://infinityfx.dev)",
 	"license": "GPL-3.0",
 	"bugs": "https://github.com/infinityfx-llc/lively/issues",
 	"homepage": "https://github.com/infinityfx-llc/lively#readme",

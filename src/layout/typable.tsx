@@ -10,7 +10,7 @@ const Typable = forwardRef(({ children, stagger = 1, staggerLimit = Number.MAX_V
             return child
                 .toString()
                 .split('')
-                .map(char => <span style={{ color: char === ' ' ? 'transparent' : undefined }}>{char === ' ' ? '0' : char}</span>);
+                .map(char => <span style={{ whiteSpace: char === ' ' ? 'pre-wrap' : undefined }}>{char}</span>);
         })}
     </Animatable>;
 });

@@ -36,7 +36,7 @@ export default class Timeline {
     }
 
     time(clip: Clip) {
-        return clip.duration + this.stagger * Math.max(Math.min(this.staggerLimit, this.tracks.size - 1), 0);
+        return clip.duration + clip.delay + this.stagger * Math.max(Math.min(this.staggerLimit, this.tracks.size - 1), 0);
     }
 
     port(prop: string, link: Link<any>, dt: number) {
@@ -53,7 +53,7 @@ export default class Timeline {
         }
     }
 
-    connect(clip?: ClipProperties) {
+    connect(clip?: ClipProperties | Clip) {
         if (this.connected || !clip || clip instanceof Clip) return;
 
         for (let prop in clip) {

@@ -6,8 +6,8 @@ import { combineRefs, merge } from "./core/utils";
 
 type StaticTrigger = 'mount' | 'unmount';
 
-export type AnimatableType = {
-    play: (animation: string, options?: PlayOptions, layer?: number) => number;
+export type AnimatableType<T extends string = any> = {
+    play: (animation: T | 'animate', options?: PlayOptions, layer?: number) => number;
     trigger: (trigger: StaticTrigger, options?: PlayOptions) => number;
     timeline: Timeline;
     children: React.MutableRefObject<AnimatableType | null>[];
@@ -17,10 +17,10 @@ export type AnimatableType = {
     id: string;
 };
 
-type SharedProps = {
+type SharedProps<T extends string = any> = {
     group?: string;
-    animations?: { [key: string]: ClipProperties | Clip };
-    triggers?: ({ name?: string; on: Trigger | boolean | StaticTrigger } & PlayOptions)[];
+    animations?: { [key in T]: ClipProperties | Clip; };
+    triggers?: ({ name?: T | 'animate'; on: Trigger | boolean | StaticTrigger; } & PlayOptions)[];
     animate?: ClipProperties | Clip;
     initial?: AnimatableInitials;
     stagger?: number;
@@ -30,7 +30,7 @@ type SharedProps = {
     paused?: boolean;
 }
 
-export type AnimatableProps = {
+export type AnimatableProps<T extends string = any> = {
     children: React.ReactNode;
     id?: string;
     order?: number;
@@ -38,15 +38,16 @@ export type AnimatableProps = {
     adaptive?: boolean;
     cachable?: AnimatableKey[];
     manual?: boolean;
-} & SharedProps;
+    onAnimationEnd?: (animation: T | 'animate') => void;
+} & SharedProps<T>;
 
 export const AnimatableContext = createContext<null | ({
     index: number;
     children: React.MutableRefObject<AnimatableType | null>[];
 } & SharedProps)>(null);
 
-const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
-    const self = useRef<AnimatableType>(null);
+function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.ForwardedRef<AnimatableType>) {
+    const self = useRef<AnimatableType<T>>(null);
     const children = useRef<React.MutableRefObject<AnimatableType | null>[]>([]);
     const parent = useContext(AnimatableContext);
 
@@ -65,14 +66,15 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         cachable,
         adaptive = false,
         manual = false,
-        triggers = []
+        triggers = [],
+        onAnimationEnd
     } = props.inherit && parent ? merge({}, props, parent) : props;
 
     const index = order !== undefined ? order : (props.inherit && parent?.index || 0) + 1;
     const triggersState = useRef<(number | boolean)[]>([]);
 
     const [clipMap] = useState(() => {
-        const map: { [key: string]: Clip } = { animate: Clip.from(animate, initial) };
+        const map: { [key: string]: Clip; } = { animate: Clip.from(animate, initial) };
 
         for (const name in animations) {
             map[name] = Clip.from(animations[name], initial);
@@ -86,7 +88,6 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         staggerLimit,
         deform,
         cachable,
-        // @ts-ignore
         mountClips: triggers.reduce<Clip[]>((clips, { name, on }) => {
             if (on === 'mount') clips.push(clipMap[name || 'animate']);
 
@@ -94,7 +95,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         }, [])
     }));
 
-    const play = useCallback((animation: string, options: PlayOptions = {}, layer = 1) => {
+    const play = useCallback((animation: T | 'animate', options: PlayOptions = {}, layer = 1) => {
         const clip = clipMap[animation];
         if (disabled || (index > 1 && layer < 2)) return 0;
 
@@ -115,6 +116,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         const delay = (options.reverse ? cascadeDelay : layerDelay) * (index / layer);
         if (clip) timeline.current.add(clip, merge({ delay }, options));
 
+        if (onAnimationEnd) setTimeout(onAnimationEnd.bind({}, animation), (duration + delay) * 1000);
         return duration + delay;
     }, [disabled, index]);
 
@@ -124,13 +126,8 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
         for (const { name, on, ...config } of triggers) {
             if (on !== trigger) continue;
 
+            // when cascading to children dont use parent animation name, but infer from triggers of children
             duration = Math.max(play(name || 'animate', merge(config, options)), duration);
-        }
-
-        for (const child of children.current) {
-            if (!child.current?.inherit || trigger !== 'unmount') continue;
-
-            duration = Math.max(child.current.trigger(trigger, options), duration);
         }
 
         return duration;
@@ -157,7 +154,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
 
             if (typeof on === 'string') continue;
 
-            const value = on.value !== undefined ? on.value : on, prev = triggersState.current[i];
+            const value = typeof on === 'boolean' ? on : on.value, prev = triggersState.current[i];
             if (prev !== undefined && value && value !== prev) play(name || 'animate', options);
 
             triggersState.current[i] = value;
@@ -181,7 +178,7 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
             window.removeEventListener('resize', resize);
 
             const i = parent?.children.indexOf(self) || -1;
-            // @ts-expect-error FIX TYPING!!
+            // @ts-expect-error
             if (i >= 0) parent.children.splice(i, 1);
         }
     }, []);
@@ -221,7 +218,9 @@ const Animatable = forwardRef<AnimatableType, AnimatableProps>((props, ref) => {
             });
         })}
     </AnimatableContext.Provider>;
-});
+}
+
+const Animatable = forwardRef(AnimatableBase) as (<T extends string>(props: AnimatableProps<T> & { ref?: React.ForwardedRef<AnimatableType>; }) => ReturnType<typeof AnimatableBase>) & { displayName: string; };
 
 Animatable.displayName = 'Animatable';
 

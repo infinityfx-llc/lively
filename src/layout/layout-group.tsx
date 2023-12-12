@@ -1,4 +1,4 @@
-import { Children, isValidElement, useEffect, useRef, useState } from "react";
+import { Children, isValidElement, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Animatable, { AnimatableType } from "../animatable";
 import { Easing } from "../core/clip";
 
@@ -62,8 +62,6 @@ function isEqual(a: any, b: any) {
     }
 }
 
-// simultanous unmount / mount
-
 export default function LayoutGroup({
     children,
     transition
@@ -89,7 +87,7 @@ export default function LayoutGroup({
         setTimeout(() => setContent(children), delay * 1000);
     }, [children]);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (!ref.current) return;
 
         for (const child of ref.current.children) {

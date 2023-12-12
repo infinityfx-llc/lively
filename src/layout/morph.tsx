@@ -1,4 +1,4 @@
-import { forwardRef, useContext, useEffect, useRef, useState } from "react";
+import { forwardRef, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Animatable, { AnimatableContext, AnimatableType, AnimatableProps } from "../animatable";
 import { combineRefs } from "../core/utils";
 import Timeline from "../core/timeline";
@@ -56,7 +56,7 @@ const Morph = forwardRef<AnimatableType, MorphProps>(({
         setState(show);
     }, [show]);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (!self.current) return;
         const timeline = self.current.timeline;
 

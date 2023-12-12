@@ -1,12 +1,14 @@
 import type { AnimatableKeyframe, Easing } from "./clip";
 
-// type SharedKeys<T, P> = keyof Omit<T | P, keyof (Omit<T, keyof P> & Omit<P, keyof T>)>;
+type SharedKeys<T, P> = keyof Omit<T | P, keyof (Omit<T, keyof P> & Omit<P, keyof T>)>;
 
-// type MergeObjects<T, P> = T & P & { [K in SharedKeys<T, P>]: Merged<T[K], P[K]> };
+type MergedMaps<T, P> = T & P & { [K in SharedKeys<T, P>]: MergedPair<T[K], P[K]> };
 
-// type Merged<T, P> = [T, P] extends [{ [key: string]: unknown }, { [key: string]: unknown }] ? MergeObjects<T, P> : T & P;
+type MergedPair<T, P> = [T, P] extends [{ [key: string]: unknown; }, { [key: string]: unknown; }] ? MergedMaps<T, P> : T & P;
 
-export function merge(...objects: { [key: string]: any; }[]) {
+type Merged<T extends [...any]> = T extends [infer L, ...infer R] ? MergedPair<L, Merged<R>> : unknown;
+
+export function merge<T extends { [key: string]: any; }[]>(...objects: T) {
     for (let i = 1; i < objects.length; i++) {
         for (const key in objects[i]) {
             if (key in objects[0] && objects[0][key] !== undefined) continue;
@@ -15,7 +17,7 @@ export function merge(...objects: { [key: string]: any; }[]) {
         }
     }
 
-    return objects[0];
+    return objects[0] as Merged<T>;
 };
 
 export function combineRefs(...refs: React.Ref<any>[]) {

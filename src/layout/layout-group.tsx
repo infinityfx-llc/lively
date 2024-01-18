@@ -1,4 +1,4 @@
-import { Children, isValidElement, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Children, isValidElement, useEffect, useRef, useState } from "react";
 import Animatable, { AnimatableType } from "../animatable";
 import { Easing } from "../core/clip";
 
@@ -43,6 +43,7 @@ function compare(a: any, b: any) {
             keysB = Object.keys(b);
 
         if (keysA.length !== keysB.length) return false;
+        if (!keysA.length) return a.toString() === b.toString();
 
         for (let i = 0; i < keysA.length; i++) {
             if (!(keysA[i] in b) || !compare(a[keysA[i]], b[keysB[i]])) return false;
@@ -87,7 +88,7 @@ export default function LayoutGroup({
         setTimeout(() => setContent(children), delay * 1000);
     }, [children]);
 
-    useLayoutEffect(() => {
+    useEffect(() => {
         if (!ref.current) return;
 
         for (const child of ref.current.children) {

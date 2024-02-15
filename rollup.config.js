@@ -21,7 +21,7 @@ if (process.env.NODE_ENV === 'production') {
 
 export default {
     input: ['src/index.ts', 'src/animations.ts', 'src/hooks.ts', 'src/layout.ts'],
-    external: ['react', 'react-dom', /react\/jsx-runtime/],
+    external: ['react', 'react-dom', 'react/jsx-runtime', 'tslib'],
     output: {
         dir: 'dist',
         format: 'es',
@@ -32,7 +32,7 @@ export default {
     plugins,
     onwarn: (msg, handler) => {
         if (msg.code === 'MODULE_LEVEL_DIRECTIVE') return;
-    
+
         handler(msg);
     }
 }

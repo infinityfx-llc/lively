@@ -1,3 +1,5 @@
+'use client';
+
 import { Children, cloneElement, createContext, forwardRef, isValidElement, useCallback, useContext, useEffect, useImperativeHandle, useRef, useState } from "react";
 import Clip, { AnimatableInitials, AnimatableKey, ClipProperties } from "./core/clip";
 import { Trigger } from "./hooks/use-trigger";
@@ -154,7 +156,7 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
 
             if (typeof on === 'string') continue;
 
-            const value = typeof on === 'boolean' ? on : on.value, prev = triggersState.current[i];
+            const value = typeof on === 'boolean' ? on : on.called, prev = triggersState.current[i];
             if (prev !== undefined && value && value !== prev) play(name || 'animate', options);
 
             triggersState.current[i] = value;

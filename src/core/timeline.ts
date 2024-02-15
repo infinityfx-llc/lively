@@ -1,4 +1,4 @@
-import type { Link } from "../hooks/use-link";
+import { isLink, type Link } from "../hooks/use-link";
 import Clip, { AnimatableKey, ClipProperties, CompositeType } from "./clip";
 import Track, { TransitionOptions } from "./track";
 import { IndexedList } from "./utils";
@@ -59,7 +59,7 @@ export default class Timeline {
         for (let prop in clip) {
             const val = clip[prop as keyof ClipProperties];
 
-            if (val instanceof Function && 'onchange' in val) {
+            if (isLink(val)) {
                 val.onchange(this.port.bind(this, prop, val));
 
                 this.port(prop, val, 0);

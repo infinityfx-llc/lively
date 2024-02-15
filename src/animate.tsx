@@ -1,3 +1,5 @@
+'use client';
+
 import { Children, cloneElement, forwardRef, isValidElement } from "react";
 import Animatable, { AnimatableProps, AnimatableType } from "./animatable";
 import Move from "./animations/move";

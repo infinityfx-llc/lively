@@ -1,4 +1,4 @@
-import type { Link } from "../hooks/use-link";
+import { isLink, type Link } from "../hooks/use-link";
 import Action from "./action";
 import type Track from "./track";
 import { distributeAnimatableKeyframes, merge, normalizeAnimatableKeyframes } from "./utils";
@@ -58,7 +58,7 @@ export default class Clip {
             prop = prop === 'strokeLength' ? 'strokeDashoffset' : prop;
 
             if (val instanceof Function) {
-                if (!('onchange' in val)) this.dynamic[prop as AnimatableKey] = val;
+                if (!isLink(val)) this.dynamic[prop as AnimatableKey] = val;
                 continue;
             }
 

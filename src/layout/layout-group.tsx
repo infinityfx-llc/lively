@@ -1,3 +1,5 @@
+'use client';
+
 import { Children, isValidElement, useEffect, useRef, useState } from "react";
 import Animatable, { AnimatableType } from "../animatable";
 import { Easing } from "../core/clip";
@@ -62,6 +64,9 @@ function isEqual(a: any, b: any) {
         return false;
     }
 }
+
+// TODO: use snapshots to detect which elements mounted/unmounted and use this info to merge different versions of actual.current, then use that to update rendered content
+// simultanous unmount / mount?
 
 export default function LayoutGroup({
     children,

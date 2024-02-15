@@ -1,3 +1,5 @@
+'use client';
+
 import { forwardRef, useContext, useEffect, useRef, useState } from "react";
 import Animatable, { AnimatableContext, AnimatableType, AnimatableProps } from "../animatable";
 import { combineRefs } from "../core/utils";

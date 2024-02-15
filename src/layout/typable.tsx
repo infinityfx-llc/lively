@@ -1,3 +1,5 @@
+'use client';
+
 import { Children, ForwardedRef, forwardRef } from "react";
 import Animatable, { AnimatableProps, AnimatableType } from "../animatable";
 

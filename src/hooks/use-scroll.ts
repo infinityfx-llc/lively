@@ -1,16 +1,33 @@
+'use client';
+
 import { useEffect } from "react";
 import useLink from "./use-link";
 
-export default function useScroll(restore = 0) {
-    const link = useLink(0);
+export default function useScroll<T extends HTMLElement>({ restore = 0, target }: {
+    restore?: number;
+    target?: React.RefObject<T>;
+} = {}) {
+    const link = useLink({ x: 0, y: 0, top: 0, left: 0 });
 
     useEffect(() => {
-        const scroll = () => link.set(window.scrollY);
-        link.set(window.scrollY, restore);
+        const element = target?.current ? target.current : window;
 
-        window.addEventListener('scroll', scroll);
-        return () => window.removeEventListener('scroll', scroll);
-    }, []);
+        function update(transition?: number) {
+            const element = target?.current || document.documentElement;
+
+            const left = element.scrollLeft, x = left / ((element.scrollWidth - element.clientWidth) || 1);
+            const top = element.scrollTop, y = top / ((element.scrollHeight - element.clientHeight) || 1);
+
+            link.set({ x, y, top, left }, transition);
+        }
+
+        update(restore);
+
+        const scroll = () => update();
+
+        element.addEventListener('scroll', scroll);
+        return () => element.removeEventListener('scroll', scroll);
+    }, [target]);
 
     return link;
 }

@@ -8,10 +8,10 @@ type MergedPair<T, P> = [T, P] extends [{ [key: string]: unknown; }, { [key: str
 
 type Merged<T extends [...any]> = T extends [infer L, ...infer R] ? MergedPair<L, Merged<R>> : unknown;
 
-export function merge<T extends { [key: string]: any; }[]>(...objects: T) {
+export function merge<T extends { [key: string]: any; }[]>(keys: string[], ...objects: T) {
     for (let i = 1; i < objects.length; i++) {
         for (const key in objects[i]) {
-            if (key in objects[0] && objects[0][key] !== undefined) continue;
+            if ((keys.length && !keys.includes(key)) || (key in objects[0] && objects[0][key] !== undefined)) continue;
 
             objects[0][key] = objects[i][key];
         }
@@ -45,6 +45,8 @@ export class IndexedMap<K, V> {
         this.map.set(key, this.values.push(value) - 1);
         this.size = this.map.size;
     }
+
+    // implement delete method?
 
 }
 

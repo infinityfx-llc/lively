@@ -45,54 +45,45 @@ export type AnimatableProps<T extends string = any> = {
     onAnimationEnd?: (animation: T | 'animate') => void;
 } & SharedProps<T>;
 
-export const AnimatableContext = createContext<null | ({
+type AnimatableContext = {
     index?: number;
     push: (child: React.RefObject<AnimatableType>) => void;
     splice: (child: React.RefObject<AnimatableType>) => void;
-} & SharedProps)>(null);
+} & SharedProps;
+
+export const AnimatableContext = createContext<null | AnimatableContext>(null);
 
 function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.ForwardedRef<AnimatableType>) {
     const self = useRef<AnimatableType<T>>(null);
     const children = useRef<React.MutableRefObject<AnimatableType | null>[]>([]);
     const parent = useContext(AnimatableContext);
 
+    const mergedProps = props.inherit && parent ? merge(['group', 'animations', 'triggers', 'animate', 'initial', 'stagger', 'staggerLimit', 'deform', 'disabled', 'paused'], {}, props, parent) : props;
     const {
         id = '',
-        group,
-        order,
-        paused,
+        inherit,
+        triggers = [],
         disabled,
-        animate,
-        initial,
-        animations,
-        stagger,
-        staggerLimit,
-        deform,
-        cachable,
         adaptive = false,
         manual = false,
-        triggers = [],
-        onAnimationEnd
-    } = props.inherit && parent ? merge({}, props, parent) : props;
+        paused
+    } = mergedProps;
 
-    const index = order !== undefined ? order : (props.inherit && parent?.index || 0) + 1;
+    const index = props.order !== undefined ? props.order : (inherit && parent?.index || 0) + 1;
     const triggersState = useRef<(number | boolean)[]>([]);
 
     const [clipMap] = useState(() => {
-        const map: { [key: string]: Clip; } = { animate: Clip.from(animate, initial) };
+        const map: { [key: string]: Clip; } = { animate: Clip.from(mergedProps.animate, mergedProps.initial) };
 
-        for (const name in animations) {
-            map[name] = Clip.from(animations[name], initial);
+        for (const name in mergedProps.animations) {
+            map[name] = Clip.from(mergedProps.animations[name], mergedProps.initial);
         }
 
         return map;
     });
 
     const timeline = useRef(new Timeline({
-        stagger,
-        staggerLimit,
-        deform,
-        cachable,
+        ...mergedProps,
         mountClips: triggers.reduce<Clip[]>((clips, { name, on }) => {
             if (on === 'mount') clips.push(clipMap[name || 'animate']);
 
@@ -104,14 +95,14 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
         const clip = clipMap[animation];
         if (disabled || (index > 1 && layer < 2)) return 0;
 
-        merge(options, { reverse: clip?.reverse });
+        merge([], options, { reverse: clip?.reverse });
         let cascadeDelay = 0, layerDelay = (options.delay || 0), duration = clip ? timeline.current.time(clip) : 0;
 
         for (const child of children.current) {
             if (!child.current?.inherit) continue;
 
             cascadeDelay = Math.max(
-                child.current.play(animation, merge({
+                child.current.play(animation, merge([], {
                     delay: layerDelay + duration
                 }, options), layer + 1),
                 cascadeDelay
@@ -119,9 +110,9 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
         }
 
         const delay = (options.reverse ? cascadeDelay : layerDelay) * (index / layer);
-        if (clip) timeline.current.add(clip, merge({ delay }, options));
+        if (clip) timeline.current.add(clip, merge([], { delay }, options));
 
-        if (onAnimationEnd) setTimeout(onAnimationEnd.bind({}, animation), (duration + delay) * 1000);
+        if (props.onAnimationEnd) setTimeout(props.onAnimationEnd.bind({}, animation), (duration + delay) * 1000);
         return duration + delay;
     }, [disabled, index]);
 
@@ -132,7 +123,7 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
             if (on !== trigger) continue;
 
             // when cascading to children dont use parent animation name, but infer from triggers of children
-            duration = Math.max(play(name || 'animate', merge(config, options)), duration);
+            duration = Math.max(play(name || 'animate', merge([], config, options)), duration);
         }
 
         return duration;
@@ -143,7 +134,7 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
         trigger,
         timeline: timeline.current,
         children: children.current,
-        inherit: props.inherit,
+        inherit,
         adaptive,
         manual,
         id
@@ -165,7 +156,7 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
     }, [triggers]);
 
     useEffect(() => {
-        timeline.current.connect(animate);
+        timeline.current.connect(mergedProps.animate);
         const resize = () => timeline.current.cache(); // maybe dont do this mid transition (also transition on resize within layoutgroup)
         window.addEventListener('resize', resize);
 
@@ -183,23 +174,8 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
         }
     }, []);
 
-    // optimize this / memo?
-    const context = props.passthrough ? parent : {
-        group,
-        index,
-        animate,
-        initial,
-        animations,
-        stagger,
-        staggerLimit,
-        triggers,
-        deform,
-        paused,
-        disabled
-    };
-
     return <AnimatableContext.Provider value={{
-        ...context,
+        ...(props.passthrough ? parent : { index, ...mergedProps }),
         push: (child: React.RefObject<AnimatableType>) => {
             if (props.passthrough) parent?.push(child);
             if (!children.current.includes(child)) children.current.push(child);
@@ -217,7 +193,7 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
             return cloneElement(child as React.ReactElement, {
                 ref: combineRefs(el => timeline.current.insert(el), (child as any).ref),
                 pathLength: 1,
-                style: merge(
+                style: merge([],
                     {
                         backfaceVisibility: 'hidden',
                         willChange: 'transform'
@@ -228,7 +204,7 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
                         strokeDasharray: 1
                     }
                 ),
-                'data-lively-offset-boundary': (['x', 'y'] as const).some(key => cachable?.includes(key)) || cachable === undefined ? true : undefined
+                'data-lively-offset-boundary': (['x', 'y'] as const).some(key => props.cachable?.includes(key)) || props.cachable === undefined ? true : undefined
             });
         })}
     </AnimatableContext.Provider>;

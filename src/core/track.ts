@@ -142,6 +142,7 @@ export default class Track {
 
             child.style.transform = `scale(${1 / x}, ${1 / y})`;
             // measure offset to parent to correct position inside parent element
+            // should keep track of children offsets in cache
         }
     }
 

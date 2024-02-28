@@ -12,7 +12,6 @@ export default class Track {
     playing: number = 0;
     active: Action[] = [];
     queue: Action[] = [];
-    onupdate: (() => void) | null = null;
     cache: StyleCache;
     scale: [number, number] = [1, 1];
 
@@ -37,7 +36,6 @@ export default class Track {
     }
 
     next() {
-        this.onupdate?.();
         this.cache.update();
 
         if (--this.playing > 0) return;

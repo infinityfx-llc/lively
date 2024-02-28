@@ -1,4 +1,4 @@
-import type { AnimatableKeyframe, Easing } from "./clip";
+import type { AnimatableKeyframe } from "./clip";
 
 type SharedKeys<T, P> = keyof Omit<T | P, keyof (Omit<T, keyof P> & Omit<P, keyof T>)>;
 
@@ -31,45 +31,22 @@ export function combineRefs(...refs: React.Ref<any>[]) {
 
 export const lengthToOffset = (val: any) => 1 - parseFloat(val.toString());
 
-export class IndexedList<T = any> {
+export class IndexedMap<K, V> {
 
-    values: T[] = [];
-    indices: number[] = [];
+    private map: Map<K, number> = new Map();
+    values: V[] = [];
     size: number = 0;
 
-    has(index: number) {
-        const i = this.map(index);
-
-        return i >= 0;
+    has(key: K) {
+        return this.map.has(key);
     }
 
-    add(index: number, value: T) {
-        const i = this.map(index);
-
-        if (i < 0) {
-            this.values.splice(~i, 0, value);
-            this.indices.splice(~i, 0, index);
-            this.size++;
-        } else {
-            this.values[i] = value;
-        }
+    set(key: K, value: V) {
+        this.map.set(key, this.values.push(value) - 1);
+        this.size = this.map.size;
     }
 
-    map(index: number) {
-        let start = 0, end = this.size - 1;
-
-        while (start <= end) {
-            let mid = (start + end) >>> 1;
-
-            if (this.indices[mid] === index) return mid;
-
-            index < this.indices[mid] ? end = mid - 1 : start = mid + 1;
-        }
-
-        return ~start;
-    }
-
-};
+}
 
 type AnimatableObjectProperty = { value?: string | number; after?: string | number; offset: number; };
 

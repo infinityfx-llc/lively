@@ -2,7 +2,7 @@ import { isLink, type Link } from "../hooks/use-link";
 import { CachableKey } from "./cache";
 import Clip, { ClipProperties, CompositeType } from "./clip";
 import Track, { TransitionOptions } from "./track";
-import { IndexedList } from "./utils";
+import { IndexedMap } from "./utils";
 
 export type PlayOptions = { composite?: CompositeType; immediate?: boolean; reverse?: boolean; delay?: number; commit?: boolean; };
 
@@ -14,7 +14,7 @@ export default class Timeline {
     deform: boolean;
     cachable?: CachableKey[];
     paused: boolean = false;
-    tracks: IndexedList<Track> = new IndexedList();
+    tracks: IndexedMap<Element, Track> = new IndexedMap();
     frame: number = 0;
     connected: boolean = false;
     mounted: boolean = false;
@@ -37,7 +37,7 @@ export default class Timeline {
     }
 
     time(clip: Clip) {
-        return clip.duration + clip.delay + this.stagger * Math.max(Math.min(this.staggerLimit, this.tracks.size - 1), 0);
+        return clip.duration + clip.delay + this.stagger * Math.max(Math.min(this.staggerLimit, this.tracks.size- 1), 0);
     }
 
     port(prop: string, link: Link<any>, dt: number) {
@@ -47,7 +47,7 @@ export default class Timeline {
             const track = this.tracks.values[i], value = link(i);
 
             if (dt) {
-                new Clip({ duration: dt, easing: 'ease', [prop]: value }).play(track, { composite: 'override' });
+                new Clip({ duration: dt, easing: 'ease', [prop]: value }).play(track, { composite: 'override' }); // should maybe combine for translate/scale (also be able to override manually?)
             } else {
                 track.apply(prop, value);
             }
@@ -80,12 +80,9 @@ export default class Timeline {
     }
 
     insert(element: any) {
-        if (!(element instanceof HTMLElement || element instanceof SVGElement)) return;
-
-        if (!('TRACK_INDEX' in element)) (element as any).TRACK_INDEX = this.index++;
-        if (!this.tracks.has((element as any).TRACK_INDEX)) {
+        if ((element instanceof HTMLElement || element instanceof SVGElement) && !this.tracks.has(element)) {
             const track = new Track(element, this.deform, this.cachable);
-            this.tracks.add((element as any).TRACK_INDEX, track);
+            this.tracks.set(element, track);
 
             if (this.mounted) this.mountClips.forEach(clip => clip.play(track, {}));
         }

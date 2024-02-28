@@ -1,5 +1,6 @@
 import { isLink, type Link } from "../hooks/use-link";
-import Clip, { AnimatableKey, ClipProperties, CompositeType } from "./clip";
+import { CachableKey } from "./cache";
+import Clip, { ClipProperties, CompositeType } from "./clip";
 import Track, { TransitionOptions } from "./track";
 import { IndexedList } from "./utils";
 
@@ -11,7 +12,7 @@ export default class Timeline {
     stagger: number;
     staggerLimit: number;
     deform: boolean;
-    cachable?: AnimatableKey[];
+    cachable?: CachableKey[];
     paused: boolean = false;
     tracks: IndexedList<Track> = new IndexedList();
     frame: number = 0;
@@ -19,7 +20,7 @@ export default class Timeline {
     mounted: boolean = false;
     mountClips: Clip[];
 
-    constructor({ stagger = 0.1, staggerLimit = 10, deform = true, cachable, mountClips }: { stagger?: number; staggerLimit?: number; deform?: boolean; cachable?: AnimatableKey[]; mountClips: Clip[]; }) {
+    constructor({ stagger = 0.1, staggerLimit = 10, deform = true, cachable, mountClips }: { stagger?: number; staggerLimit?: number; deform?: boolean; cachable?: CachableKey[]; mountClips: Clip[]; }) {
         this.stagger = stagger;
         this.staggerLimit = staggerLimit - 1;
         this.deform = deform;
@@ -67,6 +68,7 @@ export default class Timeline {
         }
 
         this.connected = true;
+        this.step();
     }
 
     transition(from: Timeline | undefined, options: TransitionOptions = {}) {

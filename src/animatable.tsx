@@ -1,10 +1,11 @@
 'use client';
 
 import { Children, cloneElement, createContext, forwardRef, isValidElement, useCallback, useContext, useEffect, useImperativeHandle, useRef, useState } from "react";
-import Clip, { AnimatableInitials, AnimatableKey, ClipProperties } from "./core/clip";
+import Clip, { AnimatableInitials, ClipProperties } from "./core/clip";
 import { Trigger } from "./hooks/use-trigger";
 import Timeline, { PlayOptions } from "./core/timeline";
 import { combineRefs, merge } from "./core/utils";
+import { CachableKey } from "./core/cache";
 
 type StaticTrigger = 'mount' | 'unmount';
 
@@ -37,15 +38,17 @@ export type AnimatableProps<T extends string = any> = {
     id?: string;
     order?: number;
     inherit?: boolean;
+    passthrough?: boolean;
     adaptive?: boolean;
-    cachable?: AnimatableKey[];
+    cachable?: CachableKey[];
     manual?: boolean;
     onAnimationEnd?: (animation: T | 'animate') => void;
 } & SharedProps<T>;
 
 export const AnimatableContext = createContext<null | ({
-    index: number;
-    children: React.MutableRefObject<AnimatableType | null>[];
+    index?: number;
+    push: (child: React.RefObject<AnimatableType>) => void;
+    splice: (child: React.RefObject<AnimatableType>) => void;
 } & SharedProps)>(null);
 
 function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.ForwardedRef<AnimatableType>) {
@@ -164,12 +167,11 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
     }, [triggers]);
 
     useEffect(() => {
-        timeline.current.step();
         timeline.current.connect(animate);
         const resize = () => timeline.current.cache(); // maybe dont do this mid transition (also transition on resize within layoutgroup)
         window.addEventListener('resize', resize);
 
-        if (parent && parent.children.indexOf(self) < 0) parent.children.push(self);
+        parent?.push(self);
 
         document.fonts.ready.then(() => {
             if (!manual && !timeline.current.mounted) trigger('mount');
@@ -179,13 +181,12 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
         return () => {
             window.removeEventListener('resize', resize);
 
-            const i = parent?.children.indexOf(self) || -1;
-            // @ts-expect-error
-            if (i >= 0) parent.children.splice(i, 1);
+            parent?.splice(self);
         }
     }, []);
 
-    return <AnimatableContext.Provider value={{
+    // optimize this / memo?
+    const context = props.passthrough ? parent : {
         group,
         index,
         animate,
@@ -196,8 +197,21 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
         triggers,
         deform,
         paused,
-        disabled,
-        children: children.current
+        disabled
+    };
+
+    return <AnimatableContext.Provider value={{
+        ...context,
+        push: (child: React.RefObject<AnimatableType>) => {
+            if (props.passthrough) parent?.push(child);
+            if (!children.current.includes(child)) children.current.push(child);
+        },
+        splice: (child: React.RefObject<AnimatableType>) => {
+            if (props.passthrough) parent?.splice(child);
+            const i = children.current.indexOf(child) || -1;
+
+            if (i >= 0) children.current.splice(i, 1);
+        }
     }}>
         {Children.map(props.children, child => {
             if (!isValidElement(child) || child.type instanceof Function) return child;
@@ -216,7 +230,7 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
                         strokeDasharray: 1
                     }
                 ),
-                'data-lively-offset-boundary': cachable?.includes('translate') || cachable === undefined ? true : undefined
+                'data-lively-offset-boundary': (['x', 'y'] as const).some(key => cachable?.includes(key)) || cachable === undefined ? true : undefined
             });
         })}
     </AnimatableContext.Provider>;

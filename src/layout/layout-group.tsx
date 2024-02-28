@@ -103,7 +103,7 @@ export default function LayoutGroup({
         }
     }, [content]);
 
-    return <Animatable ref={ref} cachable={[]}>
+    return <Animatable ref={ref} cachable={[]} passthrough>
         {content}
     </Animatable>
 }

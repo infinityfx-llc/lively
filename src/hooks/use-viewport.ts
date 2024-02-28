@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import useLink, { Link } from "./use-link";
+import useMountEffect from "./use-mount-effect";
 
 export default function useViewport<T extends Element = any>(threshold = .5): [Link<[number, number]>, React.Ref<T>] {
     const ref = useRef<T>(null);
     const link = useLink<[number, number]>([-1, -1]);
 
-    useEffect(() => {
+    useMountEffect(() => {
         function update() {
             if (!ref.current) return;
 

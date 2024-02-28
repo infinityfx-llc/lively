@@ -1,6 +1,6 @@
 import type Action from "./action";
-import { StyleCache } from "./cache";
-import type { AnimatableKey, Easing } from "./clip";
+import { CachableKey, StyleCache } from "./cache";
+import type { Easing } from "./clip";
 import { lengthToOffset } from "./utils";
 
 export type TransitionOptions = { duration?: number; easing?: Easing; reverse?: boolean; };
@@ -16,7 +16,7 @@ export default class Track {
     cache: StyleCache;
     scale: [number, number] = [1, 1];
 
-    constructor(element: HTMLElement | SVGElement, deform: boolean, cachable?: AnimatableKey[]) {
+    constructor(element: HTMLElement | SVGElement, deform: boolean, cachable?: CachableKey[]) {
         this.element = element;
         this.deform = deform;
         this.cache = new StyleCache(element, cachable);
@@ -143,6 +143,7 @@ export default class Track {
             const child = this.element.children[i] as HTMLElement;
 
             child.style.transform = `scale(${1 / x}, ${1 / y})`;
+            // measure offset to parent to correct position inside parent element
         }
     }
 

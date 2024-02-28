@@ -1,11 +1,16 @@
 import Clip, { AnimatableKey, ClipProperties } from "./clip";
 import { TransitionOptions } from "./track";
 
-type CacheData = { [key in AnimatableKey]?: string } & {
-    _x: number;
-    _y: number;
-    _w: number;
-    _h: number;
+type PartialCachableKey = Exclude<AnimatableKey, 'scale' | 'translate'>;
+export type CachableKey = PartialCachableKey | 'x' | 'y' | 'sx' | 'sy'; // TEMP, should be merged with AnimatableKey eventually
+
+type CacheData = {
+    [key in PartialCachableKey]?: string;
+} & {
+    x: number;
+    y: number;
+    sx: number;
+    sy: number;
 };
 
 export class StyleCache {
@@ -13,9 +18,9 @@ export class StyleCache {
     element: HTMLElement | SVGElement;
     data: CacheData;
     computed: CSSStyleDeclaration;
-    include: AnimatableKey[]; // doesnt work with strokeLength
+    include: CachableKey[]; // doesnt work with strokeLength
 
-    constructor(element: HTMLElement | SVGElement, include: AnimatableKey[] = ['translate', 'scale', 'borderRadius', 'backgroundColor', 'color', 'rotate', 'opacity']) {
+    constructor(element: HTMLElement | SVGElement, include: CachableKey[] = ['x', 'y', 'sx', 'sy', 'borderRadius', 'backgroundColor', 'color', 'rotate', 'opacity']) {
         this.element = element;
         this.include = include;
         this.computed = getComputedStyle(element);
@@ -23,23 +28,21 @@ export class StyleCache {
     }
 
     read() {
-        const data: CacheData = { _x: 0, _y: 0, _w: 0, _h: 0 };
+        const data = {} as CacheData;
 
+        // @ts-expect-error
         for (const prop of this.include) data[prop] = this.computed[prop as never];
 
         if (this.element instanceof SVGElement) return data;
-        // const offset = getComputedStyle(this.element).transform.match(/(-?\d+),\s(-?\d+)\)/)?.slice(1, 3).map(val => parseInt(val)) || [0, 0];
-        // data._x += data._w / 2 + offset[0];
-        // data._y += data._h / 2 + offset[1];
-        data._w = this.element.offsetWidth;
-        data._h = this.element.offsetHeight;
-        data._x += data._w / 2;
-        data._y += data._h / 2;
-        
+        data.sx = this.element.offsetWidth;
+        data.sy = this.element.offsetHeight;
+        data.x = data.sx / 2;
+        data.y = data.sy / 2;
+
         let parent: HTMLElement | null = this.element;
         while (parent) {
-            data._x += parent.offsetLeft;
-            data._y += parent.offsetTop;
+            data.x += parent.offsetLeft;
+            data.y += parent.offsetTop;
 
             parent = parent.offsetParent as HTMLElement;
             if (parent?.dataset.livelyOffsetBoundary) break;
@@ -55,16 +58,27 @@ export class StyleCache {
     difference(from: CacheData = this.data, { duration = 0.5, easing = 'ease', reverse = false }: TransitionOptions) {
         const to = this.read();
 
-        const keyframes1: ClipProperties = { duration, easing, reverse, composite: 'combine' }, keyframes2: ClipProperties = { ...keyframes1, composite: 'override' };
+        const scale = [[1, 1], [1, 1]],
+            translate = [['0px', '0px'], ['0px', '0px']];
+        const keyframes1: ClipProperties = { duration, easing, reverse, composite: 'combine' },
+            keyframes2: ClipProperties = { ...keyframes1, composite: 'override' };
+
         for (const key of this.include) {
             switch (key) {
-                case 'scale': keyframes1[key] = [`${to._w === 0 ? 1 : from._w / to._w} ${to._h === 0 ? 1 : from._h / to._h}`, '1 1'];
+                case 'x':
+                case 'y':
+                    translate[0][key == 'x' ? 0 : 1] = from[key] - to[key] + 'px';
                     break;
-                case 'translate': keyframes1[key] = [`${from._x - to._x}px ${from._y - to._y}px`, '0px 0px'];
+                case 'sx':
+                case 'sy':
+                    scale[0][key == 'sx' ? 0 : 1] = to[key] === 0 ? 1 : from[key] / to[key];
                     break;
                 default: keyframes2[key] = [from[key as never], to[key as never]];
             }
         }
+
+        keyframes1.scale = scale.map(val => val.join(' '));
+        keyframes1.translate = translate.map(val => val.join(' '));
 
         return [new Clip(keyframes1), new Clip(keyframes2)];
     }

@@ -8,10 +8,10 @@ type MergedPair<T, P> = [T, P] extends [{ [key: string]: unknown; }, { [key: str
 
 type Merged<T extends [...any]> = T extends [infer L, ...infer R] ? MergedPair<L, Merged<R>> : unknown;
 
-export function merge<T extends { [key: string]: any; }[]>(keys: string[], ...objects: T) {
+export function merge<T extends { [key: string]: any; }[]>(...objects: T) {
     for (let i = 1; i < objects.length; i++) {
         for (const key in objects[i]) {
-            if ((keys.length && !keys.includes(key)) || (key in objects[0] && objects[0][key] !== undefined)) continue;
+            if (key in objects[0] && objects[0][key] !== undefined) continue;
 
             objects[0][key] = objects[i][key];
         }
@@ -19,6 +19,14 @@ export function merge<T extends { [key: string]: any; }[]>(keys: string[], ...ob
 
     return objects[0] as Merged<T>;
 };
+
+export function pick<T extends { [key: string]: any; }, K extends keyof T>(map: T, keys: K[]) {
+    const picked = {} as { [key in K]: T[K] };
+
+    for (const key of keys) picked[key] = map[key];
+
+    return picked;
+}
 
 export function combineRefs(...refs: React.Ref<any>[]) {
     return (el: any) => {

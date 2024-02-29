@@ -73,7 +73,7 @@ export default class Clip {
         }
 
         this.keyframes = Object.values(keyframes);
-        this.initial = merge([], {}, initial, this.keyframes.length ? (this.keyframes[0] as any) : {});
+        this.initial = merge({}, initial, this.keyframes.length ? (this.keyframes[0] as any) : {});
         // this.initial.strokeDashoffset = lengthToOffset((this.initial as any).strokeLength);
         delete this.initial.offset;
         this.isEmpty = !this.keyframes.length && !Object.keys(this.dynamic).length;

@@ -4,7 +4,7 @@ import { Children, cloneElement, createContext, forwardRef, isValidElement, useC
 import Clip, { AnimatableInitials, ClipProperties } from "./core/clip";
 import { Trigger } from "./hooks/use-trigger";
 import Timeline, { PlayOptions } from "./core/timeline";
-import { combineRefs, merge } from "./core/utils";
+import { combineRefs, merge, pick } from "./core/utils";
 import { CachableKey } from "./core/cache";
 
 type StaticTrigger = 'mount' | 'unmount';
@@ -58,7 +58,7 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
     const children = useRef<React.MutableRefObject<AnimatableType | null>[]>([]);
     const parent = useContext(AnimatableContext);
 
-    const mergedProps = props.inherit && parent ? merge(['group', 'animations', 'triggers', 'animate', 'initial', 'stagger', 'staggerLimit', 'deform', 'disabled', 'paused'], {}, props, parent) : props;
+    const mergedProps = props.inherit && parent ? merge({}, props, pick(parent, ['group', 'animations', 'triggers', 'animate', 'initial', 'stagger', 'staggerLimit', 'deform', 'disabled', 'paused'])) : props;
     const {
         id = '',
         inherit,
@@ -95,14 +95,14 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
         const clip = clipMap[animation];
         if (disabled || (index > 1 && layer < 2)) return 0;
 
-        merge([], options, { reverse: clip?.reverse });
+        merge(options, { reverse: clip?.reverse });
         let cascadeDelay = 0, layerDelay = (options.delay || 0), duration = clip ? timeline.current.time(clip) : 0;
 
         for (const child of children.current) {
             if (!child.current?.inherit) continue;
 
             cascadeDelay = Math.max(
-                child.current.play(animation, merge([], {
+                child.current.play(animation, merge({
                     delay: layerDelay + duration
                 }, options), layer + 1),
                 cascadeDelay
@@ -110,7 +110,7 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
         }
 
         const delay = (options.reverse ? cascadeDelay : layerDelay) * (index / layer);
-        if (clip) timeline.current.add(clip, merge([], { delay }, options));
+        if (clip) timeline.current.add(clip, merge({ delay }, options));
 
         if (props.onAnimationEnd) setTimeout(props.onAnimationEnd.bind({}, animation), (duration + delay) * 1000);
         return duration + delay;
@@ -123,7 +123,7 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
             if (on !== trigger) continue;
 
             // when cascading to children dont use parent animation name, but infer from triggers of children
-            duration = Math.max(play(name || 'animate', merge([], config, options)), duration);
+            duration = Math.max(play(name || 'animate', merge(config, options)), duration);
         }
 
         return duration;
@@ -193,7 +193,7 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
             return cloneElement(child as React.ReactElement, {
                 ref: combineRefs(el => timeline.current.insert(el), (child as any).ref),
                 pathLength: 1,
-                style: merge([],
+                style: merge(
                     {
                         backfaceVisibility: 'hidden',
                         willChange: 'transform'

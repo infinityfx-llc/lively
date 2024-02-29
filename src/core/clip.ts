@@ -3,7 +3,7 @@ import Action from "./action";
 import type Track from "./track";
 import { distributeAnimatableKeyframes, merge, normalizeAnimatableKeyframes } from "./utils";
 
-export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end' | 'exp-spring';
+export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end';
 
 export type AnimatableKey = keyof React.CSSProperties | 'strokeLength';
 
@@ -81,7 +81,7 @@ export default class Clip {
         this.delay = delay;
         this.repeat = repeat;
         this.alternate = alternate;
-        this.easing = easing === 'exp-spring' ? 'linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, 0.991, 0.977 51%, 0.974 53.8%, 0.975 57.1%, 0.997 69.8%, 1.003 76.9%, 1.004 83.8%, 1)' : easing;
+        this.easing = easing;
         this.reverse = reverse;
         this.composite = composite;
     }

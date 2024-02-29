@@ -47,8 +47,8 @@ export type AnimatableProps<T extends string = any> = {
 
 type AnimatableContext = {
     index?: number;
-    push: (child: React.RefObject<AnimatableType>) => void;
-    splice: (child: React.RefObject<AnimatableType>) => void;
+    add: (child: React.RefObject<AnimatableType>) => void;
+    remove: (child: React.RefObject<AnimatableType>) => void;
 } & SharedProps;
 
 export const AnimatableContext = createContext<null | AnimatableContext>(null);
@@ -160,7 +160,7 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
         const resize = () => timeline.current.cache(); // maybe dont do this mid transition (also transition on resize within layoutgroup)
         window.addEventListener('resize', resize);
 
-        parent?.push(self);
+        parent?.add(self);
 
         document.fonts.ready.then(() => {
             if (!manual && !timeline.current.mounted) trigger('mount');
@@ -170,18 +170,18 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
         return () => {
             window.removeEventListener('resize', resize);
 
-            parent?.splice(self);
+            parent?.remove(self);
         }
     }, []);
 
     return <AnimatableContext.Provider value={{
         ...(props.passthrough ? parent : { index, ...mergedProps }),
-        push: (child: React.RefObject<AnimatableType>) => {
-            if (props.passthrough) parent?.push(child);
+        add: (child: React.RefObject<AnimatableType>) => {
+            if (props.passthrough) parent?.add(child);
             if (!children.current.includes(child)) children.current.push(child);
         },
-        splice: (child: React.RefObject<AnimatableType>) => {
-            if (props.passthrough) parent?.splice(child);
+        remove: (child: React.RefObject<AnimatableType>) => {
+            if (props.passthrough) parent?.remove(child);
             const i = children.current.indexOf(child) || -1;
 
             if (i >= 0) children.current.splice(i, 1);

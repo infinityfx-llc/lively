@@ -5,6 +5,7 @@ import Animatable, { AnimatableContext, AnimatableType, AnimatableProps } from "
 import { combineRefs } from "../core/utils";
 import Timeline from "../core/timeline";
 import { TransitionOptions } from "../core/track";
+import useMountEffect from "../hooks/use-mount-effect";
 
 // - crossfades (difficult, because easing is not symmetric in reverse)
 
@@ -36,7 +37,7 @@ const Morph = forwardRef<AnimatableType, MorphProps>(({
 
     group = parent?.group ? `${parent.group}__${group}` : group;
 
-    useEffect(() => {
+    useMountEffect(() => {
         if (!self.current) return;
         const timeline = self.current.timeline;
 

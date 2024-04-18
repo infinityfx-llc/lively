@@ -138,7 +138,7 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
         adaptive,
         manual,
         id
-    }));
+    }), [triggers]);
 
     useEffect(() => timeline.current[paused || disabled ? 'pause' : 'play'](), [paused, disabled]);
 

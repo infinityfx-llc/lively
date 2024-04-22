@@ -3,6 +3,7 @@
 import { Children, isValidElement, useEffect, useRef, useState } from "react";
 import Animatable, { AnimatableType } from "../animatable";
 import { Easing } from "../core/clip";
+import useMountEffect from "../hooks/use-mount-effect";
 
 function snapshot(children: React.ReactNode, map: { [key: string]: boolean } = {}) {
     Children.forEach(children, child => {
@@ -19,7 +20,7 @@ function snapshot(children: React.ReactNode, map: { [key: string]: boolean } = {
     return map;
 }
 
-function compare(a: any, b: any) {
+function compare(a: any, b: any): boolean {
     const typeA = typeof a,
         typeB = typeof b;
     if (typeA !== typeB) return false;
@@ -93,7 +94,7 @@ export default function LayoutGroup({
         setTimeout(() => setContent(children), delay * 1000);
     }, [children]);
 
-    useEffect(() => {
+    useMountEffect(() => {
         if (!ref.current) return;
 
         for (const child of ref.current.children) {

@@ -7,8 +7,8 @@ let audioContext: AudioContext;
 
 export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency = 2000, smoothing = 0.7 } = {}): [React.MutableRefObject<HTMLAudioElement | null>, Link<number[]>] {
     const buffer = useRef(new Float32Array(1024));
-    const analyzer = useRef<AnalyserNode>();
-    const source = useRef<MediaElementAudioSourceNode>();
+    const analyzer = useRef<AnalyserNode>(undefined);
+    const source = useRef<MediaElementAudioSourceNode>(undefined);
     const ref = useRef<HTMLAudioElement | null>(null);
     const link = useLink<number[]>(new Array(8).fill(0));
 

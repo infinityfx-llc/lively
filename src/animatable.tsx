@@ -1,6 +1,6 @@
 'use client';
 
-import { Children, cloneElement, createContext, forwardRef, isValidElement, useCallback, useContext, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { Children, cloneElement, createContext, isValidElement, useCallback, useEffect, useImperativeHandle, useRef, use, useMemo } from "react";
 import Clip, { AnimatableInitials, ClipProperties } from "./core/clip";
 import { Trigger } from "./hooks/use-trigger";
 import Timeline, { PlayOptions } from "./core/timeline";
@@ -13,7 +13,7 @@ export type AnimatableType<T extends string = any> = {
     play: (animation: T | 'animate', options?: PlayOptions, layer?: number) => number;
     trigger: (trigger: StaticTrigger, options?: PlayOptions) => number;
     timeline: Timeline;
-    children: React.MutableRefObject<AnimatableType | null>[];
+    children: React.RefObject<AnimatableType | null>[];
     inherit: boolean | undefined;
     adaptive: boolean;
     manual: boolean;
@@ -34,6 +34,7 @@ type SharedProps<T extends string = any> = {
 }
 
 export type AnimatableProps<T extends string = any> = {
+    ref: React.Ref<AnimatableType>;
     children: React.ReactNode;
     id?: string;
     order?: number;
@@ -47,16 +48,16 @@ export type AnimatableProps<T extends string = any> = {
 
 type AnimatableContext = {
     index?: number;
-    add: (child: React.RefObject<AnimatableType>) => void;
-    remove: (child: React.RefObject<AnimatableType>) => void;
+    add: (child: React.RefObject<AnimatableType | null>) => void;
+    remove: (child: React.RefObject<AnimatableType | null>) => void;
 } & SharedProps;
 
 export const AnimatableContext = createContext<null | AnimatableContext>(null);
 
-function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.ForwardedRef<AnimatableType>) {
+export default function Animatable<T extends string>(props: AnimatableProps<T>) {
     const self = useRef<AnimatableType<T>>(null);
-    const children = useRef<React.MutableRefObject<AnimatableType | null>[]>([]);
-    const parent = useContext(AnimatableContext);
+    const children = useRef<React.RefObject<AnimatableType | null>[]>([]);
+    const parent = use(AnimatableContext);
 
     const mergedProps = props.inherit && parent ? merge({}, props, pick(parent, ['group', 'animations', 'triggers', 'animate', 'initial', 'stagger', 'staggerLimit', 'deform', 'disabled', 'paused'])) : props;
     const {
@@ -72,7 +73,7 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
     const index = props.order !== undefined ? props.order : (inherit && parent?.index || 0) + 1;
     const triggersState = useRef<(number | boolean)[]>([]);
 
-    const [clipMap] = useState(() => {
+    const clipMap = useMemo(() => {
         const map: { [key: string]: Clip; } = { animate: Clip.from(mergedProps.animate, mergedProps.initial) };
 
         for (const name in mergedProps.animations) {
@@ -80,7 +81,7 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
         }
 
         return map;
-    });
+    }, []);
 
     const timeline = useRef(new Timeline({
         ...mergedProps,
@@ -96,7 +97,9 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
         if (disabled || (index > 1 && layer < 2)) return 0;
 
         merge(options, { reverse: clip?.reverse });
-        let cascadeDelay = 0, layerDelay = (options.delay || 0), duration = clip ? timeline.current.time(clip) : 0;
+        let cascadeDelay = 0,
+            layerDelay = (options.delay || 0),
+            duration = clip ? timeline.current.time(clip) : 0;
 
         for (const child of children.current) {
             if (!child.current?.inherit) continue;
@@ -113,6 +116,7 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
         if (clip) timeline.current.add(clip, merge({ delay }, options));
 
         if (props.onAnimationEnd) setTimeout(props.onAnimationEnd.bind({}, animation), (duration + delay) * 1000);
+        
         return duration + delay;
     }, [disabled, index]);
 
@@ -129,7 +133,7 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
         return duration;
     }
 
-    useImperativeHandle(combineRefs(self, ref), () => ({
+    useImperativeHandle(combineRefs(self, props.ref), () => ({
         play,
         trigger,
         timeline: timeline.current,
@@ -174,13 +178,13 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
         }
     }, []);
 
-    return <AnimatableContext.Provider value={{
+    return <AnimatableContext value={{
         ...(props.passthrough ? parent : { index, ...mergedProps }),
-        add: (child: React.RefObject<AnimatableType>) => {
+        add: (child: React.RefObject<AnimatableType | null>) => {
             if (props.passthrough) parent?.add(child);
             if (!children.current.includes(child)) children.current.push(child);
         },
-        remove: (child: React.RefObject<AnimatableType>) => {
+        remove: (child: React.RefObject<AnimatableType | null>) => {
             if (props.passthrough) parent?.remove(child);
             const i = children.current.indexOf(child) || -1;
 
@@ -190,7 +194,7 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
         {Children.map(props.children, child => {
             if (!isValidElement(child) || child.type instanceof Function) return child;
 
-            return cloneElement(child as React.ReactElement, {
+            return cloneElement(child as React.ReactElement<any>, {
                 ref: combineRefs(el => timeline.current.insert(el), (child as any).ref),
                 pathLength: 1,
                 style: merge(
@@ -207,11 +211,5 @@ function AnimatableBase<T extends string>(props: AnimatableProps<T>, ref: React.
                 'data-lively-offset-boundary': (['x', 'y'] as const).some(key => props.cachable?.includes(key)) || props.cachable === undefined ? true : undefined
             });
         })}
-    </AnimatableContext.Provider>;
+    </AnimatableContext>;
 }
-
-const Animatable = forwardRef(AnimatableBase) as (<T extends string>(props: AnimatableProps<T> & { ref?: React.ForwardedRef<AnimatableType>; }) => ReturnType<typeof AnimatableBase>) & { displayName: string; };
-
-Animatable.displayName = 'Animatable';
-
-export default Animatable;

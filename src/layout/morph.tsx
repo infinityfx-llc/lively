@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useContext, useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import Animatable, { AnimatableContext, AnimatableType, AnimatableProps } from "../animatable";
 import { combineRefs } from "../core/utils";
 import Timeline from "../core/timeline";
@@ -22,14 +22,14 @@ type MorphProps = {
     show?: boolean;
 } & AnimatableProps;
 
-const Morph = forwardRef<AnimatableType, MorphProps>(({
+export default function Morph({
     children,
     transition = {}, // should be able to be inherited
     show = true,
     group,
     ...props
-}, ref) => {
-    const parent = useContext(AnimatableContext);
+}: MorphProps) {
+    const parent = use(AnimatableContext);
     const self = useRef<AnimatableType | null>(null);
 
     const [prev, setPrev] = useState(show);
@@ -108,11 +108,7 @@ const Morph = forwardRef<AnimatableType, MorphProps>(({
             Groups[group].targets.add(el.timeline);
             self.current = el;
         }
-    }, ref)}>
+    }, props.ref)}>
         {children}
     </Animatable >;
-});
-
-Morph.displayName = 'Morph';
-
-export default Morph;
+}

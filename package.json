@@ -1,6 +1,6 @@
 {
 	"name": "@infinityfx/lively",
-	"version": "3.5.3",
+	"version": "4.0.0-alpha.0",
 	"type": "module",
 	"description": "Feature complete, lightweight react animation library.",
 	"main": "dist/index.js",
@@ -50,21 +50,22 @@
 		"tslib": "^2.6.2"
 	},
 	"peerDependencies": {
-		"react": ">=16.0.0",
-		"react-dom": ">=16.0.0"
+		"react": ">=19.0.0",
+		"react-dom": ">=19.0.0"
 	},
 	"devDependencies": {
 		"@rollup/plugin-commonjs": "^25.0.7",
 		"@rollup/plugin-node-resolve": "^15.2.3",
 		"@rollup/plugin-terser": "^0.4.4",
 		"@rollup/plugin-typescript": "^11.1.6",
-		"@types/react": "^18.2.31",
-		"react": "^18.2.0",
-		"react-dom": "^18.2.0",
-		"rollup": "^4.10.0",
-		"rollup-plugin-preserve-directives": "^0.4.0",
+		"@types/react": "npm:types-react@^19.0.0-beta.1",
+		"@types/react-dom": "npm:types-react-dom@^19.0.0-beta.1",
+		"react": "^19.0.0-beta-73bcdfbae5-20240502",
+		"react-dom": "^19.0.0-beta-73bcdfbae5-20240502",
+		"rollup": "^4.17.2",
 		"rollup-plugin-delete": "^2.0.0",
-		"typescript": "^5.3.3"
+		"rollup-plugin-preserve-directives": "^0.4.0",
+		"typescript": "^5.4.5"
 	},
 	"sideEffects": false
 }

@@ -10,11 +10,11 @@ function snapshot(children: React.ReactNode, map: { [key: string]: boolean } = {
         if (!isValidElement(child)) return;
 
         const displayName = (child.type as any)?.displayName;
-        if ((displayName === 'Animatable' || displayName === 'Animate') && 'id' in child.props) {
-            map[child.props.id] = true;
+        if ((displayName === 'Animatable' || displayName === 'Animate') && 'id' in (child as React.ReactElement<any>).props) {
+            map[(child as React.ReactElement<any>).props.id] = true;
         }
 
-        snapshot(child.props.children, map);
+        snapshot((child as React.ReactElement<any>).props.children, map);
     });
 
     return map;

@@ -1,11 +1,11 @@
 'use client';
 
-import { Children, ForwardedRef, forwardRef } from "react";
-import Animatable, { AnimatableProps, AnimatableType } from "../animatable";
+import { Children } from "react";
+import Animatable, { AnimatableProps } from "../animatable";
 
-const Typable = forwardRef(({ children, stagger = 1, staggerLimit = Number.MAX_VALUE, ...props }: AnimatableProps, ref: ForwardedRef<AnimatableType>) => {
+export default function Typable({ children, stagger = 1, staggerLimit = Number.MAX_VALUE, ...props }: AnimatableProps) {
 
-    return <Animatable {...props} ref={ref} stagger={stagger * -1} staggerLimit={staggerLimit}>
+    return <Animatable {...props} stagger={stagger * -1} staggerLimit={staggerLimit}>
         {Children.map(children, child => {
             if (typeof child !== 'string' && typeof child !== 'number') return child;
 
@@ -15,8 +15,4 @@ const Typable = forwardRef(({ children, stagger = 1, staggerLimit = Number.MAX_V
                 .map(char => <span style={{ whiteSpace: char === ' ' ? 'pre-wrap' : undefined }}>{char}</span>);
         })}
     </Animatable>;
-});
-
-Typable.displayName = 'Typable';
-
-export default Typable;
+}

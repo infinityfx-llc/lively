@@ -1,8 +1,8 @@
-import { isLink, type Link } from "../hooks/use-link";
 import { CachableKey } from "./cache";
-import Clip, { ClipProperties, CompositeType } from "./clip";
+import Clip, { ClipConfig, ClipProperties, CompositeType } from "./clip";
+import { Link, isLink } from "./link";
 import Track, { TransitionOptions } from "./track";
-import { IndexedMap } from "./utils";
+import { IndexedMap, merge } from "./utils";
 
 export type PlayOptions = { composite?: CompositeType; immediate?: boolean; reverse?: boolean; delay?: number; commit?: boolean; };
 
@@ -37,17 +37,19 @@ export default class Timeline {
     }
 
     time(clip: Clip) {
-        return clip.duration + clip.delay + this.stagger * Math.max(Math.min(this.staggerLimit, this.tracks.size- 1), 0);
+        return clip.duration + clip.delay + this.stagger * Math.max(Math.min(this.staggerLimit, this.tracks.size - 1), 0);
     }
 
-    port(prop: string, link: Link<any>, dt: number) {
+    port(prop: string, link: Link<any>, config: ClipConfig) {
         if (this.paused) return;
 
         for (let i = 0; i < this.tracks.size; i++) {
             const track = this.tracks.values[i], value = link(i);
 
-            if (dt) {
-                new Clip({ duration: dt, easing: 'ease', [prop]: value }).play(track, { composite: 'override' }); // should maybe combine for translate/scale (also be able to override manually?)
+            if (config.duration) {
+                merge(config, { composite: 'override' }); // optimize syntax?
+
+                new Clip({ ...config, [prop]: value }).play(track, {});
             } else {
                 track.apply(prop, value);
             }
@@ -61,9 +63,9 @@ export default class Timeline {
             const val = clip[prop as keyof ClipProperties];
 
             if (isLink(val)) {
-                val.onchange(this.port.bind(this, prop, val));
+                val.subscribe(this.port.bind(this, prop, val));
 
-                this.port(prop, val, 0);
+                this.port(prop, val, {});
             }
         }
 
@@ -81,7 +83,7 @@ export default class Timeline {
 
     insert(element: any) {
         if ((element instanceof HTMLElement || element instanceof SVGElement) && !this.tracks.has(element)) {
-            const track = new Track(element, this.deform, this.cachable);
+            const track = new Track(element, this.deform, this.cachable); // maybe use weakref?
             this.tracks.set(element, track);
 
             if (this.mounted) this.mountClips.forEach(clip => clip.play(track, {}));

@@ -1,6 +1,6 @@
 {
 	"name": "@infinityfx/lively",
-	"version": "4.0.0-alpha.0",
+	"version": "4.0.0-alpha.1",
 	"type": "module",
 	"description": "Feature complete, lightweight react animation library.",
 	"main": "dist/index.js",

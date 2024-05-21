@@ -3,7 +3,6 @@
 import { useRef } from "react";
 import useTrigger, { Trigger } from "./use-trigger";
 import useViewport from "./use-viewport";
-import useCouple from "./use-couple";
 
 export default function useVisible<T extends Element = any>({ enter = 1, exit = false, threshold = .5 }: {
     enter?: boolean | number;
@@ -18,7 +17,7 @@ export default function useVisible<T extends Element = any>({ enter = 1, exit = 
     });
     const trigger = useTrigger();
 
-    useCouple(() => {
+    link.subscribe(() => { // probably double calls only re-render (cause garbage collector doesn't remove old function immediately)
         const [x, y] = link();
         const intersecting = x > 0 && x < 1 && y > 0 && y < 1;
         const { visible, enters, exits } = state.current;
@@ -27,7 +26,7 @@ export default function useVisible<T extends Element = any>({ enter = 1, exit = 
         if (visible && !intersecting && exits) state.current.exits--, trigger();
 
         state.current.visible = intersecting;
-    }, [link, trigger]);
+    });
 
     return [trigger, ref];
 }

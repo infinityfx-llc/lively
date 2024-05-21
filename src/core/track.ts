@@ -16,7 +16,7 @@ export default class Track {
     scale: [number, number] = [1, 1];
 
     constructor(element: HTMLElement | SVGElement, deform: boolean, cachable?: CachableKey[]) {
-        this.element = element;
+        this.element = element; // maybe use WeakRef so when element is removed remove Track?
         this.deform = deform;
         this.cache = new StyleCache(element, cachable);
     }
@@ -95,14 +95,10 @@ export default class Track {
     }
 
     apply(prop: string, val: any) { // update cache after this?
-        this.set(prop, val);
+        const isStroke = prop === 'strokeLength';
+        this.element.style[isStroke ? 'strokeDashoffset' : prop as never] = isStroke ? lengthToOffset(val) : val;
+        
         this.correct();
-    }
-
-    set(prop: string, val: any) {
-        prop = prop === 'strokeLength' ? 'strokeDashoffset' : prop;
-
-        this.element.style[prop as never] = prop === 'strokeDashoffset' ? lengthToOffset(val) : val;
     }
 
     decomposeScale(): [number, number] {

@@ -37,7 +37,7 @@ export default class Action {
         for (const prop in this.dynamic) {
             const val = this.dynamic[prop as keyof DynamicProperties]?.(progress, index);
 
-            this.track.set(prop, val);
+            this.track.apply(prop, val);
         }
     }
 

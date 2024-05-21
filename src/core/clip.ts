@@ -1,5 +1,5 @@
-import { isLink, type Link } from "../hooks/use-link";
 import Action from "./action";
+import { Link, isLink } from "./link";
 import type Track from "./track";
 import { distributeAnimatableKeyframes, merge, normalizeAnimatableKeyframes } from "./utils";
 
@@ -20,7 +20,7 @@ export type AnimatableInitials = React.CSSProperties & { strokeLength?: number |
 
 export type CompositeType = 'none' | 'override' | 'combine';
 
-type ClipConfig = {
+export type ClipConfig = {
     duration?: number;
     delay?: number;
     repeat?: number;

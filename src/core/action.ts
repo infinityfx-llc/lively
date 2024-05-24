@@ -35,9 +35,7 @@ export default class Action {
         const progress = this.animation.effect?.getComputedTiming().progress || 0;
 
         for (const prop in this.dynamic) {
-            const val = this.dynamic[prop as keyof DynamicProperties]?.(progress, index);
-
-            this.track.apply(prop, val);
+            this.track.apply(prop, this.dynamic[prop as keyof DynamicProperties]?.(progress, index));
         }
     }
 

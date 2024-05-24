@@ -116,7 +116,7 @@ export default class Clip {
             easing: this.easing,
             composite
         }, this.dynamic);
-        
+
         action.commit = commit;
 
         track.push(action);

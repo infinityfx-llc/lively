@@ -6,6 +6,7 @@ import { Trigger } from "./hooks/use-trigger";
 import Timeline, { PlayOptions } from "./core/timeline";
 import { combineRefs, merge, pick } from "./core/utils";
 import { CachableKey } from "./core/cache";
+import useMountEffect from "./hooks/use-mount-effect";
 
 type StaticTrigger = 'mount' | 'unmount';
 
@@ -96,7 +97,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
         const clip = clipMap[animation];
         if (disabled || (index > 1 && layer < 2)) return 0;
 
-        merge(options, { reverse: clip?.reverse });
+        merge(options, { reverse: clip?.reverse }); // optimize syntax?
         let cascadeDelay = 0,
             layerDelay = (options.delay || 0),
             duration = clip ? timeline.current.time(clip) : 0;
@@ -159,10 +160,9 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
         }
     }, [triggers]);
 
-    useEffect(() => {
+    useMountEffect(() => {
         timeline.current.link(mergedProps.animate);
-        const resize = () => timeline.current.cache(); // maybe dont do this mid transition (also transition on resize within layoutgroup)
-        window.addEventListener('resize', resize);
+        window.addEventListener('resize', timeline.current.cache); // maybe dont do this mid transition (also transition on resize within layoutgroup)
 
         parent?.add(self);
 
@@ -172,7 +172,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
         });
 
         return () => {
-            window.removeEventListener('resize', resize);
+            window.removeEventListener('resize', timeline.current.cache);
 
             timeline.current.unlink();
             parent?.remove(self);

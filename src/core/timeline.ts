@@ -44,7 +44,8 @@ export default class Timeline {
         if (this.paused) return;
 
         for (let i = 0; i < this.tracks.size; i++) {
-            const track = this.tracks.values[i], value = link(i);
+            const track = this.tracks.values[i],
+                value = link(i);
 
             if (config.duration) {
                 merge(config, { composite: 'override' }); // optimize syntax?

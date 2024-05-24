@@ -6,7 +6,7 @@ import Move from "./animations/move";
 import Pop from "./animations/pop";
 import Clip, { ClipProperties } from "./core/clip";
 
-type AnimateProps = { children: React.ReactNode; animations?: (ClipProperties | Clip)[]; levels?: number; } & Omit<AnimatableProps, 'animations' | 'animate' | 'order'>;
+type AnimateProps = { animations?: (ClipProperties | Clip)[]; levels?: number; } & Omit<AnimatableProps, 'animations' | 'animate' | 'order'>;
 
 export default function Animate({ children, animations = [Move, Pop], levels = 2, ...props }: AnimateProps) {
 

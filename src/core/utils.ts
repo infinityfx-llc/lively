@@ -28,10 +28,10 @@ export function pick<T extends { [key: string]: any; }, K extends keyof T>(map: 
     return picked;
 }
 
-export function combineRefs(...refs: React.Ref<any>[]) {
+export function combineRefs(...refs: (React.Ref<any> | undefined)[]) {
     return (el: any) => {
         refs.forEach(ref => {
-            if (ref && 'current' in ref) (ref as React.MutableRefObject<any>).current = el;
+            if (ref && 'current' in ref) (ref as React.RefObject<any>).current = el;
             if (ref instanceof Function) ref(el);
         });
     };

@@ -16,7 +16,7 @@ export default class Timeline {
     paused: boolean = false;
     tracks: IndexedMap<Element, Track> = new IndexedMap();
     frame: number = 0;
-    connected: boolean = false;
+    linked: (() => void)[] = [];
     mounted: boolean = false;
     mountClips: Clip[];
 
@@ -40,7 +40,7 @@ export default class Timeline {
         return clip.duration + clip.delay + this.stagger * Math.max(Math.min(this.staggerLimit, this.tracks.size - 1), 0);
     }
 
-    port(prop: string, link: Link<any>, config: ClipConfig) {
+    private receiver(prop: string, link: Link<any>, config: ClipConfig) {
         if (this.paused) return;
 
         for (let i = 0; i < this.tracks.size; i++) {
@@ -56,21 +56,27 @@ export default class Timeline {
         }
     }
 
-    connect(clip?: ClipProperties | Clip) {
-        if (this.connected || !clip || clip instanceof Clip) return;
+    link(clip?: ClipProperties | Clip) {
+        if (this.linked.length || !clip || clip instanceof Clip) return;
 
         for (let prop in clip) {
-            const val = clip[prop as keyof ClipProperties];
+            const link = clip[prop as keyof ClipProperties];
 
-            if (isLink(val)) {
-                val.subscribe(this.port.bind(this, prop, val));
+            if (isLink(link)) {
+                const receiver = this.receiver.bind(this, prop, link);
+                link.subscribe(receiver);
+                this.linked.push(() => link.unsubscribe(receiver));
 
-                this.port(prop, val, {});
+                receiver({});
             }
         }
 
-        this.connected = true;
         this.step();
+    }
+
+    unlink() {
+        this.linked.forEach(unsubscribe => unsubscribe());
+        this.linked = [];
     }
 
     transition(from: Timeline | undefined, options: TransitionOptions = {}) {

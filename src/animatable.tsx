@@ -34,7 +34,7 @@ type SharedProps<T extends string = any> = {
 }
 
 export type AnimatableProps<T extends string = any> = {
-    ref: React.Ref<AnimatableType>;
+    ref?: React.Ref<AnimatableType>;
     children: React.ReactNode;
     id?: string;
     order?: number;
@@ -160,7 +160,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
     }, [triggers]);
 
     useEffect(() => {
-        timeline.current.connect(mergedProps.animate);
+        timeline.current.link(mergedProps.animate);
         const resize = () => timeline.current.cache(); // maybe dont do this mid transition (also transition on resize within layoutgroup)
         window.addEventListener('resize', resize);
 
@@ -174,6 +174,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
         return () => {
             window.removeEventListener('resize', resize);
 
+            timeline.current.unlink();
             parent?.remove(self);
         }
     }, []);

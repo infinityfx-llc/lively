@@ -10,7 +10,7 @@ export default function useTrigger(): Trigger {
 
     const trigger = useMemo(() => {
         function trigger() {
-            setState(called.current + 1);
+            setState(++called.current);
         }
         
         trigger.called = state;

@@ -10,7 +10,7 @@ export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency =
     const buffer = useRef(new Float32Array(1024));
     const analyzer = useRef<AnalyserNode>(undefined);
     const source = useRef<MediaElementAudioSourceNode>(undefined);
-    const ref = useRef<HTMLAudioElement | null>(null);
+    const ref = useRef<HTMLAudioElement>(null);
     const link = useLink<number[]>(new Array(8).fill(0));
 
     let frame: number;

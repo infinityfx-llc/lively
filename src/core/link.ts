@@ -2,26 +2,32 @@ import { ClipConfig } from "./clip";
 
 type Computed<P> = (index: number) => P;
 
-type Computation<T, P> = (value: T, index: number) => P;
+export type Computation<T, P> = (value: T, index: number) => P;
+
+type LinkCallback = (options: ClipConfig) => void;
 
 export type Link<T> = {
     (index?: number): T;
     <P>(computation: Computation<T, P>): Link<ReturnType<typeof computation>>;
     set(value: T, options?: ClipConfig): void;
-    subscribe(callback: (options: ClipConfig) => void): void;
+    subscribe(callback: LinkCallback): void;
+    unsubscribe(callback: LinkCallback): void;
 }
 
-const links = new Set<WeakRef<(options: ClipConfig) => void>>();
+const links = new Set<{
+    key: WeakRef<any>;
+    observe: LinkCallback;
+}>();
 
 export function createLink<T, P>(initial: T, computed?: Computed<P>) {
     let internal = {
         value: initial,
         cached: initial,
-        subscriptions: new Set() as Set<WeakRef<(options: ClipConfig) => void>>
+        subscriptions: new Set() as Set<LinkCallback>
     };
 
-    const Link: Link<T> = function(arg: any): any {
-        if (arg instanceof Function) return createLink(internal.value, (index: number) => arg(Link(), index));
+    const Link: Link<T> = function (arg: any): any {
+        if (arg instanceof Function) return createLink(internal.value, (index: number) => arg(Link(), index)); // gets recreated on rerender..
 
         return computed ? computed(arg || 0) : internal.value;
     }
@@ -30,13 +36,15 @@ export function createLink<T, P>(initial: T, computed?: Computed<P>) {
         internal.value = value;
 
         links.forEach(link => {
-            const observe = link.deref();
+            if (!link.key.deref()) return links.delete(link);
 
-            observe ? observe(options || {}) : links.delete(link);
+            link.observe(options || {});
         });
     }
 
-    Link.subscribe = (callback: any) => internal.subscriptions.add(new WeakRef(callback));
+    Link.subscribe = (callback: LinkCallback) => internal.subscriptions.add(callback);
+
+    Link.unsubscribe = (callback: LinkCallback) => internal.subscriptions.delete(callback);
 
     function observe(options: ClipConfig) {
         const current = Link();
@@ -44,15 +52,14 @@ export function createLink<T, P>(initial: T, computed?: Computed<P>) {
         if (current !== internal.cached) {
             internal.cached = current;
 
-            internal.subscriptions.forEach(subscription => {
-                const callback = subscription.deref();
-
-                callback ? callback(options) : internal.subscriptions.delete(subscription);
-            });
+            internal.subscriptions.forEach(subscription => subscription(options));
         }
     }
 
-    links.add(new WeakRef(observe));
+    links.add({
+        key: new WeakRef(Link),
+        observe
+    });
 
     return Link;
 }

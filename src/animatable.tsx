@@ -198,7 +198,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
             if (!isValidElement(child)) return child;
 
             return cloneElement(child as React.ReactElement<any>, {
-                ref: combineRefs(el => timeline.current.insert(el), (child as any).ref),
+                ref: combineRefs(el => timeline.current.insert(el), (child as React.ReactElement<any>).props.ref),
                 pathLength: 1,
                 style: merge(
                     {

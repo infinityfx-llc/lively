@@ -58,6 +58,8 @@ export default class Timeline {
     }
 
     link(clip?: ClipProperties | Clip) {
+        this.step();
+        
         if (this.linked.length || !clip || clip instanceof Clip) return;
 
         for (let prop in clip) {
@@ -71,8 +73,6 @@ export default class Timeline {
                 receiver({});
             }
         }
-
-        this.step();
     }
 
     unlink() {

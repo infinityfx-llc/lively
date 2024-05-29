@@ -18,11 +18,11 @@ export class StyleCache {
     element: HTMLElement | SVGElement;
     data: CacheData;
     computed: CSSStyleDeclaration;
-    include: CachableKey[]; // doesnt work with strokeLength
+    include: CachableKey[];
 
     constructor(element: HTMLElement | SVGElement, include: CachableKey[] = ['x', 'y', 'sx', 'sy', 'borderRadius', 'backgroundColor', 'color', 'rotate', 'opacity']) {
         this.element = element;
-        this.include = include;
+        this.include = include.map(key => key === 'strokeLength' ? 'strokeDashoffset' : key);
         this.computed = getComputedStyle(element);
         this.data = this.read();
     }

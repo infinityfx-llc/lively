@@ -31,7 +31,7 @@ export default class Timeline {
     step() {
         cancelAnimationFrame(this.frame);
 
-        this.tracks.values.forEach((track, i) => track.step(i));
+        if (!this.paused) this.tracks.stack.forEach((track, i) => track.step(i));
 
         this.frame = requestAnimationFrame(this.step.bind(this));
     }
@@ -44,7 +44,7 @@ export default class Timeline {
         if (this.paused) return;
 
         for (let i = 0; i < this.tracks.size; i++) {
-            const track = this.tracks.values[i],
+            const track = this.tracks.stack[i],
                 value = link(i);
 
             if (config.duration) {
@@ -84,13 +84,13 @@ export default class Timeline {
 
         for (let i = 0; i < this.tracks.size; i++) {
 
-            this.tracks.values[i].transition(from?.tracks.values[i], options);
+            this.tracks.stack[i].transition(from?.tracks.stack[i], options);
         }
     }
 
     insert(element: any) {
         if ((element instanceof HTMLElement || element instanceof SVGElement) && !this.tracks.has(element)) {
-            const track = new Track(element, this.deform, this.cachable); // maybe use weakref?
+            const track = new Track(element, this.deform, this.cachable);
             this.tracks.set(element, track);
 
             if (this.mounted) this.mountClips.forEach(clip => clip.play(track, {}));
@@ -98,31 +98,35 @@ export default class Timeline {
     }
 
     add(clip: Clip, { immediate = false, composite, reverse, delay = 0, commit }: PlayOptions) {
+        let i = 0, track: Track;
 
-        for (let i = 0; i < this.tracks.size; i++) {
-            if (immediate) this.tracks.values[i].clear();
+        while (track = this.tracks.stack[i]) {
+            if (!track.element.isConnected) {
+                this.tracks.delete(track.element);
+                continue;
+            }
 
-            clip.play(this.tracks.values[i], {
+            if (immediate) track.clear();
+
+            clip.play(track, {
                 delay: delay + Math.min(i, this.staggerLimit) * (this.stagger < 0 ? clip.duration / this.tracks.size : 1) * Math.abs(this.stagger),
                 composite,
                 reverse,
                 commit
             });
+
+            i++;
         }
     }
 
-    pause() {
-        for (const track of this.tracks.values) track.pause();
-        this.paused = true;
-    }
+    pause(value: boolean) {
+        for (const track of this.tracks.stack) track.pause(value);
 
-    play() {
-        for (const track of this.tracks.values) track.play();
-        this.paused = false;
+        this.paused = value;
     }
 
     cache() {
-        for (const track of this.tracks.values) track.cache.update();
+        for (const track of this.tracks.stack) track.cache.update();
     }
 
 }

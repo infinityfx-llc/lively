@@ -27,7 +27,7 @@ export function createLink<T, P>(initial: T, computed?: Computed<P>) {
     };
 
     const Link: Link<T> = function (arg: any): any {
-        if (arg instanceof Function) return createLink(internal.value, (index: number) => arg(Link(), index)); // gets recreated on rerender..
+        if (arg instanceof Function) return createLink(internal.value, (index: number) => arg(Link(), index));
 
         return computed ? computed(arg || 0) : internal.value;
     }
@@ -35,7 +35,7 @@ export function createLink<T, P>(initial: T, computed?: Computed<P>) {
     Link.set = (value: T, options?: ClipConfig) => {
         internal.value = value;
 
-        links.forEach(link => {
+        links.forEach(link => { // not very fast...
             if (!link.key.deref()) return links.delete(link);
 
             link.observe(options || {});

@@ -14,9 +14,10 @@ export default class Track {
     queue: Action[] = [];
     cache: StyleCache;
     scale: [number, number] = [1, 1];
+    paused: boolean = false;
 
     constructor(element: HTMLElement | SVGElement, deform: boolean, cachable?: CachableKey[]) {
-        this.element = element; // maybe use WeakRef so when element is removed remove Track?
+        this.element = element;
         this.deform = deform;
         this.cache = new StyleCache(element, cachable);
     }
@@ -30,9 +31,8 @@ export default class Track {
         } else {
             this.active.push(action);
             if (action.composite === 'none') this.playing++;
+            if (this.paused) action.animation.pause();
         }
-
-        return action;
     }
 
     next() {
@@ -42,7 +42,7 @@ export default class Track {
 
         this.active = this.queue.length ? this.queue.splice(0, 1) : [];
         this.playing = this.active.length;
-        this.play();
+        this.pause(false);
     }
 
     clear(partial?: boolean) {
@@ -69,12 +69,10 @@ export default class Track {
         // also call correct here?? (manually set currentTime to desired frame to update)
     }
 
-    pause() {
-        for (const action of this.active) action.animation.pause();
-    }
+    pause(value: boolean) {
+        for (const action of this.active) action.animation[value ? 'pause' : 'play']();
 
-    play() {
-        for (const action of this.active) action.animation.play();
+        this.paused = value;
     }
 
     step(index: number) {

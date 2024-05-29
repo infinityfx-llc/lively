@@ -55,7 +55,6 @@ export default class Clip {
 
         for (let prop in properties) {
             let val = properties[prop as AnimatableKey], init = initial[prop as AnimatableKey];
-            prop = prop === 'strokeLength' ? 'strokeDashoffset' : prop;
 
             if (val instanceof Function) {
                 if (!isLink(val)) this.dynamic[prop as AnimatableKey] = val;

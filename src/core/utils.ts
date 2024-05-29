@@ -39,22 +39,22 @@ export function combineRefs(...refs: (React.Ref<any> | undefined)[]) {
 
 export const lengthToOffset = (val: any) => 1 - parseFloat(val.toString());
 
-export class IndexedMap<K, V> {
+export class IndexedMap<K, V> extends Map<K, V> {
 
-    private map: Map<K, number> = new Map();
-    values: V[] = [];
-    size: number = 0;
-
-    has(key: K) {
-        return this.map.has(key);
-    }
+    stack: V[] = [];
 
     set(key: K, value: V) {
-        this.map.set(key, this.values.push(value) - 1);
-        this.size = this.map.size;
+        this.stack.push(value);
+
+        return super.set(key, value);
     }
 
-    // implement delete method?
+    delete(key: K) {
+        const i = this.stack.indexOf(this.get(key) as V);
+        if (i >= 0) this.stack.splice(i, 1);
+
+        return super.delete(key);
+    }
 
 }
 
@@ -62,10 +62,12 @@ type AnimatableObjectProperty = { value?: string | number; after?: string | numb
 
 export function distributeAnimatableKeyframes(prop: string, keyframes: AnimatableObjectProperty[], map: { [key: number]: Keyframe; } = {}) {
     const set = (offset: number, value: string | number) => {
-        const key = offset * 10000;
+        const key = offset * 10000,
+            isStroke = prop === 'strokeLength';
 
         if (!(key in map)) map[key] = { offset };
-        map[key][prop] = prop === 'strokeDashoffset' ? lengthToOffset(value) : value;
+
+        map[key][isStroke ? 'strokeDashoffset' : prop] = isStroke ? lengthToOffset(value) : value;
     };
 
     for (let i = 0; i < keyframes.length; i++) {

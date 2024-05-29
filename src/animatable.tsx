@@ -145,7 +145,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
         id
     }), [triggers]);
 
-    useEffect(() => timeline.current[paused || disabled ? 'pause' : 'play'](), [paused, disabled]);
+    useEffect(() => timeline.current.pause(!!(paused || disabled)), [paused, disabled]);
 
     useEffect(() => {
         for (let i = 0; i < triggers.length; i++) {

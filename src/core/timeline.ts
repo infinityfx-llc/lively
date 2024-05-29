@@ -37,6 +37,8 @@ export default class Timeline {
     }
 
     time(clip: Clip) {
+        if (!this.tracks.size) return 0;
+
         return clip.duration + clip.delay + this.stagger * Math.max(Math.min(this.staggerLimit, this.tracks.size - 1), 0);
     }
 

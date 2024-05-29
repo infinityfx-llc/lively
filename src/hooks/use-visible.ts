@@ -29,6 +29,7 @@ export default function useVisible<T extends Element = any>({ enter = 1, exit = 
             state.current.visible = intersecting;
         }
 
+        linkupdate();
         link.subscribe(linkupdate);
 
         return () => link.unsubscribe(linkupdate);

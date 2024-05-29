@@ -117,7 +117,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
         if (clip) timeline.current.add(clip, merge({ delay }, options));
 
         if (props.onAnimationEnd) setTimeout(props.onAnimationEnd.bind({}, animation), (duration + delay) * 1000);
-        
+
         return duration + delay;
     }, [disabled, index]);
 
@@ -161,8 +161,10 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
     }, [triggers]);
 
     useMountEffect(() => {
+        const cache = () => timeline.current.cache(); // maybe dont do this mid transition (also transition on resize within layoutgroup)
+
         timeline.current.link(mergedProps.animate);
-        window.addEventListener('resize', timeline.current.cache); // maybe dont do this mid transition (also transition on resize within layoutgroup)
+        window.addEventListener('resize', cache);
 
         parent?.add(self);
 
@@ -172,7 +174,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
         });
 
         return () => {
-            window.removeEventListener('resize', timeline.current.cache);
+            window.removeEventListener('resize', cache);
 
             timeline.current.unlink();
             parent?.remove(self);
@@ -193,7 +195,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
         }
     }}>
         {Children.map(props.children, child => {
-            if (!isValidElement(child) || child.type instanceof Function) return child;
+            if (!isValidElement(child)) return child;
 
             return cloneElement(child as React.ReactElement<any>, {
                 ref: combineRefs(el => timeline.current.insert(el), (child as any).ref),

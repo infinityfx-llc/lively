@@ -214,3 +214,5 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
         })}
     </AnimatableContext>;
 }
+
+Animatable.isLively = true;

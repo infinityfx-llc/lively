@@ -16,3 +16,5 @@ export default function Typable({ children, stagger = 1, staggerLimit = Number.M
         })}
     </Animatable>;
 }
+
+Typable.isLively = true;

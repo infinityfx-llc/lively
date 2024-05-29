@@ -9,8 +9,7 @@ function snapshot(children: React.ReactNode, map: { [key: string]: boolean } = {
     Children.forEach(children, child => {
         if (!isValidElement(child)) return;
 
-        const displayName = (child.type as any)?.name;
-        if ((displayName === 'Animatable' || displayName === 'Animate') && 'id' in (child as React.ReactElement<any>).props) {
+        if ((child.type as any)?.isLively && 'id' in (child as React.ReactElement<any>).props) {
             map[(child as React.ReactElement<any>).props.id] = true;
         }
 

@@ -112,3 +112,5 @@ export default function Morph({
         {children}
     </Animatable >;
 }
+
+Morph.isLively = true;

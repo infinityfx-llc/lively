@@ -28,3 +28,5 @@ export default function Animate({ children, animations = [Move, Pop], levels = 2
 
     return <>{render(children)}</>;
 }
+
+Animate.isLively = true;

@@ -8,25 +8,21 @@ export default function useVisible<T extends Element = any>({ enter = 1, exit = 
     enter?: boolean | number;
     exit?: boolean | number;
     threshold?: number;
-} = {}): [Trigger, React.Ref<T>] {
-    const [link, ref] = useViewport(threshold);
-    const state = useRef({
-        visible: false,
-        enters: enter === true ? Infinity : +enter,
-        exits: exit === true ? Infinity : +exit,
-    });
-    const trigger = useTrigger();
+} = {}): [React.Ref<T>, Trigger, Trigger] {
+    const [ref, link] = useViewport(threshold);
+    const visible = useRef(false);
+    const enters = useTrigger();
+    const exits = useTrigger();
 
     useEffect(() => {
         function linkupdate() {
             const [x, y] = link();
             const intersecting = x > 0 && x < 1 && y > 0 && y < 1;
-            const { visible, enters, exits } = state.current;
     
-            if (!visible && intersecting && enters) state.current.enters--, trigger();
-            if (visible && !intersecting && exits) state.current.exits--, trigger();
+            if (!visible.current && intersecting && enters.called < (enter === true ? Infinity : +enter)) enters();
+            if (visible.current && !intersecting && exits.called < (exit === true ? Infinity : +exit)) exits();
     
-            state.current.visible = intersecting;
+            visible.current = intersecting;
         }
 
         linkupdate();
@@ -35,5 +31,5 @@ export default function useVisible<T extends Element = any>({ enter = 1, exit = 
         return () => link.unsubscribe(linkupdate);
     }, []);
 
-    return [trigger, ref];
+    return [ref, enters, exits];
 }

@@ -5,7 +5,7 @@ import { Link } from "../core/link";
 import useLink from "./use-link";
 import useMountEffect from "./use-mount-effect";
 
-export default function useViewport<T extends Element = any>(threshold = .5): [Link<[number, number]>, React.Ref<T>] {
+export default function useViewport<T extends Element = any>(threshold = .5): [React.Ref<T>, Link<[number, number]>] {
     const ref = useRef<T>(null);
     const link = useLink<[number, number]>([-1, -1]);
 
@@ -32,5 +32,5 @@ export default function useViewport<T extends Element = any>(threshold = .5): [L
         }
     }, [threshold]);
 
-    return [link, ref];
+    return [ref, link];
 }

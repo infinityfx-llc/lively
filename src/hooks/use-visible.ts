@@ -29,7 +29,7 @@ export default function useVisible<T extends Element = any>({ enter = 1, exit = 
         link.subscribe(linkupdate);
 
         return () => link.unsubscribe(linkupdate);
-    }, []);
+    }, [enters, exits]);
 
     return [ref, enters, exits];
 }

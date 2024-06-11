@@ -95,7 +95,8 @@ export default class Track {
     apply(prop: string, val: any) { // update cache after this?
         const isStroke = prop === 'strokeLength';
         this.element.style[isStroke ? 'strokeDashoffset' : prop as never] = isStroke ? lengthToOffset(val) : val;
-        
+        // map borderRadius to something else to use in border radius correction?
+
         this.correct();
     }
 
@@ -111,12 +112,14 @@ export default class Track {
         return [x, y];
     }
 
-    computeBorderRadius(borderRadius = this.cache.computed.borderRadius) {
+    computeBorderRadius(borderRadius = this.cache.computed.borderRadius) { // doesnt work when border radius animates as well...
         const arr = borderRadius.split(/\s*\/\s*/);
         if (arr.length < 2) arr[1] = arr[0];
 
         const prev = this.scale;
         this.scale = this.decomposeScale();
+
+        // if borderRadius animation (seperate attribute), dont use prev scale, just use scale directly
 
         return arr.map((axis, i) => {
             return axis.split(' ').map(val => {
@@ -133,10 +136,14 @@ export default class Track {
 
         for (let i = 0; i < this.element.children.length; i++) {
             const child = this.element.children[i] as HTMLElement;
+            const l = child.offsetLeft,
+                t = child.offsetTop,
+                w = child.offsetWidth,
+                h = child.offsetHeight;
 
-            child.style.transform = `scale(${1 / x}, ${1 / y})`;
-            // measure offset to parent to correct position inside parent element
-            // should keep track of children offsets in cache
+            const [tx, ty] = getComputedStyle(child).translate.split(' ').map(parseFloat);
+
+            child.style.transform = `translate(${-tx || 0}px, ${-ty || 0}px) scale(${1 / x}, ${1 / y}) translate(${l * (1 - x) + w / 2 * (1 - x) + (tx || 0)}px, ${t * (1 - y) + h / 2 * (1 - y) + (ty || 0)}px)`;
         }
     }
 

@@ -111,12 +111,12 @@ export default class Track {
     }
 
     computeBorderRadius() {
-        const uncorrected = this.cache.computed.borderRadius;
+        const computed = this.cache.computed;
 
-        const radii = uncorrected.split(/\s*\/\s*/);
+        const radii = computed.borderRadius.split(/\s*\/\s*/);
         if (radii.length < 2) radii[1] = radii[0];
 
-        const previousScale = uncorrected !== this.correctedBorderRadius ? [1, 1] : this.scale;
+        const previousScale = computed.borderRadius !== this.correctedBorderRadius ? [1, 1] : this.scale;
         this.scale = this.decomposeScale();
 
         this.element.style.borderRadius = radii.map((axis, i) => {
@@ -125,7 +125,7 @@ export default class Track {
             }).join(' ');
         }).join('/');
 
-        this.correctedBorderRadius = this.cache.computed.borderRadius;
+        this.correctedBorderRadius = computed.borderRadius;
     }
 
     correct() {

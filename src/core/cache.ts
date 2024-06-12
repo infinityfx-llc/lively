@@ -31,7 +31,7 @@ export class StyleCache {
         const data = {} as CacheData;
 
         // @ts-expect-error
-        for (const prop of this.include) data[prop] = this.computed[prop as never];
+        for (const prop of this.include) data[prop] = this.computed[prop];
 
         if (this.element instanceof SVGElement) return data;
         data.sx = this.element.offsetWidth;

@@ -1,7 +1,7 @@
 import Action from "./action";
 import { Link, isLink } from "./link";
 import type Track from "./track";
-import { distributeAnimatableKeyframes, merge, normalizeAnimatableKeyframes } from "./utils";
+import { createDynamic, distributeAnimatableKeyframes, merge, normalizeAnimatableKeyframes } from "./utils";
 
 export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end';
 
@@ -67,6 +67,11 @@ export default class Clip {
             if (arr[0] === null) init !== undefined ? arr[0] = init : arr.splice(0, 1);
 
             if (!normalizeAnimatableKeyframes(arr)) continue;
+
+            if (prop === 'borderRadius') {
+                this.dynamic[prop] = createDynamic(prop, Object.values(distributeAnimatableKeyframes(prop, arr as any)), easing);
+                continue;
+            }
 
             distributeAnimatableKeyframes(prop, arr as any, keyframes);
         }

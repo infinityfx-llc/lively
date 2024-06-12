@@ -1,4 +1,5 @@
 import type { AnimatableKeyframe } from "./clip";
+import type Track from "./track";
 
 type SharedKeys<T, P> = keyof Omit<T | P, keyof (Omit<T, keyof P> & Omit<P, keyof T>)>;
 
@@ -103,4 +104,18 @@ export function normalizeAnimatableKeyframes(keyframes: (AnimatableKeyframe | un
     }
 
     return equal < 2 || equal !== keyframes.length;
+}
+
+// might need support for reverse/alternate?
+export function createDynamic(prop: string, keyframes: Keyframe[], easing: string) {
+    return function (this: Track, t: number) {
+        const animation = this.element.animate(keyframes, { duration: 1000, fill: 'forwards', easing });
+        animation.currentTime = 1000 * t;
+        
+        const value = getComputedStyle(this.element)[prop as any];
+
+        animation.cancel();
+
+        return value;
+    }
 }

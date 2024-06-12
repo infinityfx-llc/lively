@@ -13,8 +13,9 @@ export default class Track {
     active: Action[] = [];
     queue: Action[] = [];
     cache: StyleCache;
-    scale: [number, number] = [1, 1];
     paused: boolean = false;
+    scale: [number, number] = [1, 1];
+    correctedBorderRadius: string = '';
 
     constructor(element: HTMLElement | SVGElement, deform: boolean, cachable?: CachableKey[]) {
         this.element = element;
@@ -95,9 +96,6 @@ export default class Track {
     apply(prop: string, val: any) { // update cache after this?
         const isStroke = prop === 'strokeLength';
         this.element.style[isStroke ? 'strokeDashoffset' : prop as never] = isStroke ? lengthToOffset(val) : val;
-        // map borderRadius to something else to use in border radius correction?
-
-        this.correct();
     }
 
     decomposeScale(): [number, number] {
@@ -112,26 +110,29 @@ export default class Track {
         return [x, y];
     }
 
-    computeBorderRadius(borderRadius = this.cache.computed.borderRadius) { // doesnt work when border radius animates as well...
-        const arr = borderRadius.split(/\s*\/\s*/);
-        if (arr.length < 2) arr[1] = arr[0];
+    computeBorderRadius() {
+        const uncorrected = this.cache.computed.borderRadius;
 
-        const prev = this.scale;
+        const radii = uncorrected.split(/\s*\/\s*/);
+        if (radii.length < 2) radii[1] = radii[0];
+
+        const previousScale = uncorrected !== this.correctedBorderRadius ? [1, 1] : this.scale;
         this.scale = this.decomposeScale();
 
-        // if borderRadius animation (seperate attribute), dont use prev scale, just use scale directly
-
-        return arr.map((axis, i) => {
-            return axis.split(' ').map(val => {
-                return parseFloat(val) * prev[i] / this.scale[i] + (val.match(/[^\d\.]+$/)?.[0] || 'px');
+        this.element.style.borderRadius = radii.map((axis, i) => {
+            return axis.split(' ').map(radius => {
+                return parseFloat(radius) * previousScale[i] / this.scale[i] + (radius.match(/[^\d\.]+$/)?.[0] || 'px');
             }).join(' ');
         }).join('/');
+
+        this.correctedBorderRadius = this.cache.computed.borderRadius;
     }
 
     correct() {
         if (this.deform) return;
 
-        this.element.style.borderRadius = this.computeBorderRadius();
+        this.computeBorderRadius();
+
         const [x, y] = this.decomposeScale();
 
         for (let i = 0; i < this.element.children.length; i++) {

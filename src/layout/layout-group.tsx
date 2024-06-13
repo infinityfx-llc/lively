@@ -118,7 +118,10 @@ export function ExpLayoutGroup({ children, transition }: {
     const [_, forceUpdate] = useState({});
 
     const awaiting = new Set<string>();
-    const rendered = useRef<React.ReactElement<any>[]>([]);
+    const rendered = useRef<{
+        child: React.ReactElement<any>;
+        key: string;
+    }[]>([]);
     const mounting = useRef(new Map<string, {
         child: React.ReactElement<any>;
         index: number;
@@ -131,31 +134,43 @@ export function ExpLayoutGroup({ children, transition }: {
     for (let i = 0; i < candidates.length; i++) {
         const child = candidates[i];
 
-        if (!(child.type as any).isLively || !('id' in child.props)) continue; // non-lively components should also be rendered
+        const isLively = (child.type as any).isLively && 'id' in child.props;
+        const key = isLively ? child.props.id : `__${i}`;
 
-        const index = rendered.current.findIndex(rendered => rendered.props.id === child.props.id);
+        const index = rendered.current.findIndex(({ key: childKey }) => childKey === key);
         if (index < 0) {
-            mounting.current.set(child.props.id, { child, index: i });
+            mounting.current.set(key, { child, index: i });
         } else {
-            rendered.current[index] = child;
+            rendered.current[index] = { child, key };
         }
 
-        awaiting.add(child.props.id);
+        awaiting.add(key);
     }
 
     mounting.current.forEach((_, key) => {
         if (!awaiting.has(key)) mounting.current.delete(key);
     });
 
-    for (const child of rendered.current) {
-        if (!awaiting.has(child.props.id)) unmounting.current.add(child.props.id);
+    for (const { key } of rendered.current) {
+        if (!awaiting.has(key)) unmounting.current.add(key);
     }
 
-    if (unmounting.current.size && ref.current) { // cancel unmount if component remounts again
+    if (unmounting.current.size && ref.current) {
 
         for (const child of ref.current.children) {
-            if (child.current && unmounting.current.has(child.current.id) && child.current.timeline.mounted) {
-                const ends = Date.now() + child.current.trigger('unmount') * 1000;
+            if (!child.current) continue;
+
+            const isUnmounting = unmounting.current.has(child.current.id);
+            
+            if (isUnmounting && awaiting.has(child.current.id)) {
+                unmounting.current.delete(child.current.id);
+                
+                child.current.trigger('mount');
+                child.current.timeline.mounted = true;
+            }
+
+            if (isUnmounting && child.current.timeline.mounted) {
+                const ends = Date.now() + child.current.trigger('unmount') * 1000; // sometimes unmount animation doesnt play?
                 unmountDelay.current = Math.max(unmountDelay.current, ends);
 
                 child.current.timeline.mounted = false;
@@ -165,7 +180,7 @@ export function ExpLayoutGroup({ children, transition }: {
         clearTimeout(timeout.current);
         timeout.current = setTimeout(() => {
             unmounting.current.forEach(key => {
-                const i = rendered.current.findIndex(child => child.props.id === key);
+                const i = rendered.current.findIndex(({ key: childKey }) => childKey === key);
                 rendered.current.splice(i, 1);
             });
             unmounting.current.clear();
@@ -174,8 +189,8 @@ export function ExpLayoutGroup({ children, transition }: {
     }
 
     if (!unmounting.current.size) { // maybe do this simultanously with unmount (requires unmounts to happen with position absolute..)
-        mounting.current.forEach(({ child, index }) => {
-            rendered.current.splice(index, 0, child);
+        mounting.current.forEach(({ child, index }, key) => {
+            rendered.current.splice(index, 0, { child, key });
         });
         mounting.current.clear();
     }
@@ -187,13 +202,13 @@ export function ExpLayoutGroup({ children, transition }: {
             if (!child.current?.id ||
                 !child.current.timeline.mounted ||
                 !child.current.adaptive ||
-                !rendered.current.some(rendered => rendered.props.id === (child.current as any).id)) continue;
+                !rendered.current.some(({ key }) => key === (child.current as any).id)) continue;
 
             child.current.timeline.transition(undefined, transition);
         }
     });
 
     return <Animatable ref={ref} passthrough cachable={[]}>
-        {rendered.current}
+        {rendered.current.map(({ child }) => child)}
     </Animatable>;
 }

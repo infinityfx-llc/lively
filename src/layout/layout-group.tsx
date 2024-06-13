@@ -4,6 +4,7 @@ import { Children, isValidElement, useRef, useState } from "react";
 import Animatable, { AnimatableType } from "../animatable";
 import useMountEffect from "../hooks/use-mount-effect";
 import type { TransitionOptions } from "../core/track";
+import { Groups } from "./morph";
 
 function compare(a: any, b: any): boolean {
     const typeA = typeof a,
@@ -43,6 +44,7 @@ function compare(a: any, b: any): boolean {
     return (typeA === 'function' && typeA === typeB) || a === b;
 }
 
+// test if needed with collapsible in sidebar vv
 function isEqual(a: any, b: any) { // was used to avoid unnecessary adaptive transitions (but is not ideal fix)
     try {
         return compare(a, b);
@@ -100,33 +102,49 @@ export default function LayoutGroup({ children, transition }: {
     if (unmounting.current.size && ref.current) {
 
         for (const child of ref.current.children) {
+            const id = child.current?.id as string,
+                isUnmounting = unmounting.current.has(id);
+                
             if (!child.current) continue;
 
-            const isUnmounting = unmounting.current.has(child.current.id);
-
-            if (isUnmounting && awaiting.has(child.current.id)) {
+            if (isUnmounting && awaiting.has(id)) {
                 child.current.timeline.mounted = true;
 
-                unmounting.current.delete(child.current.id);
+                unmounting.current.delete(id);
             }
 
-            if (isUnmounting && child.current.timeline.mounted) { // look into detecing morphs (dont umount when morph transition)
+            if (isUnmounting && child.current.timeline.mounted) {
                 const ends = Date.now() + child.current.trigger('unmount', { immediate: true }) * 1000;
                 unmountDelay.current = Math.max(unmountDelay.current, ends);
+
+                if (child.current.group) {
+                    const morph = Groups[child.current.group].get(child.current.timeline);
+
+                    if (morph) morph.state = 'unmounted';
+                }
 
                 child.current.timeline.mounted = false;
             }
         }
 
+        const delay = unmountDelay.current - Date.now();
         clearTimeout(timeout.current);
-        timeout.current = setTimeout(() => {
+
+        const afterUnmount = (update: boolean = true) => {
             unmounting.current.forEach(key => {
                 const i = rendered.current.findIndex(({ key: childKey }) => childKey === key);
                 rendered.current.splice(i, 1);
             });
             unmounting.current.clear();
-            forceUpdate({});
-        }, unmountDelay.current - Date.now());
+
+            if (update) forceUpdate({});
+        }
+
+        if (delay > 0) {
+            timeout.current = setTimeout(afterUnmount, delay);
+        } else {
+            afterUnmount(false);
+        }
     }
 
     if (!unmounting.current.size) { // maybe do this simultanously with unmount (requires unmounts to happen with position absolute..)

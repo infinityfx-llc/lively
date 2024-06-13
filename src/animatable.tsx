@@ -17,7 +17,7 @@ export type AnimatableType<T extends string = any> = {
     children: React.RefObject<AnimatableType | null>[];
     inherit: boolean | undefined;
     adaptive: boolean;
-    manual: boolean;
+    group: string | undefined;
     id: string;
 };
 
@@ -141,7 +141,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
         children: children.current,
         inherit,
         adaptive,
-        manual,
+        group: mergedProps.group,
         id
     }), [triggers]);
 

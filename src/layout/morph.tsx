@@ -7,7 +7,7 @@ import Timeline from "../core/timeline";
 import { TransitionOptions } from "../core/track";
 import useMountEffect from "../hooks/use-mount-effect";
 
-const Groups: {
+export const Groups: {
     [key: string]: Map<Timeline, {
         state: 'mounted' | 'unmounted' | 'collected';
     }>;

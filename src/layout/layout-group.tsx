@@ -161,16 +161,15 @@ export function ExpLayoutGroup({ children, transition }: {
             if (!child.current) continue;
 
             const isUnmounting = unmounting.current.has(child.current.id);
-            
+
             if (isUnmounting && awaiting.has(child.current.id)) {
-                unmounting.current.delete(child.current.id);
-                
-                child.current.trigger('mount');
                 child.current.timeline.mounted = true;
+
+                unmounting.current.delete(child.current.id);
             }
 
-            if (isUnmounting && child.current.timeline.mounted) {
-                const ends = Date.now() + child.current.trigger('unmount') * 1000; // sometimes unmount animation doesnt play?
+            if (isUnmounting && child.current.timeline.mounted) { // look into detecing morphs (dont umount when morph transition)
+                const ends = Date.now() + child.current.trigger('unmount', { immediate: true }) * 1000;
                 unmountDelay.current = Math.max(unmountDelay.current, ends);
 
                 child.current.timeline.mounted = false;

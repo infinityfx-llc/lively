@@ -6,53 +6,6 @@ import useMountEffect from "../hooks/use-mount-effect";
 import type { TransitionOptions } from "../core/track";
 import { Groups } from "./morph";
 
-function compare(a: any, b: any): boolean {
-    const typeA = typeof a,
-        typeB = typeof b;
-    if (typeA !== typeB) return false;
-
-    if (isValidElement(a)) {
-        if (!isValidElement(b) || a.key !== b.key) return false;
-
-        return compare(a.props, b.props);
-    }
-
-    if (Array.isArray(a)) {
-        if (!Array.isArray(b) || a.length !== b.length) return false;
-
-        for (let i = 0; i < a.length; i++) {
-            if (!compare(a[i], b[i])) return false;
-        }
-
-        return true;
-    }
-
-    if (typeA === 'object' && a !== null && b !== null) {
-        const keysA = Object.keys(a),
-            keysB = Object.keys(b);
-
-        if (keysA.length !== keysB.length) return false;
-        if (!keysA.length) return a.toString() === b.toString();
-
-        for (let i = 0; i < keysA.length; i++) {
-            if (!(keysA[i] in b) || !compare(a[keysA[i]], b[keysB[i]])) return false;
-        }
-
-        return true;
-    }
-
-    return (typeA === 'function' && typeA === typeB) || a === b;
-}
-
-// test if needed with collapsible in sidebar vv
-function isEqual(a: any, b: any) { // was used to avoid unnecessary adaptive transitions (but is not ideal fix)
-    try {
-        return compare(a, b);
-    } catch (err) {
-        return false;
-    }
-}
-
 export default function LayoutGroup({ children, transition }: {
     children: React.ReactNode;
     transition?: Omit<TransitionOptions, 'reverse'>;
@@ -158,7 +111,7 @@ export default function LayoutGroup({ children, transition }: {
         if (!ref.current) return;
 
         for (const child of ref.current.children) {
-            if (!child.current?.id || // take into account manual as well?
+            if (!child.current?.id ||
                 !child.current.timeline.mounted ||
                 !child.current.adaptive ||
                 !rendered.current.some(({ key }) => key === (child.current as any).id)) continue;

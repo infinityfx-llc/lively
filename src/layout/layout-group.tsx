@@ -1,24 +1,9 @@
 'use client';
 
-import { Children, isValidElement, useEffect, useRef, useState } from "react";
+import { Children, isValidElement, useRef, useState } from "react";
 import Animatable, { AnimatableType } from "../animatable";
-import { Easing } from "../core/clip";
 import useMountEffect from "../hooks/use-mount-effect";
 import type { TransitionOptions } from "../core/track";
-
-function snapshot(children: React.ReactNode, map: { [key: string]: boolean } = {}) {
-    Children.forEach(children, child => {
-        if (!isValidElement(child)) return;
-
-        if ((child.type as any)?.isLively && 'id' in (child as React.ReactElement<any>).props) {
-            map[(child as React.ReactElement<any>).props.id] = true;
-        }
-
-        snapshot((child as React.ReactElement<any>).props.children, map);
-    });
-
-    return map;
-}
 
 function compare(a: any, b: any): boolean {
     const typeA = typeof a,
@@ -58,7 +43,7 @@ function compare(a: any, b: any): boolean {
     return (typeA === 'function' && typeA === typeB) || a === b;
 }
 
-function isEqual(a: any, b: any) {
+function isEqual(a: any, b: any) { // was used to avoid unnecessary adaptive transitions (but is not ideal fix)
     try {
         return compare(a, b);
     } catch (err) {
@@ -66,50 +51,7 @@ function isEqual(a: any, b: any) {
     }
 }
 
-// TODO: use snapshots to detect which elements mounted/unmounted and use this info to merge different versions of actual.current, then use that to update rendered content
-// simultanous unmount / mount?
-
-export default function LayoutGroup({
-    children,
-    transition
-}: {
-    children: React.ReactNode;
-    transition?: { duration?: number; easing?: Easing; };
-}) {
-    const ref = useRef<AnimatableType | null>(null);
-    const cache = useRef(snapshot(children));
-    const [content, setContent] = useState(children);
-
-    useEffect(() => {
-        if (!ref.current || isEqual(content, children)) return;
-
-        let delay = 0, pending = snapshot(children);
-        for (const child of ref.current.children) {
-            if (child.current && !child.current.manual && child.current.id in cache.current && !(child.current.id in pending)) {
-                delay = Math.max(child.current.trigger('unmount'), delay);
-            }
-        }
-
-        cache.current = pending;
-        setTimeout(() => setContent(children), delay * 1000);
-    }, [children]);
-
-    useMountEffect(() => {
-        if (!ref.current) return;
-
-        for (const child of ref.current.children) {
-            if (child.current?.timeline.mounted && child.current.adaptive) {
-                child.current.timeline.transition(undefined, transition);
-            }
-        }
-    }, [content]);
-
-    return <Animatable ref={ref} cachable={[]} passthrough>
-        {content}
-    </Animatable>
-}
-
-export function ExpLayoutGroup({ children, transition }: {
+export default function LayoutGroup({ children, transition }: {
     children: React.ReactNode;
     transition?: Omit<TransitionOptions, 'reverse'>;
 }) {
@@ -197,8 +139,8 @@ export function ExpLayoutGroup({ children, transition }: {
     useMountEffect(() => {
         if (!ref.current) return;
 
-        for (const child of ref.current.children) { // still produced some unwanted opacity flashes when child is still mounting
-            if (!child.current?.id ||
+        for (const child of ref.current.children) {
+            if (!child.current?.id || // take into account manual as well?
                 !child.current.timeline.mounted ||
                 !child.current.adaptive ||
                 !rendered.current.some(({ key }) => key === (child.current as any).id)) continue;

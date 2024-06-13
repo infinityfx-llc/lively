@@ -20,11 +20,11 @@ export class StyleCache {
     computed: CSSStyleDeclaration;
     include: CachableKey[];
 
-    constructor(element: HTMLElement | SVGElement, include: CachableKey[] = ['x', 'y', 'sx', 'sy', 'borderRadius', 'backgroundColor', 'color', 'rotate', 'opacity']) {
+    constructor(element: HTMLElement | SVGElement, include: CachableKey[] = ['x', 'y', 'sx', 'sy', 'borderRadius', 'backgroundColor', 'color', 'rotate']) {
         this.element = element;
         this.include = include.map(key => key === 'strokeLength' ? 'strokeDashoffset' : key);
         this.computed = getComputedStyle(element);
-        this.data = this.read(); // if mount animation this has values from first animation frame?
+        this.data = this.read();
     }
 
     read() {
@@ -56,7 +56,7 @@ export class StyleCache {
     }
 
     difference(from: CacheData = this.data, { duration = 0.5, easing = 'ease', reverse = false }: TransitionOptions) {
-        const to = this.read();
+        const to = this.read(); // multiple simultanious transitions a problem?
 
         const scale = [[1, 1], [1, 1]],
             translate = [['0px', '0px'], ['0px', '0px']];

@@ -24,7 +24,7 @@ export class StyleCache {
         this.element = element;
         this.include = include.map(key => key === 'strokeLength' ? 'strokeDashoffset' : key);
         this.computed = getComputedStyle(element);
-        this.data = this.read();
+        this.data = this.read(); // if mount animation this has values from first animation frame?
     }
 
     read() {

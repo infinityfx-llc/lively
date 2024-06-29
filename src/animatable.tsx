@@ -1,12 +1,11 @@
 'use client';
 
-import { Children, cloneElement, createContext, isValidElement, useCallback, useEffect, useImperativeHandle, useRef, use, useMemo } from "react";
+import { Children, cloneElement, createContext, isValidElement, useCallback, useEffect, useImperativeHandle, useRef, use, useMemo, useLayoutEffect } from "react";
 import Clip, { AnimatableInitials, ClipProperties } from "./core/clip";
 import { Trigger } from "./hooks/use-trigger";
 import Timeline, { PlayOptions } from "./core/timeline";
 import { combineRefs, merge, pick } from "./core/utils";
 import { CachableKey } from "./core/cache";
-import useMountEffect from "./hooks/use-mount-effect";
 
 type StaticTrigger = 'mount' | 'unmount';
 
@@ -160,7 +159,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
         }
     }, [triggers]);
 
-    useMountEffect(() => {
+    useLayoutEffect(() => {
         const cache = () => timeline.current.cache(); // maybe dont do this mid transition (also transition on resize within layoutgroup)
 
         timeline.current.link(mergedProps.animate);

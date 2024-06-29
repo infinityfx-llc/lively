@@ -1,8 +1,7 @@
 'use client';
 
-import { Children, cloneElement, isValidElement, useRef, useState } from "react";
+import { Children, cloneElement, isValidElement, useLayoutEffect, useRef, useState } from "react";
 import Animatable, { AnimatableType } from "../animatable";
-import useMountEffect from "../hooks/use-mount-effect";
 import type { TransitionOptions } from "../core/track";
 import { Groups } from "./morph";
 
@@ -127,10 +126,12 @@ function renderTree(tree: Node[]): React.ReactNode {
     });
 }
 
-export default function LayoutGroup({ children, transition }: {
+export default function LayoutGroup({ children, transition, initialMount = true }: {
     children: React.ReactNode;
     transition?: Omit<TransitionOptions, 'reverse'>;
+    initialMount?: boolean;
 }) {
+    const preventMount = useRef(!initialMount);
     const ref = useRef<AnimatableType | null>(null);
     const [_, forceUpdate] = useState({});
 
@@ -217,10 +218,12 @@ export default function LayoutGroup({ children, transition }: {
         mounting.current.clear();
     }
 
-    useMountEffect(() => {
+    useLayoutEffect(() => {
         if (!ref.current) return;
 
         for (const child of ref.current.children) {
+            if (preventMount.current && child.current) child.current.timeline.mounted = true;
+
             if (!child.current?.id ||
                 !child.current.timeline.mounted ||
                 !child.current.adaptive ||
@@ -228,6 +231,8 @@ export default function LayoutGroup({ children, transition }: {
 
             child.current.timeline.transition(undefined, transition);
         }
+
+        preventMount.current = false;
     });
 
     return <Animatable ref={ref} passthrough cachable={[]}>

@@ -1,11 +1,10 @@
 'use client';
 
-import { use, useRef } from "react";
+import { use, useLayoutEffect, useRef } from "react";
 import Animatable, { AnimatableContext, AnimatableType, AnimatableProps } from "../animatable";
 import { combineRefs } from "../core/utils";
 import Timeline from "../core/timeline";
 import { TransitionOptions } from "../core/track";
-import useMountEffect from "../hooks/use-mount-effect";
 
 export const Groups: {
     [key: string]: Map<Timeline, {
@@ -23,7 +22,7 @@ export default function Morph({ children, group, transition, ...props }: {
 
     const ref = useRef<AnimatableType | null>(null);
 
-    useMountEffect(() => {
+    useLayoutEffect(() => {
         const timeline = ref.current?.timeline;
         if (!timeline) return;
 

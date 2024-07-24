@@ -3,7 +3,7 @@ import { Link, isLink } from "./link";
 import type Track from "./track";
 import { createDynamic, distributeAnimatableKeyframes, merge, normalizeAnimatableKeyframes } from "./utils";
 
-export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end';
+export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end' | (string & {});
 
 export type AnimatableKey = keyof React.CSSProperties | 'strokeLength';
 

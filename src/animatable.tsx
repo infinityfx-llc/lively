@@ -168,7 +168,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
         parent?.add(self);
 
         document.fonts.ready.then(() => {
-            if (!manual && !timeline.current.mounted) trigger('mount');
+            if (!manual && !timeline.current.mounted) trigger('mount', { immediate: true }); // TEST: immediate: true
             timeline.current.mounted = true;
         });
 

@@ -67,7 +67,12 @@ export default class Track {
             this.queue = [];
             this.playing = 0;
         }
-        // also call correct here?? (manually set currentTime to desired frame to update)
+
+        if (!this.deform) {
+            this.element.style.borderRadius = '';
+            this.correctedBorderRadius = this.cache.data.borderRadius = this.cache.computed.borderRadius;
+            this.scale = [1, 1];
+        }
     }
 
     pause(value: boolean) {
@@ -79,7 +84,7 @@ export default class Track {
     step(index: number) {
         for (const action of this.active) action.step(index);
 
-        if (this.active.length) this.correct();
+        this.correct();
     }
 
     transition(previous: Track | undefined, options: TransitionOptions) {
@@ -101,10 +106,10 @@ export default class Track {
     decomposeScale(): [number, number] {
         const [xString, yString] = this.cache.computed.scale.split(' ');
 
-        let x = Math.max(parseFloat(xString) || 1, 0.0001);
+        let x = Math.max(parseFloat(xString) || 1, .00001);
         if (/%$/.test(xString)) x /= 100;
 
-        let y = yString ? Math.max(parseFloat(yString), 0.0001) : x;
+        let y = yString ? Math.max(parseFloat(yString) || 1, .00001) : x;
         if (/%$/.test(yString)) y /= 100;
 
         return [x, y];
@@ -129,7 +134,7 @@ export default class Track {
     }
 
     correct() {
-        if (this.deform) return;
+        if (this.paused || this.deform || !this.active.length) return;
 
         this.computeBorderRadius();
 

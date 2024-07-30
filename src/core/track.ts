@@ -84,7 +84,7 @@ export default class Track {
     step(index: number) {
         for (const action of this.active) action.step(index);
 
-        this.correct();
+        if (!this.paused && this.active.length) this.correct();
     }
 
     transition(previous: Track | undefined, options: TransitionOptions) {
@@ -134,7 +134,7 @@ export default class Track {
     }
 
     correct() {
-        if (this.paused || this.deform || !this.active.length) return;
+        if (this.deform) return;
 
         this.computeBorderRadius();
 

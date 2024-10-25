@@ -12,7 +12,15 @@ export const Groups: {
     }>;
 } = {};
 
+/**
+ * Peform layout morphs between components when one mounts and unmount.
+ * 
+ * @see {@link https://lively.infinityfx.dev/docs/components/morph}
+ */
 export default function Morph({ children, group, transition, ...props }: {
+    /**
+     * Global identifier, components with the same group will morph between eachother.
+     */
     group: string;
     transition?: Omit<TransitionOptions, 'reverse'>;
 } & AnimatableProps) {

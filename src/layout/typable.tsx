@@ -3,6 +3,11 @@
 import { Children } from "react";
 import Animatable, { AnimatableProps } from "../animatable";
 
+/**
+ * Wrap around text to animate it.
+ * 
+ * @see {@link https://lively.infinityfx.dev/docs/components/typable}
+ */
 export default function Typable({ children, stagger = 1, staggerLimit = Number.MAX_VALUE, ...props }: AnimatableProps) {
 
     return <Animatable {...props} stagger={stagger * -1} staggerLimit={staggerLimit}>

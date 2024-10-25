@@ -26,8 +26,23 @@ type SharedProps<T extends string = any> = {
     triggers?: ({ name?: T | 'animate'; on: Trigger | boolean | StaticTrigger; } & PlayOptions)[];
     animate?: ClipProperties | Clip;
     initial?: AnimatableInitials;
+    /**
+     * How much to stagger child elements' animations by in seconds.
+     * 
+     * @default 0.1
+     */
     stagger?: number;
+    /**
+     * Integer number, after which child elements no longer stagger their animation, but play all at once.
+     * 
+     * @default 10
+     */
     staggerLimit?: number;
+    /**
+     * Whether scale animations will cause artifacting to `border-radius` and/or child elements.
+     * 
+     * @default true
+     */
     deform?: boolean;
     disabled?: boolean;
     paused?: boolean;
@@ -36,12 +51,43 @@ type SharedProps<T extends string = any> = {
 export type AnimatableProps<T extends string = any> = {
     ref?: React.Ref<AnimatableType>;
     children: React.ReactNode;
+    /**
+     * A unique identifier within a [`LayoutGroup`](https://lively.infinityfx.dev/docs/components/layout-group) parent.
+     */
     id?: string;
+    /**
+     * Where in the order of a cascade animation this component should play it's animations.
+     */
     order?: number;
+    /**
+     * Whether to participate in cascade animations and inherit animation properties from a parent.
+     * 
+     * @default false
+     */
     inherit?: boolean;
+    /**
+     * Whether to **not** participate in cascading animations.
+     * 
+     * @default false
+     */
     passthrough?: boolean;
+    /**
+     * Whether to animate layout changes when this component is a child of a [`LayoutGroup`](https://lively.infinityfx.dev/docs/components/layout-group).
+     * 
+     * @default false
+     */
     adaptive?: boolean;
+    /**
+     * Which properties to keep track of for layout change animations.
+     * 
+     * @default ['x', 'y', 'sx', 'sy', 'rotate', 'color', 'backgroundColor', 'borderRadius', 'opacity']
+     */
     cachable?: CachableKey[];
+    /**
+     * Whether to disable automatic mount/unmount triggering.
+     * 
+     * @default false
+     */
     manual?: boolean;
     onAnimationEnd?: (animation: T | 'animate') => void;
 } & SharedProps<T>;
@@ -54,6 +100,11 @@ type AnimatableContext = {
 
 export const AnimatableContext = createContext<null | AnimatableContext>(null);
 
+/**
+ * Wrap around a react component to animate it.
+ * 
+ * @see {@link https://lively.infinityfx.dev/docs/components/animatable}
+ */
 export default function Animatable<T extends string>(props: AnimatableProps<T>) {
     const self = useRef<AnimatableType<T>>(null);
     const children = useRef<React.RefObject<AnimatableType | null>[]>([]);
@@ -73,6 +124,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
     const index = props.order !== undefined ? props.order : (inherit && parent?.index || 0) + 1;
     const triggersState = useRef<(number | boolean)[]>([]);
 
+    // aggregate animation definitions into a set of named animation clips
     const clipMap = useMemo(() => {
         const map: { [key: string]: Clip; } = { animate: Clip.from(mergedProps.animate, mergedProps.initial) };
 
@@ -85,6 +137,8 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
 
     const timeline = useRef(new Timeline({
         ...mergedProps,
+        // seperate out animation clips that trigger on mount
+        // needed when a child element remounts without the parent having unmounted
         mountClips: triggers.reduce<Clip[]>((clips, { name, on }) => {
             if (on === 'mount') clips.push(clipMap[name || 'animate']);
 
@@ -92,8 +146,11 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
         }, [])
     }));
 
+    // plays an animation and cascades this animation to the necessary children
+    // returns the total duration of the animation in seconds
     const play = useCallback((animation: T | 'animate', options: PlayOptions = {}, layer = 1) => {
         const clip = clipMap[animation];
+        // if this component is disabled or part of a cascade animation but not getting its play instruction from a parent, then return 0
         if (disabled || (index > 1 && layer < 2)) return 0;
 
         merge(options, { reverse: clip?.reverse }); // optimize syntax?
@@ -101,6 +158,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
             layerDelay = (options.delay || 0),
             duration = clip ? timeline.current.time(clip) : 0;
 
+        // cascade the animation to children that have their inherit property set
         for (const child of children.current) {
             if (!child.current?.inherit) continue;
 
@@ -147,6 +205,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
     useEffect(() => timeline.current.pause(!!(paused || disabled)), [paused, disabled]);
 
     useEffect(() => {
+        // go over all triggers to check whether animations should be played
         for (let i = 0; i < triggers.length; i++) {
             let { name, on, ...options } = triggers[i];
 
@@ -167,6 +226,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
 
         parent?.add(self);
 
+        // wait for all fonts to be loaded to avoid layout shifts when playing mount animations
         document.fonts.ready.then(() => {
             if (!manual && !timeline.current.mounted) trigger('mount');
             timeline.current.mounted = true;
@@ -198,6 +258,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
 
             return cloneElement(child as React.ReactElement<any>, {
                 ref: combineRefs(el => timeline.current.insert(el), (child as React.ReactElement<any>).props.ref),
+                // make all svg paths a length of 1 so then can be animated consistently
                 pathLength: 1,
                 style: merge(
                     {
@@ -210,6 +271,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
                         strokeDasharray: 1
                     }
                 ),
+                // if this component caches position data, then child components that cache their position data should not check past this component
                 'data-lively-offset-boundary': (['x', 'y'] as const).some(key => props.cachable?.includes(key)) || props.cachable === undefined ? true : undefined
             });
         })}

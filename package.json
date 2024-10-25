@@ -1,6 +1,6 @@
 {
 	"name": "@infinityfx/lively",
-	"version": "4.0.0-beta.15",
+	"version": "4.0.0-beta.16",
 	"type": "module",
 	"description": "Feature complete, lightweight react animation library.",
 	"main": "dist/index.js",
@@ -65,8 +65,8 @@
 		"@rollup/plugin-typescript": "^11.1.6",
 		"@types/react": "npm:types-react@^19.0.0-rc.1",
 		"@types/react-dom": "npm:types-react-dom@^19.0.0-rc.1",
-		"react": "^19.0.0-rc-ab2135c7-20240724",
-		"react-dom": "^19.0.0-rc-ab2135c7-20240724",
+		"react": "^19.0.0-rc-1631855f-20241023",
+		"react-dom": "^19.0.0-rc-1631855f-20241023",
 		"rollup": "^4.18.0",
 		"rollup-plugin-delete": "^2.0.0",
 		"rollup-plugin-preserve-directives": "^0.4.0",

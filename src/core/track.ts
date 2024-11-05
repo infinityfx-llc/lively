@@ -3,11 +3,15 @@ import { CachableKey, StyleCache } from "./cache";
 import type { Easing } from "./clip";
 import { lengthToOffset } from "./utils";
 
-export type TransitionOptions = { duration?: number; easing?: Easing; reverse?: boolean; };
+export type TransitionOptions = {
+    duration?: number;
+    easing?: Easing;
+    reverse?: boolean;
+};
 
 export default class Track {
 
-    element: HTMLElement | SVGElement;
+    element: HTMLElement | SVGElement; // use WeakRef??
     deform: boolean;
     playing: number = 0;
     active: Action[] = [];
@@ -15,7 +19,10 @@ export default class Track {
     cache: StyleCache;
     paused: boolean = false;
     scale: [number, number] = [1, 1];
-    correctedBorderRadius: string = '';
+    corrected = {
+        borderRadius: '',
+        boxShadow: ''
+    };
 
     constructor(element: HTMLElement | SVGElement, deform: boolean, cachable?: CachableKey[]) {
         this.element = element;
@@ -70,7 +77,9 @@ export default class Track {
 
         if (!this.deform) {
             this.element.style.borderRadius = '';
-            this.correctedBorderRadius = this.cache.data.borderRadius = this.cache.computed.borderRadius;
+            this.element.style.boxShadow = '';
+            this.corrected.borderRadius = this.cache.data.borderRadius = this.cache.computed.borderRadius,
+            this.corrected.boxShadow = this.cache.data.boxShadow = this.cache.computed.boxShadow;
             this.scale = [1, 1];
         }
     }
@@ -115,30 +124,47 @@ export default class Track {
         return [x, y];
     }
 
-    computeBorderRadius() {
+    correct() {
+        if (this.deform) return;
+
         const computed = this.cache.computed;
 
         const radii = computed.borderRadius.split(/\s*\/\s*/);
         if (radii.length < 2) radii[1] = radii[0];
+        const shadows = computed.boxShadow.split(/(?<=px),\s?/);
+        const [color, shadow] = shadows[0].split(/(?<=\))\s/);
 
-        const previousScale = computed.borderRadius !== this.correctedBorderRadius ? [1, 1] : this.scale;
-        this.scale = this.decomposeScale();
+        const previousRadiusScale = computed.borderRadius !== this.corrected.borderRadius ? [1, 1] : this.scale;
+        const previousShadowScale = computed.boxShadow !== this.corrected.boxShadow ? [1, 1] : this.scale;
+        const [x, y] = this.scale = this.decomposeScale();
 
         this.element.style.borderRadius = radii.map((axis, i) => {
             return axis.split(' ').map(radius => {
-                return parseFloat(radius) * previousScale[i] / this.scale[i] + (radius.match(/[^\d\.]+$/)?.[0] || 'px');
+                return parseFloat(radius) * previousRadiusScale[i] / this.scale[i] + (radius.match(/[^\d\.]+$/)?.[0] || 'px');
             }).join(' ');
         }).join('/');
+        this.corrected.borderRadius = computed.borderRadius;
 
-        this.correctedBorderRadius = computed.borderRadius;
-    }
+        if (shadow) {
+            const props = shadow.split(' ').map(parseFloat),
+                i = +(x < y),
+                ms = i ? y : x,
+                pms = Math.max(...previousShadowScale);
 
-    correct() {
-        if (this.deform) return;
+            const corrected: [number, number, number, number][] = new Array(3).fill([
+                props[0] * previousShadowScale[0] / x,
+                props[1] * previousShadowScale[1] / y,
+                props[2] * pms / ms,
+                props[3] * pms / ms
+            ]);
+            corrected[1][0] -= i ? 1 / x : 0;
+            corrected[1][1] -= i ? 0 : 1 / y;
+            corrected[2][0] += i ? 1 / x : 0;
+            corrected[2][1] += i ? 0 : 1 / y;
 
-        this.computeBorderRadius();
-
-        const [x, y] = this.decomposeScale();
+            this.element.style.boxShadow = corrected.map(val => `${color} ${val.map(val => `${val}px`).join(' ')}`).join(', ');
+            this.corrected.boxShadow = computed.boxShadow;
+        }
 
         for (let i = 0; i < this.element.children.length; i++) {
             const child = this.element.children[i] as HTMLElement;

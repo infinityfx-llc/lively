@@ -4,7 +4,13 @@ import { Link, isLink } from "./link";
 import Track, { TransitionOptions } from "./track";
 import { IndexedMap, merge } from "./utils";
 
-export type PlayOptions = { composite?: CompositeType; immediate?: boolean; reverse?: boolean; delay?: number; commit?: boolean; };
+export type PlayOptions = {
+    composite?: CompositeType;
+    immediate?: boolean;
+    reverse?: boolean;
+    delay?: number;
+    commit?: boolean;
+};
 
 export default class Timeline {
 
@@ -20,7 +26,13 @@ export default class Timeline {
     mounted: boolean = false;
     mountClips: Clip[];
 
-    constructor({ stagger = 0.1, staggerLimit = 10, deform = true, cachable, mountClips }: { stagger?: number; staggerLimit?: number; deform?: boolean; cachable?: CachableKey[]; mountClips: Clip[]; }) {
+    constructor({ stagger = 0.1, staggerLimit = 10, deform = true, cachable, mountClips }: {
+        stagger?: number;
+        staggerLimit?: number;
+        deform?: boolean;
+        cachable?: CachableKey[];
+        mountClips: Clip[];
+    }) {
         this.stagger = stagger;
         this.staggerLimit = staggerLimit - 1;
         this.deform = deform;
@@ -62,7 +74,7 @@ export default class Timeline {
 
     link(clip?: ClipProperties | Clip) {
         this.step();
-        
+
         if (this.linked.length || !clip || clip instanceof Clip) return;
 
         for (let prop in clip) {
@@ -79,6 +91,8 @@ export default class Timeline {
     }
 
     unlink() {
+        cancelAnimationFrame(this.frame);
+
         this.linked.forEach(unsubscribe => unsubscribe());
         this.linked = [];
     }

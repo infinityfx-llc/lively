@@ -18,11 +18,11 @@ export class StyleCache {
     element: HTMLElement | SVGElement;
     data: CacheData;
     computed: CSSStyleDeclaration;
-    include: CachableKey[]; // doesnt work with strokeLength
+    include: CachableKey[];
 
-    constructor(element: HTMLElement | SVGElement, include: CachableKey[] = ['x', 'y', 'sx', 'sy', 'borderRadius', 'backgroundColor', 'color', 'rotate', 'opacity']) {
+    constructor(element: HTMLElement | SVGElement, include: CachableKey[] = ['x', 'y', 'sx', 'sy', 'borderRadius', 'backgroundColor', 'color', 'rotate']) {
         this.element = element;
-        this.include = include;
+        this.include = include.map(key => key === 'strokeLength' ? 'strokeDashoffset' : key);
         this.computed = getComputedStyle(element);
         this.data = this.read();
     }
@@ -31,7 +31,7 @@ export class StyleCache {
         const data = {} as CacheData;
 
         // @ts-expect-error
-        for (const prop of this.include) data[prop] = this.computed[prop as never];
+        for (const prop of this.include) data[prop] = this.computed[prop];
 
         if (this.element instanceof SVGElement) return data;
         data.sx = this.element.offsetWidth;
@@ -56,7 +56,7 @@ export class StyleCache {
     }
 
     difference(from: CacheData = this.data, { duration = 0.5, easing = 'ease', reverse = false }: TransitionOptions) {
-        const to = this.read();
+        const to = this.read(); // multiple simultanious transitions a problem?
 
         const scale = [[1, 1], [1, 1]],
             translate = [['0px', '0px'], ['0px', '0px']];

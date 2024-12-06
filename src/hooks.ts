@@ -6,7 +6,7 @@ import usePath from "./hooks/use-path";
 import useViewport from "./hooks/use-viewport";
 import useVisible from "./hooks/use-visible";
 import useAudio from "./hooks/use-audio";
-import useCouple from "./hooks/use-couple";
+import useSpring from "./hooks/use-spring";
 
 export {
     useLink,
@@ -17,5 +17,5 @@ export {
     useViewport,
     useVisible,
     useAudio,
-    useCouple
+    useSpring
 };

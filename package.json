@@ -1,22 +1,27 @@
 {
 	"name": "@infinityfx/lively",
-	"version": "3.5.4",
+	"version": "4.0.0",
 	"type": "module",
 	"description": "Feature complete, lightweight react animation library.",
 	"main": "dist/index.js",
 	"module": "dist/index.js",
 	"types": "dist/types/index.d.ts",
 	"exports": {
-		".": "./dist/index.js",
-		"./animations": "./dist/animations.js",
-		"./hooks": "./dist/hooks.js",
-		"./layout": "./dist/layout.js"
+		".": {
+			"types": "./dist/types/index.d.ts",
+			"default": "./dist/index.js"
+		},
+		"./hooks": {
+			"types": "./dist/types/hooks.d.ts",
+			"default": "./dist/hooks.js"
+		},
+		"./layout": {
+			"types": "./dist/types/layout.d.ts",
+			"default": "./dist/layout.js"
+		}
 	},
 	"typesVersions": {
 		"*": {
-			"animations": [
-				"./dist/types/animations.d.ts"
-			],
 			"hooks": [
 				"./dist/types/hooks.d.ts"
 			],
@@ -47,24 +52,25 @@
 		"watch": "rollup -c -w"
 	},
 	"dependencies": {
-		"tslib": "^2.6.2"
+		"tslib": "^2.6.3"
 	},
 	"peerDependencies": {
-		"react": ">=16.0.0",
-		"react-dom": ">=16.0.0"
+		"react": ">=19.0.0",
+		"react-dom": ">=19.0.0"
 	},
 	"devDependencies": {
-		"@rollup/plugin-commonjs": "^25.0.7",
+		"@rollup/plugin-commonjs": "^26.0.1",
 		"@rollup/plugin-node-resolve": "^15.2.3",
 		"@rollup/plugin-terser": "^0.4.4",
 		"@rollup/plugin-typescript": "^11.1.6",
-		"@types/react": "^18.2.31",
-		"react": "^18.2.0",
-		"react-dom": "^18.2.0",
-		"rollup": "^4.10.0",
-		"rollup-plugin-preserve-directives": "^0.4.0",
+		"@types/react": "^19.0.0",
+		"@types/react-dom": "^19.0.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"rollup": "^4.18.0",
 		"rollup-plugin-delete": "^2.0.0",
-		"typescript": "^5.3.3"
+		"rollup-plugin-preserve-directives": "^0.4.0",
+		"typescript": "^5.5.2"
 	},
 	"sideEffects": false
 }

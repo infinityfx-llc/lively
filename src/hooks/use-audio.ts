@@ -1,15 +1,16 @@
 'use client';
 
 import { useEffect, useRef } from "react";
-import useLink, { Link } from "./use-link";
+import useLink from "./use-link";
+import { Link } from "../core/link";
 
 let audioContext: AudioContext;
 
-export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency = 2000, smoothing = 0.7 } = {}): [React.MutableRefObject<HTMLAudioElement | null>, Link<number[]>] {
+export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency = 2000, smoothing = 0.7 } = {}): [React.RefObject<HTMLAudioElement | null>, Link<number[]>] {
     const buffer = useRef(new Float32Array(1024));
-    const analyzer = useRef<AnalyserNode>();
-    const source = useRef<MediaElementAudioSourceNode>();
-    const ref = useRef<HTMLAudioElement | null>(null);
+    const analyzer = useRef<AnalyserNode>(undefined);
+    const source = useRef<MediaElementAudioSourceNode>(undefined);
+    const ref = useRef<HTMLAudioElement>(null);
     const link = useLink<number[]>(new Array(8).fill(0));
 
     let frame: number;
@@ -30,7 +31,7 @@ export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency =
             arr[i] = Math.max(0, (100 + val) / 70);
         }
 
-        link.set(arr, 0);
+        link.set(arr);
 
         frame = requestAnimationFrame(update);
     }
@@ -43,7 +44,7 @@ export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency =
     function suspend() {
         cancelAnimationFrame(frame);
 
-        link.set(new Array(bands).fill(0), 0.3);
+        link.set(new Array(bands).fill(0), { duration: 0.3 });
     }
 
     useEffect(() => {

@@ -1,7 +1,7 @@
 'use client';
 
+import { useLayoutEffect } from "react";
 import useLink from "./use-link";
-import useMountEffect from "./use-mount-effect";
 
 export default function useScroll<T extends HTMLElement>({ restore = 0, target }: {
     restore?: number;
@@ -9,16 +9,16 @@ export default function useScroll<T extends HTMLElement>({ restore = 0, target }
 } = {}) {
     const link = useLink({ x: 0, y: 0, top: 0, left: 0 });
 
-    useMountEffect(() => {
+    useLayoutEffect(() => {
         const element = target?.current ? target.current : window;
 
-        function update(transition?: number) {
+        function update(duration?: number) {
             const element = target?.current || document.documentElement;
 
             const left = element.scrollLeft, x = left / ((element.scrollWidth - element.clientWidth) || 1);
             const top = element.scrollTop, y = top / ((element.scrollHeight - element.clientHeight) || 1);
 
-            link.set({ x, y, top, left }, transition);
+            link.set({ x, y, top, left }, { duration });
         }
 
         update(restore);

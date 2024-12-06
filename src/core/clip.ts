@@ -1,9 +1,9 @@
-import { isLink, type Link } from "../hooks/use-link";
 import Action from "./action";
+import { Link, isLink } from "./link";
 import type Track from "./track";
-import { distributeAnimatableKeyframes, merge, normalizeAnimatableKeyframes } from "./utils";
+import { createDynamic, distributeAnimatableKeyframes, merge, normalizeAnimatableKeyframes } from "./utils";
 
-export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end';
+export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end' | (string & {});
 
 export type AnimatableKey = keyof React.CSSProperties | 'strokeLength';
 
@@ -20,7 +20,7 @@ export type AnimatableInitials = React.CSSProperties & { strokeLength?: number |
 
 export type CompositeType = 'none' | 'override' | 'combine';
 
-type ClipConfig = {
+export type ClipConfig = {
     duration?: number;
     delay?: number;
     repeat?: number;
@@ -55,7 +55,6 @@ export default class Clip {
 
         for (let prop in properties) {
             let val = properties[prop as AnimatableKey], init = initial[prop as AnimatableKey];
-            prop = prop === 'strokeLength' ? 'strokeDashoffset' : prop;
 
             if (val instanceof Function) {
                 if (!isLink(val)) this.dynamic[prop as AnimatableKey] = val;
@@ -68,6 +67,11 @@ export default class Clip {
             if (arr[0] === null) init !== undefined ? arr[0] = init : arr.splice(0, 1);
 
             if (!normalizeAnimatableKeyframes(arr)) continue;
+
+            if (prop === 'borderRadius') {
+                this.dynamic[prop] = createDynamic(prop, Object.values(distributeAnimatableKeyframes(prop, arr as any)), easing);
+                continue;
+            }
 
             distributeAnimatableKeyframes(prop, arr as any, keyframes);
         }
@@ -116,7 +120,7 @@ export default class Clip {
             easing: this.easing,
             composite
         }, this.dynamic);
-        
+
         action.commit = commit;
 
         track.push(action);

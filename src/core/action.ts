@@ -30,14 +30,10 @@ export default class Action {
     }
 
     step(index: number) {
-        if (this.animation.playState === 'paused') return;
-
         const progress = this.animation.effect?.getComputedTiming().progress || 0;
 
         for (const prop in this.dynamic) {
-            const val = this.dynamic[prop as keyof DynamicProperties]?.(progress, index);
-
-            this.track.set(prop, val);
+            this.track.apply(prop, this.dynamic[prop as keyof DynamicProperties]?.call(this.track, progress, index));
         }
     }
 

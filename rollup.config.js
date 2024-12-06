@@ -20,7 +20,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 export default {
-    input: ['src/index.ts', 'src/animations.ts', 'src/hooks.ts', 'src/layout.ts'],
+    input: ['src/index.ts', 'src/hooks.ts', 'src/layout.ts'],
     external: ['react', 'react-dom', 'react/jsx-runtime', 'tslib'],
     output: {
         dir: 'dist',

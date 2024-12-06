@@ -1,10 +1,16 @@
-import { isLink, type Link } from "../hooks/use-link";
 import { CachableKey } from "./cache";
-import Clip, { ClipProperties, CompositeType } from "./clip";
+import Clip, { ClipConfig, ClipProperties, CompositeType } from "./clip";
+import { Link, isLink } from "./link";
 import Track, { TransitionOptions } from "./track";
-import { IndexedMap } from "./utils";
+import { IndexedMap, merge } from "./utils";
 
-export type PlayOptions = { composite?: CompositeType; immediate?: boolean; reverse?: boolean; delay?: number; commit?: boolean; };
+export type PlayOptions = {
+    composite?: CompositeType;
+    immediate?: boolean;
+    reverse?: boolean;
+    delay?: number;
+    commit?: boolean;
+};
 
 export default class Timeline {
 
@@ -16,11 +22,17 @@ export default class Timeline {
     paused: boolean = false;
     tracks: IndexedMap<Element, Track> = new IndexedMap();
     frame: number = 0;
-    connected: boolean = false;
+    linked: (() => void)[] = [];
     mounted: boolean = false;
     mountClips: Clip[];
 
-    constructor({ stagger = 0.1, staggerLimit = 10, deform = true, cachable, mountClips }: { stagger?: number; staggerLimit?: number; deform?: boolean; cachable?: CachableKey[]; mountClips: Clip[]; }) {
+    constructor({ stagger = 0.1, staggerLimit = 10, deform = true, cachable, mountClips }: {
+        stagger?: number;
+        staggerLimit?: number;
+        deform?: boolean;
+        cachable?: CachableKey[];
+        mountClips: Clip[];
+    }) {
         this.stagger = stagger;
         this.staggerLimit = staggerLimit - 1;
         this.deform = deform;
@@ -31,52 +43,65 @@ export default class Timeline {
     step() {
         cancelAnimationFrame(this.frame);
 
-        this.tracks.values.forEach((track, i) => track.step(i));
+        if (!this.paused) this.tracks.stack.forEach((track, i) => track.step(i));
 
         this.frame = requestAnimationFrame(this.step.bind(this));
     }
 
     time(clip: Clip) {
+        if (!this.tracks.size) return 0;
+
         return clip.duration + clip.delay + this.stagger * Math.max(Math.min(this.staggerLimit, this.tracks.size - 1), 0);
     }
 
-    port(prop: string, link: Link<any>, dt: number) {
+    private receiver(prop: string, link: Link<any>, config: ClipConfig) {
         if (this.paused) return;
 
         for (let i = 0; i < this.tracks.size; i++) {
-            const track = this.tracks.values[i], value = link(i);
+            const track = this.tracks.stack[i],
+                value = link(i);
 
-            if (dt) {
-                new Clip({ duration: dt, easing: 'ease', [prop]: value }).play(track, { composite: 'override' }); // should maybe combine for translate/scale (also be able to override manually?)
+            if (config.duration) {
+                merge(config, { composite: 'override' }); // optimize syntax?
+
+                new Clip({ ...config, [prop]: value }).play(track, {});
             } else {
                 track.apply(prop, value);
+                track.correct();
             }
         }
     }
 
-    connect(clip?: ClipProperties | Clip) {
+    link(clip?: ClipProperties | Clip) {
         this.step();
 
-        if (this.connected || !clip || clip instanceof Clip) return;
+        if (this.linked.length || !clip || clip instanceof Clip) return;
 
         for (let prop in clip) {
-            const val = clip[prop as keyof ClipProperties];
+            const link = clip[prop as keyof ClipProperties];
 
-            if (isLink(val)) {
-                val.onchange(this.port.bind(this, prop, val));
+            if (isLink(link)) {
+                const receiver = this.receiver.bind(this, prop, link);
+                link.subscribe(receiver);
+                this.linked.push(() => link.unsubscribe(receiver));
 
-                this.port(prop, val, 0);
+                receiver({});
             }
         }
+    }
 
-        this.connected = true;
+    unlink() {
+        cancelAnimationFrame(this.frame);
+
+        this.linked.forEach(unsubscribe => unsubscribe());
+        this.linked = [];
     }
 
     transition(from: Timeline | undefined, options: TransitionOptions = {}) {
 
         for (let i = 0; i < this.tracks.size; i++) {
 
-            this.tracks.values[i].transition(from?.tracks.values[i], options);
+            this.tracks.stack[i].transition(from?.tracks.stack[i], options);
         }
     }
 
@@ -90,31 +115,35 @@ export default class Timeline {
     }
 
     add(clip: Clip, { immediate = false, composite, reverse, delay = 0, commit }: PlayOptions) {
+        let i = 0, track: Track;
 
-        for (let i = 0; i < this.tracks.size; i++) {
-            if (immediate) this.tracks.values[i].clear();
+        while (track = this.tracks.stack[i]) {
+            if (!track.element.isConnected) {
+                this.tracks.delete(track.element);
+                continue;
+            }
 
-            clip.play(this.tracks.values[i], {
+            if (immediate) track.clear();
+
+            clip.play(track, {
                 delay: delay + Math.min(i, this.staggerLimit) * (this.stagger < 0 ? clip.duration / this.tracks.size : 1) * Math.abs(this.stagger),
                 composite,
                 reverse,
                 commit
             });
+
+            i++;
         }
     }
 
-    pause() {
-        for (const track of this.tracks.values) track.pause();
-        this.paused = true;
-    }
+    pause(value: boolean) {
+        for (const track of this.tracks.stack) track.pause(value);
 
-    play() {
-        for (const track of this.tracks.values) track.play();
-        this.paused = false;
+        this.paused = value;
     }
 
     cache() {
-        for (const track of this.tracks.values) track.cache.update();
+        for (const track of this.tracks.stack) track.cache.update();
     }
 
 }

@@ -1,13 +1,16 @@
-import { useMemo, useState } from "react";
+'use client';
+
+import { useMemo, useRef, useState } from "react";
 
 export type Trigger = (() => void) & { called: number; };
 
 export default function useTrigger(): Trigger {
+    const called = useRef(0);
     const [state, setState] = useState(0);
 
     const trigger = useMemo(() => {
         function trigger() {
-            setState(state + 1);
+            setState(++called.current);
         }
         
         trigger.called = state;

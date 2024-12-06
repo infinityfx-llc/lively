@@ -1,4 +1,5 @@
 import type { AnimatableKeyframe } from "./clip";
+import type Track from "./track";
 
 type SharedKeys<T, P> = keyof Omit<T | P, keyof (Omit<T, keyof P> & Omit<P, keyof T>)>;
 
@@ -28,10 +29,10 @@ export function pick<T extends { [key: string]: any; }, K extends keyof T>(map: 
     return picked;
 }
 
-export function combineRefs(...refs: React.Ref<any>[]) {
+export function combineRefs(...refs: (React.Ref<any> | undefined)[]) {
     return (el: any) => {
         refs.forEach(ref => {
-            if (ref && 'current' in ref) (ref as React.MutableRefObject<any>).current = el;
+            if (ref && 'current' in ref) (ref as React.RefObject<any>).current = el;
             if (ref instanceof Function) ref(el);
         });
     };
@@ -39,22 +40,22 @@ export function combineRefs(...refs: React.Ref<any>[]) {
 
 export const lengthToOffset = (val: any) => 1 - parseFloat(val.toString());
 
-export class IndexedMap<K, V> {
+export class IndexedMap<K, V> extends Map<K, V> {
 
-    private map: Map<K, number> = new Map();
-    values: V[] = [];
-    size: number = 0;
-
-    has(key: K) {
-        return this.map.has(key);
-    }
+    stack: V[] = [];
 
     set(key: K, value: V) {
-        this.map.set(key, this.values.push(value) - 1);
-        this.size = this.map.size;
+        this.stack.push(value);
+
+        return super.set(key, value);
     }
 
-    // implement delete method?
+    delete(key: K) {
+        const i = this.stack.indexOf(this.get(key) as V);
+        if (i >= 0) this.stack.splice(i, 1);
+
+        return super.delete(key);
+    }
 
 }
 
@@ -62,10 +63,12 @@ type AnimatableObjectProperty = { value?: string | number; after?: string | numb
 
 export function distributeAnimatableKeyframes(prop: string, keyframes: AnimatableObjectProperty[], map: { [key: number]: Keyframe; } = {}) {
     const set = (offset: number, value: string | number) => {
-        const key = offset * 10000;
+        const key = offset * 10000,
+            isStroke = prop === 'strokeLength';
 
         if (!(key in map)) map[key] = { offset };
-        map[key][prop] = prop === 'strokeDashoffset' ? lengthToOffset(value) : value;
+
+        map[key][isStroke ? 'strokeDashoffset' : prop] = isStroke ? lengthToOffset(value) : value;
     };
 
     for (let i = 0; i < keyframes.length; i++) {
@@ -101,4 +104,18 @@ export function normalizeAnimatableKeyframes(keyframes: (AnimatableKeyframe | un
     }
 
     return equal < 2 || equal !== keyframes.length;
+}
+
+// might need support for reverse/alternate?
+export function createDynamic(prop: string, keyframes: Keyframe[], easing: string) {
+    return function (this: Track, t: number) {
+        const animation = this.element.animate(keyframes, { duration: 1000, fill: 'forwards', easing });
+        animation.currentTime = 1000 * t;
+        
+        const value = getComputedStyle(this.element)[prop as any];
+
+        animation.cancel();
+
+        return value;
+    }
 }

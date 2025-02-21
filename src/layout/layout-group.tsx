@@ -59,7 +59,8 @@ function compareTree({
     nodes,
     mounting,
     partialIndex = [],
-    keys = new Set()
+    keys = new Set(),
+    parent = ['', 0]
 }: {
     tree: Node[];
     nodes: React.ReactNode;
@@ -69,6 +70,7 @@ function compareTree({
     }>;
     partialIndex?: number[];
     keys?: Set<string>;
+    parent?: [string, number];
 }) {
     Children.forEach(nodes, (child, i) => {
         const isElement = isValidElement(child);
@@ -80,31 +82,19 @@ function compareTree({
             cloneElement(child, undefined, []) :
             child;
 
-        const key = isValidLively ? (child as React.ReactElement<any>).props.id : '$l.' + index.join('');
+        const [pkey, poffset] = parent;
+        const key = isValidLively ? (child as React.ReactElement<any>).props.id : `$l.${pkey ? pkey + '.' : ''}${index.slice(-poffset).join('')}`;
 
-        if (!isValidLively) {
-            const target = getNode(tree, index);
+        const renderedIndex = findIndex(tree, key);
+        const target = renderedIndex ? getNode(tree, renderedIndex) : undefined;
 
-            if (target && target.key.startsWith('$l.')) {
-                target.node = node;
-            } else {
-                mounting.set(key, {
-                    node,
-                    index
-                });
-            }
+        if (!target || (!isValidLively && !target.key.startsWith('$l.'))) {
+            mounting.set(key, {
+                node,
+                index
+            });
         } else {
-            const renderedIndex = findIndex(tree, key);
-
-            if (renderedIndex === null) {
-                mounting.set(key, {
-                    node,
-                    index
-                });
-            } else {
-                const target = getNode(tree, renderedIndex);
-                if (target) target.node = node;
-            }
+            target.node = node;
         }
 
         if (hasElements) compareTree({
@@ -112,7 +102,12 @@ function compareTree({
             nodes: (child as React.ReactElement<any>).props.children,
             mounting,
             partialIndex: index,
-            keys
+            keys,
+            parent: isValidLively ?
+                [key, 1] :
+                poffset ?
+                    [pkey, poffset + 1] :
+                    undefined
         });
 
         keys.add(key);

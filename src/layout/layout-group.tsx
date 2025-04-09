@@ -76,9 +76,10 @@ function compareTree({
         const isElement = isValidElement(child);
         const hasElements = isElement && (Array.isArray((child as React.ReactElement<any>).props.children) || isValidElement((child as React.ReactElement<any>).props.children));
         const isValidLively = isElement && (child.type as any).isLively && 'id' in (child as React.ReactElement<any>).props;
+        const isCachable = ((isElement && (child as React.ReactElement<any>).props.cachable) || [0]).length;
 
         const index = [...partialIndex, i];
-        const node = hasElements && !isValidLively ?
+        const node = hasElements && !(child.type as any).isLively ?
             cloneElement(child, undefined, []) :
             child;
 
@@ -97,7 +98,7 @@ function compareTree({
             target.node = node;
         }
 
-        if (hasElements) compareTree({
+        if (hasElements && isCachable) compareTree({
             tree,
             nodes: (child as React.ReactElement<any>).props.children,
             mounting,

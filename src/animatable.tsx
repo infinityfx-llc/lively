@@ -90,6 +90,7 @@ export type AnimatableProps<T extends string = any> = {
      */
     manual?: boolean;
     onAnimationEnd?: (animation: T | 'animate') => void;
+    layoutThreshold?: boolean;
 } & SharedProps<T>;
 
 type AnimatableContext = {

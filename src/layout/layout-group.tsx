@@ -76,8 +76,7 @@ function compareTree({
         const isElement = isValidElement(child);
         const hasElements = isElement && (Array.isArray((child as React.ReactElement<any>).props.children) || isValidElement((child as React.ReactElement<any>).props.children));
         const isValidLively = isElement && (child.type as any).isLively && 'id' in (child as React.ReactElement<any>).props;
-        // const isCachable = ((isElement && (child as React.ReactElement<any>).props.cachable) || [0]).length;
-        const isCachable = !(isElement && (child as React.ReactElement<any>).props.layoutThreshold);
+        const shouldTraverse = isElement && (!(child.type as any).isLively || (child as React.ReactElement<any>).props.traverseLayout);
 
         const index = [...partialIndex, i];
         const node = hasElements && !(child.type as any).isLively ?
@@ -104,7 +103,7 @@ function compareTree({
             target.node = node;
         }
 
-        if (hasElements && isCachable) compareTree({
+        if (hasElements && shouldTraverse) compareTree({
             tree,
             nodes: (child as React.ReactElement<any>).props.children,
             mounting,

@@ -90,7 +90,12 @@ export type AnimatableProps<T extends string = any> = {
      */
     manual?: boolean;
     onAnimationEnd?: (animation: T | 'animate') => void;
-    layoutThreshold?: boolean;
+    /**
+     * Whether to observe layout changes within children, when this component is a child of a [`LayoutGroup`](https://lively.infinityfx.dev/docs/components/layout-group).
+     * 
+     * @default false
+     */
+    traverseLayout?: boolean;
 } & SharedProps<T>;
 
 type AnimatableContext = {

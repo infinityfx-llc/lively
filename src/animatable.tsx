@@ -122,7 +122,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
         paused
     } = mergedProps;
 
-    const index = props.order !== undefined ? props.order : (inherit && parent?.index || 0) + 1;
+    const index = props.order !== undefined ? props.order : (inherit && parent?.index || -1) + 1;
     const triggersState = useRef<(number | boolean)[]>([]);
 
     // aggregate animation definitions into a set of named animation clips
@@ -152,7 +152,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
     const play = useCallback((animation: T | 'animate', options: PlayOptions = {}, layer = 1) => {
         const clip = clipMap[animation];
         // if this component is disabled or part of a cascade animation but not getting its play instruction from a parent, then return 0
-        if (disabled || (index > 1 && layer < 2)) return 0;
+        if (disabled || (inherit && layer < 2)) return 0;
 
         merge(options, { reverse: clip?.reverse }); // optimize syntax?
         let cascadeDelay = 0,
@@ -171,13 +171,13 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
             );
         }
 
-        const delay = (options.reverse ? cascadeDelay : layerDelay) * (index / layer);
+        const delay = (options.reverse ? cascadeDelay : layerDelay) * (index / layer + (1 / layer));
         if (clip) timeline.current.add(clip, merge({ delay }, options));
 
         if (props.onAnimationEnd) setTimeout(props.onAnimationEnd.bind({}, animation), (duration + delay) * 1000);
 
         return duration + delay;
-    }, [disabled, index]);
+    }, [disabled, inherit, index]);
 
     function trigger(trigger: StaticTrigger, options: PlayOptions = {}) {
         let duration = 0;

@@ -66,8 +66,10 @@ export default class Timeline {
 
                 new Clip({ ...config, [prop]: value }).play(track, {});
             } else {
-                track.apply(prop, value);
-                track.correct();
+                requestAnimationFrame(() => {
+                    track.apply(prop, value);
+                    track.correct();
+                });
             }
         }
     }

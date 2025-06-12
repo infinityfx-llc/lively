@@ -38,6 +38,8 @@ export function combineRefs(...refs: (React.Ref<any> | undefined)[]) {
     };
 }
 
+export const limitSmallestQuantity = (val: number, e: number) => (Math.sign(val) || 1) * Math.max(Math.abs(val), e);
+
 export const lengthToOffset = (val: any) => 1 - parseFloat(val.toString());
 
 export class IndexedMap<K, V> extends Map<K, V> {

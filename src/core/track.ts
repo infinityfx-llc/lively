@@ -1,7 +1,7 @@
 import type Action from "./action";
 import { CachableKey, StyleCache } from "./cache";
 import type { Easing } from "./clip";
-import { lengthToOffset } from "./utils";
+import { lengthToOffset, limitSmallestQuantity } from "./utils";
 
 export type TransitionOptions = {
     duration?: number;
@@ -51,6 +51,7 @@ export default class Track {
         this.active = this.queue.length ? this.queue.splice(0, 1) : [];
         this.playing = this.active.length;
         this.pause(false);
+        if (!this.playing) this.correct();
     }
 
     clear(partial?: boolean) {
@@ -79,7 +80,7 @@ export default class Track {
             this.element.style.borderRadius = '';
             this.element.style.boxShadow = '';
             this.corrected.borderRadius = this.cache.data.borderRadius = this.cache.computed.borderRadius,
-            this.corrected.boxShadow = this.cache.data.boxShadow = this.cache.computed.boxShadow;
+                this.corrected.boxShadow = this.cache.data.boxShadow = this.cache.computed.boxShadow;
             this.scale = [1, 1];
         }
     }
@@ -115,13 +116,15 @@ export default class Track {
     decomposeScale(): [number, number] {
         const [xString, yString] = this.cache.computed.scale.split(' ');
 
-        let x = Math.max(parseFloat(xString) || 1, .00001);
-        if (/%$/.test(xString)) x /= 100;
+        let x = parseFloat(xString),
+            y = yString ? parseFloat(yString) : x;
 
-        let y = yString ? Math.max(parseFloat(yString) || 1, .00001) : x;
+        if (isNaN(x)) x = 1;
+        if (isNaN(y)) y = 1;
+        if (/%$/.test(xString)) x /= 100;
         if (/%$/.test(yString)) y /= 100;
 
-        return [x, y];
+        return [limitSmallestQuantity(x, 1e-4), limitSmallestQuantity(y, 1e-4)];
     }
 
     correct() {

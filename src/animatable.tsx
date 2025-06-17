@@ -127,7 +127,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
         paused
     } = mergedProps;
 
-    const index = props.order !== undefined ? props.order : (inherit && parent?.index || -1) + 1;
+    const index = props.order !== undefined ? props.order : ((inherit && parent?.index) ? parent.index : -1) + 1;
     const triggersState = useRef<(number | boolean)[]>([]);
 
     // aggregate animation definitions into a set of named animation clips

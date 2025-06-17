@@ -74,6 +74,8 @@ function compareTree({
     parent?: [string, number];
 }) {
     Children.forEach(nodes, (child, i) => {
+        if ([undefined, null, false].includes(child as any)) return;
+
         const isElement = isValidElement(child);
         const hasElements = isElement && (Array.isArray((child as React.ReactElement<any>).props.children) || isValidElement((child as React.ReactElement<any>).props.children));
         const isValidLively = isElement && (child.type as any).isLively && 'id' in (child as React.ReactElement<any>).props;
@@ -194,11 +196,11 @@ export default function LayoutGroup({ children, transition, initialMount = true 
             const id = child.current?.id as string,
                 isUnmounting = unmounting.current.has(id);
 
-            if (!child.current) continue;
+            if (!child.current || !isUnmounting) continue;
 
             // if node remounted during unmount animation, then cancel the unmounting
             // and replay mount animation
-            if (isUnmounting && keys.has(id)) {
+            if (keys.has(id)) {
                 unmounting.current.delete(id);
 
                 child.current.trigger('mount', { immediate: true });
@@ -208,7 +210,7 @@ export default function LayoutGroup({ children, transition, initialMount = true 
             }
 
             // if node needs to be unmounted and is animatable, try to play unmount animation and register animation duration
-            if (isUnmounting && child.current.timeline.mounted) {
+            if (child.current.timeline.mounted) {
                 const ends = Date.now() + child.current.trigger('unmount', { immediate: true }) * 1000;
                 unmountDelay.current = Math.max(unmountDelay.current, ends);
 

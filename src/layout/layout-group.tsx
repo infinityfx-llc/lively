@@ -65,8 +65,9 @@ function compareTree({
     tree: Node[];
     nodes: React.ReactNode;
     mounting: Map<string, {
-        node: React.ReactNode;
+        node: Node;
         index: number[];
+        replace?: boolean;
     }>;
     partialIndex?: number[];
     keys?: Set<string>;
@@ -91,13 +92,16 @@ function compareTree({
 
         if (!target || (!isValidLively && !target.key.startsWith('$l.'))) {
             mounting.set(key, {
-                node,
+                node: { key, node, nodes: [] },
                 index
             });
         } else {
             if (renderedIndex && renderedIndex.join('') !== index.join('')) {
-                spliceNode(tree, renderedIndex, 1);
-                spliceNode(tree, index, 0, target);
+                mounting.set(key, {
+                    replace: true,
+                    node: target,
+                    index
+                });
             }
 
             target.node = node;
@@ -156,8 +160,9 @@ export default function LayoutGroup({ children, transition, initialMount = true 
 
     const rendered = useRef<Node[]>([]);
     const mounting = useRef(new Map<string, {
-        node: React.ReactNode;
+        node: Node;
         index: number[];
+        replace?: boolean;
     }>());
 
     const timeout = useRef<any>(undefined);
@@ -240,12 +245,13 @@ export default function LayoutGroup({ children, transition, initialMount = true 
 
     // only mount new nodes when no old nodes need to be unmounted
     if (!unmounting.current.size && mounting.current.size) { // maybe do this simultanously with unmount (requires unmounts to happen with position absolute..)
-        mounting.current.forEach(({ node, index }, key) => {
-            spliceNode(rendered.current, index, 0, {
-                key,
-                node,
-                nodes: []
-            });
+        mounting.current.forEach(({ node, index, replace }, key) => {
+            if (replace) {
+                const currentIndex = findIndex(rendered.current, key);
+                if (currentIndex) spliceNode(rendered.current, currentIndex, 1);
+            }
+
+            spliceNode(rendered.current, index, 0, node);
         });
         mounting.current.clear();
     }

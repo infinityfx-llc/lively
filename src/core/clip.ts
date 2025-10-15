@@ -76,7 +76,8 @@ export default class Clip {
             distributeAnimatableKeyframes(prop, arr as any, keyframes);
         }
 
-        this.keyframes = Object.values(keyframes);
+        // @ts-expect-error
+        this.keyframes = Object.values(keyframes).sort((a, b) => a.offset - b.offset);
         this.initial = merge({}, initial, this.keyframes.length ? (this.keyframes[0] as any) : {});
         // this.initial.strokeDashoffset = lengthToOffset((this.initial as any).strokeLength);
         delete this.initial.offset;

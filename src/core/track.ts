@@ -48,8 +48,10 @@ export default class Track {
 
         if (--this.playing > 0) return;
 
-        this.active = this.queue.length ? this.queue.splice(0, 1) : [];
-        this.playing = this.active.length;
+        this.active = this.active.filter(action => action.animation.playState === 'running');
+        this.active.push(...this.queue.splice(0, 1));
+        this.playing = this.active.filter(action => action.composite === 'none').length;
+
         this.pause(false);
         if (!this.playing) this.correct();
     }

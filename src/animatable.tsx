@@ -235,7 +235,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
         // wait for all fonts to be loaded to avoid layout shifts when playing mount animations
         document.fonts.ready.then(() => {
             if (!manual && !timeline.current.mounted) trigger('mount');
-            timeline.current.mounted = true;
+            timeline.current.mount();
         });
 
         return () => {

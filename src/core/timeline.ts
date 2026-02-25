@@ -40,6 +40,12 @@ export default class Timeline {
         this.mountClips = mountClips;
     }
 
+    mount() {
+        this.tracks.forEach(track => track.correct());
+
+        this.mounted = true;
+    }
+
     step() {
         cancelAnimationFrame(this.frame);
 

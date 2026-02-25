@@ -137,7 +137,7 @@ export default class Track {
         const radii = computed.borderRadius.split(/\s*\/\s*/);
         if (radii.length < 2) radii[1] = radii[0];
         const shadows = computed.boxShadow.split(/(?<=px),\s?/);
-        const [color, shadow] = shadows[0].split(/(?<=\))\s/);
+        const [color, shadow, inset] = shadows[0].split(/(?<=\))\s|\s(?=inset)/);
 
         const previousRadiusScale = computed.borderRadius !== this.corrected.borderRadius ? [1, 1] : this.scale;
         const previousShadowScale = computed.boxShadow !== this.corrected.boxShadow ? [1, 1] : this.scale;
@@ -167,7 +167,7 @@ export default class Track {
             corrected[2][0] += i ? 1 / x : 0;
             corrected[2][1] += i ? 0 : 1 / y;
 
-            this.element.style.boxShadow = corrected.map(val => `${color} ${val.map(val => `${val}px`).join(' ')}`).join(', ');
+            this.element.style.boxShadow = corrected.map(val => `${color} ${val.map(val => `${val}px`).join(' ')}${inset ? ' inset' : ''}`).join(', ');
             this.corrected.boxShadow = computed.boxShadow;
         }
 

@@ -36,12 +36,16 @@ export class StyleCache {
         if (this.element instanceof SVGElement) return data;
         data.sx = this.element.offsetWidth;
         data.sy = this.element.offsetHeight;
+        // @ts-expect-error
         data.x = data.sx / 2;
+        // @ts-expect-error
         data.y = data.sy / 2;
 
         let parent: HTMLElement | null = this.element;
         while (parent) {
+            // @ts-expect-error
             data.x += parent.offsetLeft;
+            // @ts-expect-error
             data.y += parent.offsetTop;
 
             parent = parent.offsetParent as HTMLElement;

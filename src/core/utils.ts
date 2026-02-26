@@ -1,13 +1,13 @@
 import type { AnimatableKeyframe } from "./clip";
 import type Track from "./track";
 
-type SharedKeys<T, P> = keyof Omit<T | P, keyof (Omit<T, keyof P> & Omit<P, keyof T>)>;
+// type SharedKeys<T, P> = keyof Omit<T | P, keyof (Omit<T, keyof P> & Omit<P, keyof T>)>;
 
-type MergedMaps<T, P> = T & P & { [K in SharedKeys<T, P>]: MergedPair<T[K], P[K]> };
+// type MergedMaps<T, P> = T & P & { [K in SharedKeys<T, P>]: MergedPair<T[K], P[K]> };
 
-type MergedPair<T, P> = [T, P] extends [{ [key: string]: unknown; }, { [key: string]: unknown; }] ? MergedMaps<T, P> : T & P;
+// type MergedPair<T, P> = [T, P] extends [{ [key: string]: unknown; }, { [key: string]: unknown; }] ? MergedMaps<T, P> : T & P;
 
-type Merged<T extends [...any]> = T extends [infer L, ...infer R] ? MergedPair<L, Merged<R>> : unknown;
+// type Merged<T extends [...any]> = T extends [infer L, ...infer R] ? MergedPair<L, Merged<R>> : unknown;
 
 export function merge<T extends { [key: string]: any; }[]>(...objects: T) {
     for (let i = 1; i < objects.length; i++) {

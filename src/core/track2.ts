@@ -1,39 +1,45 @@
 import { AnimationOptions } from "./animator";
-import Clip from "./clip2";
+import Clip, { BlendMode } from "./clip2";
+
+type TrackAnimation = Animation & {
+    blendmode: BlendMode;
+}
 
 export default class Track {
 
     element: Element;
-    queue: Animation[] = [];
-    animations: Animation[] = [];
+    queue: TrackAnimation[] = [];
+    animations: TrackAnimation[] = [];
     active = 0;
 
     constructor(element: Element) {
         this.element = element;
     }
 
-    push(clip: Clip, options: AnimationOptions) {
-        const config = clip.getConfig(options);
-        const animation = this.element.animate({}, config);
+    push(clip: Clip, options: AnimationOptions, onEnded?: () => void) {
+        const { commit, blendmode, ...config } = clip.getConfig(options);
+        const animation = this.element.animate({}, config) as TrackAnimation;
+        animation.blendmode = blendmode;
+
         animation.onfinish = () => {
             try {
-                if (config.commit) animation.commitStyles();
+                if (commit) animation.commitStyles();
             } finally {
                 animation.cancel();
                 this.advance();
-                // onAnimationEnd callback?
+                onEnded?.();
             }
         };
 
-        if (this.active && config.composite === 'none') {
+        if (this.active && blendmode === 'none') {
             animation.pause();
             this.queue.push(animation);
         } else {
             this.animations.push(animation);
-            if (config.composite === 'none') this.active++;
+            if (blendmode === 'none') this.active++;
         }
 
-        return 0; // todo: return duration + delay
+        return config.duration + config.delay; // what to return if queued?
     }
 
     advance() {
@@ -41,7 +47,7 @@ export default class Track {
 
         this.animations = this.animations.filter(animation => animation.playState === 'running');
         this.animations.push(...this.queue.splice(0, 1));
-        this.active = this.animations.filter(animation => animation.effect.composite === 'none').length;
+        this.active = this.animations.filter(animation => animation.blendmode === 'none').length;
     }
 
     clear() {

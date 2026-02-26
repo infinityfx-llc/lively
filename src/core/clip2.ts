@@ -1,25 +1,42 @@
 import { AnimationOptions } from "./animator";
 
+export type BlendMode = 'none' | 'override' | 'combine';
+
+export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end' | (string & {});
+
 export type ClipConfig = {
     duration?: number;
     delay?: number;
     repeat?: number;
     alternate?: boolean;
     reverse?: boolean;
-    easing?: any;
-    composite?: any;
+    easing?: Easing;
+    composite?: BlendMode;
 };
+
+export type ClipKey = keyof React.CSSProperties;
+
+export type ClipKeyframe = string | number | null; // todo
+
+export type ClipKeyframes = {
+    [key in ClipKey]?: ClipKeyframe | ClipKeyframe[];
+};
+
+export type ClipOptions = ClipConfig & ClipKeyframes;
+
+export type ClipInitials = React.CSSProperties;
 
 export default class Clip {
 
-    isEmpty = false;
+    isEmpty: boolean;
+    keyframes: any;
     duration: number;
     delay: number;
     repeat: number;
     alternate: boolean;
     reverse: boolean;
-    easing: string;
-    composite: any;
+    easing: Easing;
+    composite: BlendMode;
 
     constructor({
         duration = .5,
@@ -28,8 +45,9 @@ export default class Clip {
         alternate = false,
         reverse = false,
         easing = 'ease',
-        composite
-    }: any, initial: any) {
+        composite = 'none',
+        ...keyframes
+    }: ClipOptions, initial: ClipInitials) {
         this.duration = duration;
         this.delay = delay;
         this.repeat = repeat;
@@ -37,7 +55,13 @@ export default class Clip {
         this.reverse = reverse;
         this.easing = easing;
         this.composite = composite;
-        // ^ merge all the props into single object?
+
+        for (const prop in keyframes) {
+
+        }
+
+        this.keyframes = [];
+        this.isEmpty = false;
     }
 
     getConfig({
@@ -54,10 +78,11 @@ export default class Clip {
             delay: (this.delay + delay) * 1000,
             iterations: repeat,
             directions: alternate ?
-                (reverse ? 'alternate-reverse' : 'alternate') :
-                (reverse ? 'reverse' : 'normal'),
+                (reverse ? 'alternate-reverse' as const : 'alternate' as const) :
+                (reverse ? 'reverse' as const : 'normal' as const),
             easing: this.easing,
-            composite: composite === 'combine' ? 'accumulate' : 'replace',
+            composite: composite === 'combine' ? 'accumulate' as const : 'replace' as const,
+            blendmode: composite,
             commit
         };
     }

@@ -5,32 +5,37 @@ import Track from "./track2";
 export type AnimationOptions = Omit<ClipConfig, 'duration' | 'easing'> & {
     override?: boolean;
     commit?: boolean;
+    // tag?: (for passing animation name?)
 };
 
-export default class Animator<T extends string = any> {
+export default class Animator<T extends string> {
 
     id: string;
-    parent: Animator | null = null;
-    dependents: Set<Animator> = new Set();
+    parent: Animator<any> | null = null;
+    dependents: Set<Animator<any>> = new Set();
     clips: {
         [key in T]: Clip;
     };
     tracks: Map<Element, Track> = new Map();
-    stagger: number = 0.07;
-    staggerLimit: number = 10;
+    stagger: number;
+    staggerLimit: number;
     state: 'unmounted' | 'unmounting' | 'mounted' = 'unmounted';
     interrupted = false;
 
-    constructor({ id, parentId, inherit, clips }: {
+    constructor({ id, parentId, inherit, clips, stagger = 0.07, staggerLimit = 10 }: {
         id: string;
         parentId: string;
         inherit: boolean | number;
         clips: {
             [key in T]: Clip;
         };
+        stagger?: number;
+        staggerLimit?: number;
     }) {
         this.id = registerAnimator(id, this);
         this.clips = clips;
+        this.stagger = stagger;
+        this.staggerLimit = staggerLimit;
 
         if (parentId && inherit !== false) {
             this.parent = getParentAnimator(parentId, typeof inherit === 'boolean' ? 0 : inherit);
@@ -38,7 +43,7 @@ export default class Animator<T extends string = any> {
         if (this.parent) this.parent.addDependent(this);
     }
 
-    addDependent(animator: Animator) {
+    addDependent(animator: Animator<any>) {
         this.dependents.add(animator);
     }
 
@@ -63,10 +68,10 @@ export default class Animator<T extends string = any> {
 
     time(clip: Clip) {
         // take into account AnimationOptions?
-        return clip.duration + clip.delay + Math.max(Math.min(this.tracks.size - 1, this.staggerLimit), 0) * this.stagger;
+        return clip.duration + clip.delay + Math.max(Math.min(this.tracks.size, this.staggerLimit) - 1, 0) * this.stagger;
     }
 
-    play(animation: T, { reverseCascade = false, ...options }: AnimationOptions & {
+    play(animation: T, { reverseCascade = false, delay = 0, ...options }: AnimationOptions & {
         reverseCascade?: boolean;
     } = {}) {
         if (this.interrupted) return 0;
@@ -74,14 +79,14 @@ export default class Animator<T extends string = any> {
         const clip = this.clips[animation],
             duration = this.time(clip);
 
-        const delay = this.cascade(animation, clip, {
+        const cascadeDelay = this.cascade(animation, clip, {
             ...options,
-            delay: reverseCascade ? 0 : duration // will override exisiting delay..
+            delay: reverseCascade ? delay : duration + delay
         });
 
         return this.push(clip, {
             ...options,
-            delay: reverseCascade ? delay : undefined // will override exisiting delay..
+            delay: reverseCascade ? cascadeDelay + delay : delay
         });
     }
 
@@ -97,31 +102,41 @@ export default class Animator<T extends string = any> {
     }
 
     push(clip: Clip, { override, ...options }: AnimationOptions) {
-        let elapsed = 0;
+        let elapsed = 0,
+            track: Track | undefined,
+            tracks = this.tracks.values();
         if (clip.isEmpty) return 0;
 
-        this.tracks.forEach(track => {
-            // check if track's element is still mounted?
+        while (track = tracks.next().value) {
+            if (!track.element.isConnected) {
+                this.tracks.delete(track.element);
+                continue;
+            }
+
             if (override) track.clear();
 
             const added = track.push(clip, {
                 ...options,
                 delay: 0 // todo: stagger delay
+            }, () => {
+                // todo: if last track call onAnimationEnd
+                // need animation name for this..
             });
-            elapsed = Math.max(elapsed, added);
 
-            if (true) track.onAnimationEnd(); // todo: if last track
-        });
+            elapsed = Math.max(elapsed, added);
+        }
 
         return elapsed;
     }
 
     pause() {
+        // also need play method
         this.tracks.forEach(track => track.toggle(true));
     }
 
     stop() {
-
+        // stop only specific animation?
+        this.tracks.forEach(track => track.clear());
     }
 
 }

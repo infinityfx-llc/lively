@@ -3,28 +3,36 @@
 // - with global state construct virtual element tree that can be used for unmounting logic
 // - consider what props to cascade; (clips, stagger, etc.)
 
-import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useLayoutEffect, useMemo, useRef } from "react";
+import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef } from "react";
 import Animator from "./core/animator";
-import Clip from "./core/clip2";
+import Clip, { ClipInitials, ClipOptions } from "./core/clip2";
 
 type AnimateProps<T extends string> = {
+    ref?: React.Ref<Animator<T>>;
     children: React.ReactNode;
     inherit?: boolean | number;
-    initial?: {};
-    animate?: {};
+    initial?: ClipInitials;
+    animate?: ClipOptions | Clip;
     clips?: {
-        [key in T]: Clip; // or properties
+        [key in T]: ClipOptions | Clip;
     };
+    triggers?: any; // todo
+    stagger?: number;
+    staggerLimit?: number;
     paused?: boolean;
+    onAnimationEnd?: (animation: T) => void;
 };
 
 export const AnimateContext = createContext<string>('');
 
 export default function Animate<T extends string>({
+    ref,
     children,
     inherit = false,
     initial = {},
     animate = {},
+    stagger,
+    staggerLimit,
     clips,
     paused = false
 }: AnimateProps<T>) {
@@ -34,13 +42,15 @@ export default function Animate<T extends string>({
         const animations: {
             [key in (T | 'mount')]: Clip;
         } = {
-            mount: new Clip(animate, initial)
+            mount: new Clip(animate, initial) // don't create clip if already of Clip instance
         } as any;
 
         for (const name in clips) animations[name] = new Clip(clips[name], initial);
 
-        return new Animator<T>({ id, parentId, inherit, clips: animations });
+        return new Animator<T>({ id, parentId, inherit, clips: animations, stagger, staggerLimit });
     }, []);
+
+    useImperativeHandle(ref, () => animator, []);
 
     useLayoutEffect(() => {
         document.fonts.ready.finally(animator.mount);

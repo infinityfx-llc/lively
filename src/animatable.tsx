@@ -12,6 +12,7 @@ type StaticTrigger = 'mount' | 'unmount';
 export type AnimatableType<T extends string = any> = {
     play: (animation: T | 'animate', options?: PlayOptions, layer?: number) => number;
     trigger: (trigger: StaticTrigger, options?: PlayOptions) => number;
+    stop: () => void;
     timeline: Timeline;
     children: React.RefObject<AnimatableType | null>[];
     inherit: boolean | undefined;
@@ -200,6 +201,7 @@ export default function Animatable<T extends string>(props: AnimatableProps<T>) 
     useImperativeHandle(combineRefs(self, props.ref), () => ({
         play,
         trigger,
+        stop: () => timeline.current.tracks.forEach(track => track.clear()),
         timeline: timeline.current,
         children: children.current,
         inherit,

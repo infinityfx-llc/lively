@@ -36,11 +36,6 @@ export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency =
         frame = requestAnimationFrame(update);
     }
 
-    function play() {
-        if (audioContext.state === 'suspended') audioContext.resume();
-        frame = requestAnimationFrame(update);
-    }
-
     function suspend() {
         cancelAnimationFrame(frame);
 
@@ -48,7 +43,8 @@ export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency =
     }
 
     useEffect(() => {
-        const audio = ref.current;
+        const audio = ref.current,
+            ctrl = new AbortController();
 
         if (!audio) return;
         if (!audioContext) audioContext = new AudioContext();
@@ -57,16 +53,17 @@ export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency =
 
         analyzer.current.connect(audioContext.destination);
         source.current.connect(analyzer.current);
-        audio.addEventListener('play', play);
-        audio.addEventListener('pause', suspend);
-        audio.addEventListener('ended', suspend);
+        audio.addEventListener('play', () => {
+            if (audioContext.state === 'suspended') audioContext.resume();
+            frame = requestAnimationFrame(update);
+        }, { signal: ctrl.signal });
+        audio.addEventListener('pause', suspend, { signal: ctrl.signal });
+        audio.addEventListener('ended', suspend, { signal: ctrl.signal });
 
         return () => {
+            ctrl.abort();
             analyzer.current?.disconnect();
             source.current?.disconnect();
-            audio.removeEventListener('play', play);
-            audio.removeEventListener('pause', suspend);
-            audio.removeEventListener('ended', suspend);
         }
     }, []);
 

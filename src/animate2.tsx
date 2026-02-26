@@ -58,7 +58,7 @@ export default function Animate<T extends string>({
 
             return cloneElement(child as React.ReactElement<React.HTMLProps<any>>, {
                 ref: (el: any) => animator.addTrack(el, i),
-                style: animator.getInitial()
+                style: animator.getInitialStyles()
             });
         })}
     </AnimateContext>;

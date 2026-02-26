@@ -1,5 +1,6 @@
 import Clip, { ClipConfig } from "./clip2";
 import { getParentAnimator, registerAnimator } from "./state";
+import Track from "./track2";
 
 export type AnimationOptions = Omit<ClipConfig, 'duration' | 'easing'> & {
     override?: boolean;
@@ -14,7 +15,9 @@ export default class Animator<T extends string = any> {
     clips: {
         [key in T]: Clip;
     };
-    tracks: Map<Element, any> = new Map();
+    tracks: Map<Element, Track> = new Map();
+    stagger: number = 0.07;
+    staggerLimit: number = 10;
     state: 'unmounted' | 'unmounting' | 'mounted' = 'unmounted';
     interrupted = false;
 
@@ -43,7 +46,7 @@ export default class Animator<T extends string = any> {
         if (!(element instanceof HTMLElement || element instanceof SVGElement)) return;
 
         // somehow keep staggering ordering
-        this.tracks.set(element, {});
+        this.tracks.set(element, new Track(element));
     }
 
     mount() {
@@ -54,12 +57,13 @@ export default class Animator<T extends string = any> {
         this.state = 'unmounting';
     }
 
-    getInitial() {
+    getInitialStyles() {
         return {};
     }
 
     time(clip: Clip) {
-        return clip.duration + (this.tracks.size - 1) * .1; // todo: stagger
+        // take into account AnimationOptions?
+        return clip.duration + clip.delay + Math.max(Math.min(this.tracks.size - 1, this.staggerLimit), 0) * this.stagger;
     }
 
     play(animation: T, { reverseCascade = false, ...options }: AnimationOptions & {
@@ -70,7 +74,10 @@ export default class Animator<T extends string = any> {
         const clip = this.clips[animation],
             duration = this.time(clip);
 
-        const delay = this.cascade(clip, reverseCascade ? 0 : duration);
+        const delay = this.cascade(animation, clip, {
+            ...options,
+            delay: reverseCascade ? 0 : duration // will override exisiting delay..
+        });
 
         return this.push(clip, {
             ...options,
@@ -78,27 +85,39 @@ export default class Animator<T extends string = any> {
         });
     }
 
-    cascade(clip: Clip, delay: number) {
+    cascade(animation: T, clip: Clip, options: AnimationOptions) {
         let elapsed = 0;
 
         // only use clip if no own clip is defined
-        this.dependents.forEach(animator => elapsed = Math.max(elapsed, animator.play(clip, {
-            delay // will override exisiting delay..
-        })));
+        this.dependents.forEach(animator => {
+            elapsed = Math.max(elapsed, animator.play(clip, options));
+        });
 
         return elapsed;
     }
 
-    push(clip: Clip, options: AnimationOptions) {
-        this.tracks.forEach(track => {
+    push(clip: Clip, { override, ...options }: AnimationOptions) {
+        let elapsed = 0;
+        if (clip.isEmpty) return 0;
 
+        this.tracks.forEach(track => {
+            // check if track's element is still mounted?
+            if (override) track.clear();
+
+            const added = track.push(clip, {
+                ...options,
+                delay: 0 // todo: stagger delay
+            });
+            elapsed = Math.max(elapsed, added);
+
+            if (true) track.onAnimationEnd(); // todo: if last track
         });
 
-        return 0;
+        return elapsed;
     }
 
     pause() {
-
+        this.tracks.forEach(track => track.toggle(true));
     }
 
     stop() {

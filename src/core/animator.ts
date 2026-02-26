@@ -16,6 +16,9 @@ export default class Animator<T extends string> {
     clips: {
         [key in T]: Clip;
     };
+    triggers: {
+        [key in 'mount']?: T[];
+    };
     tracks: Map<Element, Track> = new Map();
     stagger: number;
     staggerLimit: number;
@@ -34,6 +37,7 @@ export default class Animator<T extends string> {
     }) {
         this.id = registerAnimator(id, this);
         this.clips = clips;
+        this.triggers = {}; // todo
         this.stagger = stagger;
         this.staggerLimit = staggerLimit;
 
@@ -68,15 +72,26 @@ export default class Animator<T extends string> {
 
     time(clip: Clip) {
         // take into account AnimationOptions?
+        // also repeat count?
         return clip.duration + clip.delay + Math.max(Math.min(this.tracks.size, this.staggerLimit) - 1, 0) * this.stagger;
     }
 
-    play(animation: T, { reverseCascade = false, delay = 0, ...options }: AnimationOptions & {
+    trigger(on: 'mount', options: AnimationOptions = {}) {
+        let animations = this.triggers[on],
+            elapsed = 0;
+
+        if (animations) animations.forEach(animation => Math.max(this.play(animation, options), elapsed));
+
+        return elapsed;
+    }
+
+    play(animation: T | Clip, { reverseCascade = false, delay = 0, ...options }: AnimationOptions & {
         reverseCascade?: boolean;
     } = {}) {
         if (this.interrupted) return 0;
+        // ^ don't allow to play when inherits from parent?
 
-        const clip = this.clips[animation],
+        const clip = animation instanceof Clip ? animation : this.clips[animation],
             duration = this.time(clip);
 
         const cascadeDelay = this.cascade(animation, clip, {
@@ -90,7 +105,7 @@ export default class Animator<T extends string> {
         });
     }
 
-    cascade(animation: T, clip: Clip, options: AnimationOptions) {
+    cascade(animation: T | Clip, clip: Clip, options: AnimationOptions) {
         let elapsed = 0;
 
         // only use clip if no own clip is defined

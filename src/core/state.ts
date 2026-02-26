@@ -16,7 +16,7 @@ export function getParentAnimator(id: string, stepsRemoved: number) {
     return parent;
 }
 
-export function registerAnimator(id: string, animator: any) {
+export function registerAnimator(id: string, animator: any) { // todo
     registeredAnimators.set(id, animator);
 
     return id;

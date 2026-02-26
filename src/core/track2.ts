@@ -34,12 +34,14 @@ export default class Track {
         if (this.active && blendmode === 'none') {
             animation.pause();
             this.queue.push(animation);
+
+            return 0;
         } else {
             this.animations.push(animation);
             if (blendmode === 'none') this.active++;
-        }
 
-        return config.duration + config.delay; // what to return if queued?
+            return config.duration * config.iterations + config.delay;
+        }
     }
 
     advance() {
@@ -48,6 +50,8 @@ export default class Track {
         this.animations = this.animations.filter(animation => animation.playState === 'running');
         this.animations.push(...this.queue.splice(0, 1));
         this.active = this.animations.filter(animation => animation.blendmode === 'none').length;
+
+        if (!this.active) this.correct();
     }
 
     clear() {
@@ -56,6 +60,10 @@ export default class Track {
 
     toggle(paused: boolean) {
         this.animations.forEach(animation => animation[paused ? 'pause' : 'play']());
+    }
+
+    correct() {
+
     }
 
 }

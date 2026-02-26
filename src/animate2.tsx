@@ -6,9 +6,10 @@
 import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef } from "react";
 import Animator from "./core/animator";
 import Clip, { ClipInitials, ClipOptions } from "./core/clip2";
+import { serializeTriggers } from "./core/utils2";
 
 type AnimateProps<T extends string> = {
-    ref?: React.Ref<Animator<T>>;
+    ref?: React.Ref<Animator<T | 'animate'>>;
     children: React.ReactNode;
     inherit?: boolean | number;
     initial?: ClipInitials;
@@ -16,7 +17,9 @@ type AnimateProps<T extends string> = {
     clips?: {
         [key in T]: ClipOptions | Clip;
     };
-    triggers?: any; // todo
+    triggers?: {
+        [key in T | 'animate']?: any[]; // todo
+    };
     stagger?: number;
     staggerLimit?: number;
     paused?: boolean;
@@ -31,6 +34,9 @@ export default function Animate<T extends string>({
     inherit = false,
     initial = {},
     animate = {},
+    triggers = {
+        animate: ['mount']
+    },
     stagger,
     staggerLimit,
     clips,
@@ -38,16 +44,18 @@ export default function Animate<T extends string>({
 }: AnimateProps<T>) {
     const id = useId();
     const parentId = use(AnimateContext);
+
+    const previousTriggers = useRef(serializeTriggers(triggers));
     const animator = useMemo(() => {
         const animations: {
-            [key in (T | 'mount')]: Clip;
+            [key in T | 'animate']: Clip;
         } = {
-            mount: new Clip(animate, initial) // don't create clip if already of Clip instance
+            animate: new Clip(animate, initial) // don't create clip if already of Clip instance
         } as any;
 
         for (const name in clips) animations[name] = new Clip(clips[name], initial);
 
-        return new Animator<T>({ id, parentId, inherit, clips: animations, stagger, staggerLimit });
+        return new Animator({ id, parentId, inherit, clips: animations, stagger, staggerLimit });
     }, []);
 
     useImperativeHandle(ref, () => animator, []);
@@ -57,6 +65,19 @@ export default function Animate<T extends string>({
 
         return () => animator.dispose();
     }, []);
+
+    useEffect(() => {
+        const serialized = serializeTriggers(triggers);
+
+        for (const animation in triggers) {
+
+            if (serialized[animation] !== previousTriggers.current[animation]) animator.play(animation as any);
+            // ^ allow for AnimationOptions?
+            // also should only play when boolean === true?
+        }
+
+        previousTriggers.current = serialized;
+    }, [triggers]);
 
     useEffect(() => {
         animator.interrupted = paused;

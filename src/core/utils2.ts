@@ -1,5 +1,7 @@
 import { ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes } from "./clip2";
 
+export const keyframeEpsilon = .0001;
+
 export function serializeTriggers(triggers: {
     [key: string]: any[] | undefined; // todo
 }) {
@@ -19,7 +21,7 @@ export function transformKeyframeList(list: ClipKeyframe[]) {
 
     for (let i = 0; i < list.length; i++) {
         const value = list[i],
-            offset = i / (list.length - 1); // should round to some precision
+            offset = Math.round(i / (list.length - 1) / keyframeEpsilon) * keyframeEpsilon;
 
         if (value === null) continue;
 
@@ -40,11 +42,10 @@ export function transformKeyframeList(list: ClipKeyframe[]) {
 }
 
 export function addKeyframeEntry(map: Map<number, Keyframe>, offset: number, prop: string, value: string | number) {
-    const entry = map.get(offset) || { offset };
+    if (!map.has(offset)) map.set(offset, { offset });
+    const entry = map.get(offset)!;
 
     entry[prop] = value;
-
-    map.set(offset, entry); // inefficient
 }
 
 export function parseClipKeyframes(keyframes: ClipKeyframes, initial: ClipInitials) {
@@ -61,9 +62,9 @@ export function parseClipKeyframes(keyframes: ClipKeyframes, initial: ClipInitia
 
         for (let { to, after, offset } of transformed) {
             if (after !== undefined) {
-                if (offset === 1) offset -= 0.0001;
+                if (offset === 1) offset -= keyframeEpsilon;
 
-                addKeyframeEntry(map, offset + 0.0001, prop, after);
+                addKeyframeEntry(map, offset + keyframeEpsilon, prop, after);
             }
             if (to !== undefined) {
                 addKeyframeEntry(map, offset, prop, to);

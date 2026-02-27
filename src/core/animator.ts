@@ -1,4 +1,4 @@
-import Clip, { ClipConfig } from "./clip2";
+import Clip, { ClipConfig, ClipInitials } from "./clip2";
 import { getParentAnimator, registerAnimator, unregisterAnimator } from "./state";
 import Track from "./track2";
 
@@ -74,13 +74,17 @@ export default class Animator<T extends string> {
         unregisterAnimator(this.id);
     }
 
-    getInitialStyles() {
+    mergeInitialStyles(styles: ClipInitials = {}): ClipInitials { // cache this function output after first compute
         const animations = this.lifecycleAnimations.mount;
 
-        if (this.parent) this.getInitialStyles();
-        if (animations) animations.forEach(animation => this.clips[animation]); // let this override parent styles
+        if (animations) {
+            const clips = animations.map(animation => this.clips[animation]);
+            if (clips.length) return Clip.mergeInitialStyles(clips, styles);
+        }
 
-        return {}; // cache this after first compute
+        if (this.parent) return this.parent.mergeInitialStyles(styles);
+
+        return styles;
     }
 
     time(clip: Clip) {

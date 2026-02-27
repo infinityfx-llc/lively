@@ -88,4 +88,12 @@ export default class Clip {
         };
     }
 
+    static mergeInitialStyles(clips: Clip[], styles: ClipInitials = {}) {
+        for (const clip of clips) {
+            if (!clip.isEmpty) Object.assign(styles, clip.keyframes[0]); // styles should override keyframes (switch around)
+        }
+
+        return styles;
+    }
+
 }

@@ -34,7 +34,7 @@ export type ClipInitials = React.CSSProperties;
 export default class Clip {
 
     isEmpty: boolean;
-    keyframes: any;
+    keyframes: Keyframe[];
     duration: number;
     delay: number;
     repeat: number;
@@ -62,7 +62,7 @@ export default class Clip {
         this.composite = composite;
 
         this.keyframes = parseClipKeyframes(keyframes, initial);
-        this.isEmpty = false; // todo
+        this.isEmpty = !this.keyframes.length;
     }
 
     getConfig({

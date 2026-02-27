@@ -22,6 +22,7 @@ export default class Animator<T extends string> {
     tracks: Map<Element, Track> = new Map();
     stagger: number;
     staggerLimit: number;
+    initialStyles: ClipInitials | null = null;
     state: 'unmounted' | 'unmounting' | 'mounted' = 'unmounted';
     interrupted = false;
 
@@ -74,20 +75,23 @@ export default class Animator<T extends string> {
         unregisterAnimator(this.id);
     }
 
-    mergeInitialStyles(styles: ClipInitials = {}): ClipInitials { // cache this function output after first compute
-        const animations = this.lifecycleAnimations.mount;
+    mergeInitialStyles(styles: ClipInitials = {}): ClipInitials {
+        if (this.initialStyles) return this.initialStyles;
 
-        if (animations) {
-            const clips = animations.map(animation => this.clips[animation]);
-            if (clips.length) return Clip.mergeInitialStyles(clips, styles);
-        }
+        const animations = this.lifecycleAnimations.mount || [],
+            clips = animations.map(animation => this.clips[animation]);
 
-        if (this.parent) return this.parent.mergeInitialStyles(styles);
+        if (clips.length) {
+            styles = Clip.mergeInitialStyles(clips, styles);
+        } else
+            if (this.parent) {
+                styles = this.parent.mergeInitialStyles(styles);
+            }
 
-        return styles;
+        return this.initialStyles = styles;
     }
 
-    time(clip: Clip) {
+    pretime(clip: Clip) {
         // take into account AnimationOptions?
         // also repeat count?
         return clip.duration + clip.delay + Math.max(Math.min(this.tracks.size, this.staggerLimit) - 1, 0) * this.stagger;
@@ -109,7 +113,7 @@ export default class Animator<T extends string> {
         // ^ don't allow to play when inherits from parent?
 
         const clip = animation instanceof Clip ? animation : this.clips[animation],
-            duration = this.time(clip);
+            duration = this.pretime(clip);
 
         const cascadeDelay = this.cascade(animation, clip, {
             ...options,

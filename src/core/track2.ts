@@ -16,7 +16,7 @@ export default class Track {
         this.element = element;
     }
 
-    push(clip: Clip, options: AnimationOptions, onEnded?: () => void) {
+    push(clip: Clip, options: AnimationOptions = {}, onEnded?: () => void) {
         const { commit, blendmode, ...config } = clip.getConfig(options);
         const animation = this.element.animate({}, config) as TrackAnimation;
         animation.blendmode = blendmode;

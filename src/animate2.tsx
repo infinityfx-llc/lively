@@ -1,5 +1,4 @@
 // - notes:
-// - myAnimationOn={trigger} <- use typescript generics?
 // - with global state construct virtual element tree that can be used for unmounting logic
 // - consider what props to cascade; (clips, stagger, etc.)
 

@@ -16,7 +16,7 @@ export default class Animator<T extends string> {
     clips: {
         [key in T]: Clip;
     };
-    triggers: {
+    lifecycleAnimations: {
         [key in 'mount']?: T[];
     };
     tracks: Map<Element, Track> = new Map();
@@ -37,7 +37,7 @@ export default class Animator<T extends string> {
     }) {
         this.id = registerAnimator(id, this);
         this.clips = clips;
-        this.triggers = {}; // todo
+        this.lifecycleAnimations = {}; // todo
         this.stagger = stagger;
         this.staggerLimit = staggerLimit;
 
@@ -55,7 +55,11 @@ export default class Animator<T extends string> {
         if (!(element instanceof HTMLElement || element instanceof SVGElement)) return;
 
         // somehow keep staggering ordering
-        this.tracks.set(element, new Track(element));
+        const track = new Track(element),
+            animations = this.lifecycleAnimations['mount'];
+        this.tracks.set(element, track);
+
+        if (this.state === 'mounted' && animations) animations.forEach(animation => track.push(this.clips[animation]));
     }
 
     mount() {
@@ -67,6 +71,7 @@ export default class Animator<T extends string> {
     }
 
     getInitialStyles() {
+        // should also inherit from parent
         return {};
     }
 
@@ -77,7 +82,7 @@ export default class Animator<T extends string> {
     }
 
     trigger(on: 'mount', options: AnimationOptions = {}) {
-        let animations = this.triggers[on],
+        let animations = this.lifecycleAnimations[on],
             elapsed = 0;
 
         if (animations) animations.forEach(animation => Math.max(this.play(animation, options), elapsed));
@@ -147,6 +152,8 @@ export default class Animator<T extends string> {
     pause() {
         // also need play method
         this.tracks.forEach(track => track.toggle(true));
+
+        // should cascade to children?
     }
 
     stop() {

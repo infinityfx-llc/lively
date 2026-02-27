@@ -1,5 +1,5 @@
 import Clip, { ClipConfig } from "./clip2";
-import { getParentAnimator, registerAnimator } from "./state";
+import { getParentAnimator, registerAnimator, unregisterAnimator } from "./state";
 import Track from "./track2";
 
 export type AnimationOptions = Omit<ClipConfig, 'duration' | 'easing'> & {
@@ -17,7 +17,7 @@ export default class Animator<T extends string> {
         [key in T]: Clip;
     };
     lifecycleAnimations: {
-        [key in 'mount']?: T[];
+        [key in 'mount' | 'unmount']?: T[];
     };
     tracks: Map<Element, Track> = new Map();
     stagger: number;
@@ -64,15 +64,23 @@ export default class Animator<T extends string> {
 
     mount() {
         this.state = 'mounted';
+
+        this.trigger('mount');
     }
 
     dispose() {
         this.state = 'unmounting';
+
+        unregisterAnimator(this.id);
     }
 
     getInitialStyles() {
-        // should also inherit from parent
-        return {};
+        const animations = this.lifecycleAnimations.mount;
+
+        if (this.parent) this.getInitialStyles();
+        if (animations) animations.forEach(animation => this.clips[animation]); // let this override parent styles
+
+        return {}; // cache this after first compute
     }
 
     time(clip: Clip) {

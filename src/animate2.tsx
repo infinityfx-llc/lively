@@ -7,6 +7,8 @@ import Animator from "./core/animator";
 import Clip, { ClipInitials, ClipOptions } from "./core/clip2";
 import { serializeTriggers } from "./core/utils2";
 
+type AnimationTrigger = 'mount' | 'unmount' | boolean | number;
+
 type AnimateProps<T extends string> = {
     ref?: React.Ref<Animator<T | 'animate'>>;
     children: React.ReactNode;
@@ -17,7 +19,7 @@ type AnimateProps<T extends string> = {
         [key in T]: ClipOptions | Clip;
     };
     triggers?: {
-        [key in T | 'animate']?: any[]; // todo
+        [key in T | 'animate']?: AnimationTrigger[];
     };
     stagger?: number;
     staggerLimit?: number;

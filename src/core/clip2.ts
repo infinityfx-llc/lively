@@ -1,4 +1,5 @@
 import { AnimationOptions } from "./animator";
+import { parseClipKeyframes } from "./utils2";
 
 export type BlendMode = 'none' | 'override' | 'combine';
 
@@ -16,7 +17,11 @@ export type ClipConfig = {
 
 export type ClipKey = keyof React.CSSProperties;
 
-export type ClipKeyframe = string | number | null; // todo
+export type ClipKeyframe = null | string | number | {
+    to?: string | number;
+    after?: string | number;
+    offset?: number;
+};
 
 export type ClipKeyframes = {
     [key in ClipKey]?: ClipKeyframe | ClipKeyframe[];
@@ -56,12 +61,8 @@ export default class Clip {
         this.easing = easing;
         this.composite = composite;
 
-        for (const prop in keyframes) {
-
-        }
-
-        this.keyframes = [];
-        this.isEmpty = false;
+        this.keyframes = parseClipKeyframes(keyframes, initial);
+        this.isEmpty = false; // todo
     }
 
     getConfig({

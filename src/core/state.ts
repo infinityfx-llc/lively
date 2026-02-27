@@ -21,3 +21,7 @@ export function registerAnimator(id: string, animator: any) { // todo
 
     return id;
 }
+
+export function unregisterAnimator(id: string) {
+    registeredAnimators.delete(id);
+}

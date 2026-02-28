@@ -1,9 +1,10 @@
+import { AnimationTrigger } from "../animate2";
 import { ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes } from "./clip2";
 
 export const keyframeEpsilon = .0001;
 
 export function serializeTriggers(triggers: {
-    [key: string]: any[] | undefined; // todo
+    [key: string]: AnimationTrigger[] | undefined;
 }) {
     const serialized: {
         [key: string]: string;
@@ -12,6 +13,26 @@ export function serializeTriggers(triggers: {
     for (const key in triggers) serialized[key] = (triggers[key] || []).map(value => value.toString()).join(',');
 
     return serialized;
+}
+
+export function getLifeCycleAnimations<T extends string>(triggers: {
+    [key in T]?: AnimationTrigger[];
+}) {
+    const animations: {
+        [key in 'mount' | 'unmount']?: T[];
+    } = {};
+
+    for (const name in triggers) {
+        (['mount', 'unmount'] as const).forEach(trigger => {
+            if (triggers[name]!.includes(trigger)) {
+                if (!(trigger in animations)) animations[trigger] = [];
+
+                animations[trigger]!.push(name);
+            }
+        });
+    }
+
+    return animations;
 }
 
 export function transformKeyframeList(list: ClipKeyframe[]) {

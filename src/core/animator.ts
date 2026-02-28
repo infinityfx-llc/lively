@@ -24,32 +24,31 @@ export default class Animator<T extends string> {
     staggerLimit: number;
     initialStyles: ClipInitials | null = null;
     state: 'unmounted' | 'unmounting' | 'mounted' = 'unmounted';
-    interrupted = false;
+    paused = false;
 
-    constructor({ id, parentId, inherit, clips, stagger = 0.07, staggerLimit = 10 }: {
+    constructor({ id, parentId, inherit, clips, lifeCycleAnimations, stagger = 0.07, staggerLimit = 10 }: {
         id: string;
         parentId: string;
         inherit: boolean | number;
         clips: {
             [key in T]: Clip;
         };
+        lifeCycleAnimations: {
+            [key in 'mount' | 'unmount']?: T[];
+        }
         stagger?: number;
         staggerLimit?: number;
     }) {
         this.id = registerAnimator(id, this);
         this.clips = clips;
-        this.lifecycleAnimations = {}; // todo
+        this.lifecycleAnimations = lifeCycleAnimations;
         this.stagger = stagger;
         this.staggerLimit = staggerLimit;
 
         if (parentId && inherit !== false) {
             this.parent = getParentAnimator(parentId, typeof inherit === 'boolean' ? 0 : inherit);
         }
-        if (this.parent) this.parent.addDependent(this);
-    }
-
-    addDependent(animator: Animator<any>) {
-        this.dependents.add(animator);
+        if (this.parent) this.parent.dependents.add(this);
     }
 
     addTrack(element: any, index: number) {
@@ -64,18 +63,19 @@ export default class Animator<T extends string> {
     }
 
     mount() {
-        this.state = 'mounted';
+        this.trigger('mount'); // don't do if already mounted? (skipInitialMount setting for LayoutGroup)
 
-        this.trigger('mount');
+        this.state = 'mounted';
     }
 
     dispose() {
         this.state = 'unmounting';
 
         unregisterAnimator(this.id);
+        if (this.parent) this.parent.dependents.delete(this);
     }
 
-    mergeInitialStyles(styles: ClipInitials = {}): ClipInitials {
+    mergeInitialStyles(styles: ClipInitials): ClipInitials {
         if (this.initialStyles) return this.initialStyles;
 
         const animations = this.lifecycleAnimations.mount || [],
@@ -106,27 +106,27 @@ export default class Animator<T extends string> {
         return elapsed;
     }
 
-    play(animation: T | Clip, { reverseCascade = false, delay = 0, ...options }: AnimationOptions & {
-        reverseCascade?: boolean;
+    play(animation: T | Clip, { cascade = 'forward', delay = 0, ...options }: AnimationOptions & {
+        cascade?: 'forward' | 'reverse';
     } = {}) {
-        if (this.interrupted) return 0;
+        if (this.paused) return 0;
         // ^ don't allow to play when inherits from parent?
 
         const clip = animation instanceof Clip ? animation : this.clips[animation],
             duration = this.pretime(clip);
 
-        const cascadeDelay = this.cascade(animation, clip, {
+        const cascadeDelay = this.cascade(clip, {
             ...options,
-            delay: reverseCascade ? delay : duration + delay
+            delay: cascade === 'reverse' ? delay : duration + delay
         });
 
         return this.push(clip, {
             ...options,
-            delay: reverseCascade ? cascadeDelay + delay : delay
+            delay: cascade === 'reverse' ? cascadeDelay + delay : delay
         });
     }
 
-    cascade(animation: T | Clip, clip: Clip, options: AnimationOptions) {
+    cascade(clip: Clip, options: AnimationOptions) {
         let elapsed = 0;
 
         // only use clip if no own clip is defined
@@ -168,6 +168,7 @@ export default class Animator<T extends string> {
     pause() {
         // also need play method
         this.tracks.forEach(track => track.toggle(true));
+        this.paused = true;
 
         // should cascade to children?
     }

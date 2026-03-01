@@ -24,7 +24,7 @@ export function getLifeCycleAnimations<T extends string>(triggers: {
 
     for (const name in triggers) {
         (['mount', 'unmount'] as const).forEach(trigger => {
-            if (triggers[name]!.includes(trigger)) {
+            if (triggers[name] && triggers[name].includes(trigger)) {
                 if (!(trigger in animations)) animations[trigger] = [];
 
                 animations[trigger]!.push(name);

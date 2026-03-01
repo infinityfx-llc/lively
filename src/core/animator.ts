@@ -5,8 +5,10 @@ import Track from "./track2";
 export type AnimationOptions = Omit<ClipConfig, 'duration' | 'easing'> & {
     override?: boolean;
     commit?: boolean;
-    // tag?: (for passing animation name?)
+    tag?: string;
 };
+
+export type AnimationEvent = 'end';
 
 export default class Animator<T extends string> {
 
@@ -49,6 +51,18 @@ export default class Animator<T extends string> {
             this.parent = getParentAnimator(parentId, typeof inherit === 'boolean' ? 0 : inherit);
         }
         if (this.parent) this.parent.dependents.add(this);
+    }
+
+    on<K extends (...args: any) => void>(event: AnimationEvent, callback: K) {
+        // todo
+    }
+
+    off<K extends (...args: any) => void>(event: AnimationEvent, callback: K) {
+        // todo
+    }
+
+    dispatch(event: AnimationEvent, ...args: any) {
+        // todo
     }
 
     addTrack(element: any, index: number) {
@@ -106,30 +120,31 @@ export default class Animator<T extends string> {
         return elapsed;
     }
 
-    play(animation: T | Clip, { cascade = 'forward', delay = 0, ...options }: AnimationOptions & {
+    play(animation: T | Clip, { cascade = 'forward', delay = 0, tag, ...options }: AnimationOptions & {
         cascade?: 'forward' | 'reverse';
     } = {}) {
-        if (this.paused) return 0;
-        // ^ don't allow to play when inherits from parent?
+        if (this.paused || (this.parent && !tag)) return 0;
 
+        // if (tag && tag in this.clips) clip = this.clips[tag as T]; // wip
         const clip = animation instanceof Clip ? animation : this.clips[animation],
             duration = this.pretime(clip);
 
         const cascadeDelay = this.cascade(clip, {
             ...options,
-            delay: cascade === 'reverse' ? delay : duration + delay
+            delay: cascade === 'reverse' ? delay : duration + delay,
+            tag: typeof animation === 'string' ? animation : tag
         });
 
         return this.push(clip, {
             ...options,
-            delay: cascade === 'reverse' ? cascadeDelay + delay : delay
+            delay: cascade === 'reverse' ? cascadeDelay + delay : delay,
+            tag: typeof animation === 'string' ? animation : tag
         });
     }
 
     cascade(clip: Clip, options: AnimationOptions) {
         let elapsed = 0;
 
-        // only use clip if no own clip is defined
         this.dependents.forEach(animator => {
             elapsed = Math.max(elapsed, animator.play(clip, options));
         });
@@ -137,13 +152,16 @@ export default class Animator<T extends string> {
         return elapsed;
     }
 
-    push(clip: Clip, { override, ...options }: AnimationOptions) {
-        let elapsed = 0,
-            track: Track | undefined,
-            tracks = this.tracks.values();
+    push(clip: Clip, { override, delay = 0, tag, ...options }: AnimationOptions) {
+        let tracks = this.tracks.values(),
+            elapsed = 0,
+            i = 0;
         if (clip.isEmpty) return 0;
 
-        while (track = tracks.next().value) {
+        while (true) {
+            const { value: track, done } = tracks.next();
+            if (!track) break;
+
             if (!track.element.isConnected) {
                 this.tracks.delete(track.element);
                 continue;
@@ -153,11 +171,8 @@ export default class Animator<T extends string> {
 
             const added = track.push(clip, {
                 ...options,
-                delay: 0 // todo: stagger delay
-            }, () => {
-                // todo: if last track call onAnimationEnd
-                // need animation name for this..
-            });
+                delay: delay + Math.min(i++, this.staggerLimit - 1) * this.stagger
+            }, done ? () => this.dispatch('end', tag) : undefined);
 
             elapsed = Math.max(elapsed, added);
         }

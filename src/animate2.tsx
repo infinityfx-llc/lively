@@ -41,7 +41,8 @@ export default function Animate<T extends string>(this: any, {
     stagger,
     staggerLimit,
     clips,
-    paused = false
+    paused = false,
+    onAnimationEnd
 }: AnimateProps<T>) {
     const id = useId();
     const parentId = use(AnimateContext);
@@ -81,6 +82,14 @@ export default function Animate<T extends string>(this: any, {
 
         previousTriggers.current = serialized;
     }, [triggers]);
+
+    useEffect(() => {
+        if (onAnimationEnd) animator.on('end', onAnimationEnd);
+
+        return () => {
+            if (onAnimationEnd) animator.off('end', onAnimationEnd);
+        }
+    }, [onAnimationEnd]);
 
     useEffect(() => {
         animator.pause(); // todo

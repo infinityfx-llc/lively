@@ -27,6 +27,7 @@ export default class Animator<T extends string> {
     };
     tracks: Set<Element> = new Set();
     trackList: Track[] = [];
+    ignoreScaleDeformation: boolean;
     stagger: number;
     staggerLimit: number;
     initialStyles: ClipInitials | null = null;
@@ -37,7 +38,7 @@ export default class Animator<T extends string> {
     paused = false;
     frame = 0;
 
-    constructor({ id, parentId, inherit, clips, lifeCycleAnimations, stagger = 0.07, staggerLimit = 10 }: {
+    constructor({ id, parentId, inherit, clips, lifeCycleAnimations, ignoreScaleDeformation, stagger, staggerLimit }: {
         id: string;
         parentId: string;
         inherit: boolean | number;
@@ -46,13 +47,15 @@ export default class Animator<T extends string> {
         };
         lifeCycleAnimations: {
             [key in LifeCycleTrigger]?: T[];
-        }
-        stagger?: number;
-        staggerLimit?: number;
+        };
+        ignoreScaleDeformation: boolean;
+        stagger: number;
+        staggerLimit: number;
     }) {
         this.id = registerAnimator(id, this);
         this.clips = clips;
         this.lifeCycleAnimations = lifeCycleAnimations;
+        this.ignoreScaleDeformation = ignoreScaleDeformation;
         this.stagger = stagger;
         this.staggerLimit = staggerLimit;
 
@@ -92,7 +95,9 @@ export default class Animator<T extends string> {
     }
 
     tick() {
-        if (!this.paused) this.trackList.forEach(track => track.correct()); // only if should not deform
+        if (!this.paused) this.trackList.forEach(track => {
+            if (!this.ignoreScaleDeformation) track.correct();
+        });
 
         this.frame = requestAnimationFrame(this.tick.bind(this));
     }

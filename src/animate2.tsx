@@ -37,8 +37,9 @@ export default function Animate<T extends string>(this: any, {
     triggers = {
         animate: ['mount']
     },
-    stagger,
-    staggerLimit,
+    stagger = 0.07,
+    staggerLimit = 10,
+    ignoreScaleDeformation = false,
     clips,
     paused = false,
     onAnimationEnd
@@ -58,7 +59,16 @@ export default function Animate<T extends string>(this: any, {
 
         for (const name in clips) animations[name] = clips[name] instanceof Clip ? clips[name] : new Clip(clips[name], initial);
 
-        return new Animator({ id, parentId, inherit, clips: animations, lifeCycleAnimations: getLifeCycleAnimations(triggers), stagger, staggerLimit });
+        return new Animator({
+            id,
+            parentId,
+            inherit,
+            clips: animations,
+            lifeCycleAnimations: getLifeCycleAnimations(triggers),
+            ignoreScaleDeformation,
+            stagger,
+            staggerLimit
+        });
     }, []);
 
     useImperativeHandle(ref, () => animator, []);

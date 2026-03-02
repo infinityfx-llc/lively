@@ -125,10 +125,9 @@ export default class Animator<T extends string> {
         return this.initialStyles = styles;
     }
 
-    pretime(clip: Clip) {
-        // take into account AnimationOptions?
-        // also repeat count?
-        return clip.duration + clip.delay + Math.max(Math.min(this.tracks.size, this.staggerLimit) - 1, 0) * this.stagger;
+    pretime(clip: Clip, options: AnimationOptions) {
+        const { duration, delay, iterations } = clip.getConfig(options);
+        return duration * iterations + delay + Math.max(Math.min(this.tracks.size, this.staggerLimit) - 1, 0) * this.stagger;
     }
 
     trigger(on: LifeCycleTrigger, options: AnimationOptions = {}) {
@@ -147,7 +146,7 @@ export default class Animator<T extends string> {
 
         // if (tag && tag in this.clips) clip = this.clips[tag as T]; // wip
         const clip = animation instanceof Clip ? animation : this.clips[animation],
-            duration = this.pretime(clip);
+            duration = this.pretime(clip, options);
 
         const cascadeDelay = this.cascade(clip, {
             ...options,

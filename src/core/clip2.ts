@@ -89,7 +89,9 @@ export default class Clip {
     }
 
     static mergeInitialStyles(clips: Clip[], styles: ClipInitials) {
-        const merged = {};
+        const merged = {
+            backfaceVisibility: 'hidden'
+        };
 
         for (const clip of clips) {
             if (!clip.isEmpty) Object.assign(merged, clip.keyframes[0]);

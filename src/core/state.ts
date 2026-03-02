@@ -1,11 +1,13 @@
-const registeredAnimators = new Map();
+import Animator from "./animator";
+
+const registeredAnimators = new Map<string, Animator<any>>();
 
 export function getClosestLayoutGroup() {
 
 }
 
 export function getParentAnimator(id: string, stepsRemoved: number) {
-    let parent = registeredAnimators.get(id);
+    let parent = registeredAnimators.get(id) || null;
 
     for (let i = 0; i < stepsRemoved; i++) {
         if (!parent) return null;
@@ -16,7 +18,7 @@ export function getParentAnimator(id: string, stepsRemoved: number) {
     return parent;
 }
 
-export function registerAnimator(id: string, animator: any) { // todo
+export function registerAnimator(id: string, animator: Animator<any>) {
     registeredAnimators.set(id, animator);
 
     return id;

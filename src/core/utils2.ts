@@ -1,4 +1,4 @@
-import { AnimationTrigger } from "../animate2";
+import { AnimationTrigger, LifeCycleTrigger } from "./animator";
 import { ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes } from "./clip2";
 
 export const keyframeEpsilon = .0001;
@@ -19,7 +19,7 @@ export function getLifeCycleAnimations<T extends string>(triggers: {
     [key in T]?: AnimationTrigger[];
 }) {
     const animations: {
-        [key in 'mount' | 'unmount']?: T[];
+        [key in LifeCycleTrigger]?: T[];
     } = {};
 
     for (const name in triggers) {

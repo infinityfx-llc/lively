@@ -3,11 +3,9 @@
 // - consider what props to cascade; (clips, stagger, etc.)
 
 import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef } from "react";
-import Animator from "./core/animator";
+import Animator, { AnimationTrigger } from "./core/animator";
 import Clip, { ClipInitials, ClipOptions } from "./core/clip2";
 import { getLifeCycleAnimations, serializeTriggers } from "./core/utils2";
-
-export type AnimationTrigger = 'mount' | 'unmount' | boolean | number;
 
 type AnimateProps<T extends string> = {
     ref?: React.Ref<Animator<T | 'animate'>>;
@@ -23,6 +21,7 @@ type AnimateProps<T extends string> = {
     };
     stagger?: number;
     staggerLimit?: number;
+    ignoreScaleDeformation?: boolean;
     paused?: boolean;
     onAnimationEnd?: (animation: T) => void;
 };
@@ -54,10 +53,10 @@ export default function Animate<T extends string>(this: any, {
         const animations: {
             [key in T | 'animate']: Clip;
         } = {
-            animate: new Clip(animate, initial) // don't create clip if already of Clip instance
+            animate: animate instanceof Clip ? animate : new Clip(animate, initial)
         } as any;
 
-        for (const name in clips) animations[name] = new Clip(clips[name], initial);
+        for (const name in clips) animations[name] = clips[name] instanceof Clip ? clips[name] : new Clip(clips[name], initial);
 
         return new Animator({ id, parentId, inherit, clips: animations, lifeCycleAnimations: getLifeCycleAnimations(triggers), stagger, staggerLimit });
     }, []);

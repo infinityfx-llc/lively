@@ -2,13 +2,17 @@ import Clip, { ClipConfig, ClipInitials } from "./clip2";
 import { getParentAnimator, registerAnimator, unregisterAnimator } from "./state";
 import Track from "./track2";
 
+export type LifeCycleTrigger = 'mount' | 'unmount';
+
+export type AnimationTrigger = LifeCycleTrigger | boolean | number;
+
 export type AnimationOptions = Omit<ClipConfig, 'duration' | 'easing'> & {
     override?: boolean;
     commit?: boolean;
     tag?: string;
 };
 
-export type AnimationEvent = 'end';
+export type AnimationEvent = 'end'; // add more
 
 export default class Animator<T extends string> {
 
@@ -18,15 +22,20 @@ export default class Animator<T extends string> {
     clips: {
         [key in T]: Clip;
     };
-    lifecycleAnimations: {
-        [key in 'mount' | 'unmount']?: T[];
+    lifeCycleAnimations: {
+        [key in LifeCycleTrigger]?: T[];
     };
-    tracks: Map<Element, Track> = new Map();
+    tracks: Set<Element> = new Set();
+    trackList: Track[] = [];
     stagger: number;
     staggerLimit: number;
     initialStyles: ClipInitials | null = null;
+    eventListeners: {
+        [key in AnimationEvent]?: Set<(...args: any) => void>;
+    } = {};
     state: 'unmounted' | 'unmounting' | 'mounted' = 'unmounted';
     paused = false;
+    frame = 0;
 
     constructor({ id, parentId, inherit, clips, lifeCycleAnimations, stagger = 0.07, staggerLimit = 10 }: {
         id: string;
@@ -36,14 +45,14 @@ export default class Animator<T extends string> {
             [key in T]: Clip;
         };
         lifeCycleAnimations: {
-            [key in 'mount' | 'unmount']?: T[];
+            [key in LifeCycleTrigger]?: T[];
         }
         stagger?: number;
         staggerLimit?: number;
     }) {
         this.id = registerAnimator(id, this);
         this.clips = clips;
-        this.lifecycleAnimations = lifeCycleAnimations;
+        this.lifeCycleAnimations = lifeCycleAnimations;
         this.stagger = stagger;
         this.staggerLimit = staggerLimit;
 
@@ -54,45 +63,57 @@ export default class Animator<T extends string> {
     }
 
     on<K extends (...args: any) => void>(event: AnimationEvent, callback: K) {
-        // todo
+        if (!(event in this.eventListeners)) this.eventListeners[event] = new Set();
+
+        this.eventListeners[event]!.add(callback);
     }
 
     off<K extends (...args: any) => void>(event: AnimationEvent, callback: K) {
-        // todo
+        this.eventListeners[event]?.delete(callback);
     }
 
     dispatch(event: AnimationEvent, ...args: any) {
-        // todo
-    }
-
-    addTrack(element: any, index: number) {
-        if (!(element instanceof HTMLElement || element instanceof SVGElement)) return;
-
-        // somehow keep staggering ordering
-        const track = new Track(element),
-            animations = this.lifecycleAnimations['mount'];
-        this.tracks.set(element, track);
-
-        if (this.state === 'mounted' && animations) animations.forEach(animation => track.push(this.clips[animation]));
+        this.eventListeners[event]?.forEach(callback => callback(...args));
     }
 
     mount() {
-        this.trigger('mount'); // don't do if already mounted? (skipInitialMount setting for LayoutGroup)
+        if (this.state === 'unmounted') this.trigger('mount');
 
         this.state = 'mounted';
+        this.tick();
     }
 
     dispose() {
         this.state = 'unmounting';
 
+        cancelAnimationFrame(this.frame);
         unregisterAnimator(this.id);
         if (this.parent) this.parent.dependents.delete(this);
+    }
+
+    tick() {
+        if (!this.paused) this.trackList.forEach(track => track.correct()); // only if should not deform
+
+        this.frame = requestAnimationFrame(this.tick.bind(this));
+    }
+
+    addTrack(element: any, index: number) {
+        if (!(element instanceof HTMLElement || element instanceof SVGElement) || this.tracks.has(element)) return;
+
+        // somehow keep staggering ordering
+        const track = new Track(element),
+            animations = this.lifeCycleAnimations['mount'];
+
+        this.tracks.add(element);
+        this.trackList.splice(index, 0, track);
+
+        if (this.state === 'mounted' && animations) animations.forEach(animation => track.push(this.clips[animation]));
     }
 
     mergeInitialStyles(styles: ClipInitials): ClipInitials {
         if (this.initialStyles) return this.initialStyles;
 
-        const animations = this.lifecycleAnimations.mount || [],
+        const animations = this.lifeCycleAnimations.mount || [],
             clips = animations.map(animation => this.clips[animation]);
 
         if (clips.length) {
@@ -111,8 +132,8 @@ export default class Animator<T extends string> {
         return clip.duration + clip.delay + Math.max(Math.min(this.tracks.size, this.staggerLimit) - 1, 0) * this.stagger;
     }
 
-    trigger(on: 'mount', options: AnimationOptions = {}) {
-        let animations = this.lifecycleAnimations[on],
+    trigger(on: LifeCycleTrigger, options: AnimationOptions = {}) {
+        let animations = this.lifeCycleAnimations[on],
             elapsed = 0;
 
         if (animations) animations.forEach(animation => Math.max(this.play(animation, options), elapsed));
@@ -153,17 +174,15 @@ export default class Animator<T extends string> {
     }
 
     push(clip: Clip, { override, delay = 0, tag, ...options }: AnimationOptions) {
-        let tracks = this.tracks.values(),
-            elapsed = 0,
-            i = 0;
+        let elapsed = 0, i = 0;
         if (clip.isEmpty) return 0;
 
-        while (true) {
-            const { value: track, done } = tracks.next();
-            if (!track) break;
+        while (i < this.tracks.size) {
+            const track = this.trackList[i];
 
             if (!track.element.isConnected) {
                 this.tracks.delete(track.element);
+                this.trackList.splice(i, 1);
                 continue;
             }
 
@@ -172,7 +191,7 @@ export default class Animator<T extends string> {
             const added = track.push(clip, {
                 ...options,
                 delay: delay + Math.min(i++, this.staggerLimit - 1) * this.stagger
-            }, done ? () => this.dispatch('end', tag) : undefined);
+            }, i === this.tracks.size ? () => this.dispatch('end', tag) : undefined);
 
             elapsed = Math.max(elapsed, added);
         }
@@ -182,7 +201,7 @@ export default class Animator<T extends string> {
 
     pause() {
         // also need play method
-        this.tracks.forEach(track => track.toggle(true));
+        this.trackList.forEach(track => track.toggle(true));
         this.paused = true;
 
         // should cascade to children?
@@ -190,7 +209,7 @@ export default class Animator<T extends string> {
 
     stop() {
         // stop only specific animation?
-        this.tracks.forEach(track => track.clear());
+        this.trackList.forEach(track => track.clear());
     }
 
 }

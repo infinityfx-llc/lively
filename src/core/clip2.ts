@@ -88,9 +88,10 @@ export default class Clip {
         };
     }
 
-    static mergeInitialStyles(clips: Clip[], styles: ClipInitials) {
+    static mergeInitialStyles(clips: Clip[], styles: ClipInitials): ClipInitials {
         const merged = {
-            backfaceVisibility: 'hidden'
+            backfaceVisibility: 'hidden',
+            willChange: 'transform'
         };
 
         for (const clip of clips) {

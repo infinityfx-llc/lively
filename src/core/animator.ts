@@ -100,7 +100,6 @@ export default class Animator<T extends string> {
     addTrack(element: any, index: number) {
         if (!(element instanceof HTMLElement || element instanceof SVGElement) || this.tracks.has(element)) return;
 
-        // somehow keep staggering ordering
         const track = new Track(element),
             animations = this.lifeCycleAnimations['mount'];
 

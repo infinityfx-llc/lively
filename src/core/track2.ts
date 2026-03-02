@@ -54,8 +54,12 @@ export default class Track {
         if (!this.active) this.correct();
     }
 
-    clear() {
+    transition() {
+        // todo
+    }
 
+    clear() {
+        // todo
     }
 
     toggle(paused: boolean) {
@@ -63,7 +67,7 @@ export default class Track {
     }
 
     correct() {
-
+        // todo
     }
 
 }

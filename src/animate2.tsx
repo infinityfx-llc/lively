@@ -6,6 +6,7 @@ import { Children, cloneElement, createContext, isValidElement, use, useEffect, 
 import Animator, { AnimationTrigger } from "./core/animator";
 import Clip, { ClipInitials, ClipOptions } from "./core/clip2";
 import { getLifeCycleAnimations, serializeTriggers } from "./core/utils2";
+import { CacheKey } from "./core/track2";
 
 type AnimateProps<T extends string> = {
     ref?: React.Ref<Animator<T | 'animate'>>;
@@ -22,6 +23,7 @@ type AnimateProps<T extends string> = {
     stagger?: number;
     staggerLimit?: number;
     ignoreScaleDeformation?: boolean;
+    cache?: CacheKey[];
     paused?: boolean;
     onAnimationEnd?: (animation: T) => void;
 };
@@ -40,6 +42,7 @@ export default function Animate<T extends string>(this: any, {
     stagger = 0.07,
     staggerLimit = 10,
     ignoreScaleDeformation = false,
+    cache = ['x', 'y', 'sx', 'sy', 'rotate', 'borderRadius'],
     clips,
     paused = false,
     onAnimationEnd
@@ -66,6 +69,7 @@ export default function Animate<T extends string>(this: any, {
             clips: animations,
             lifeCycleAnimations: getLifeCycleAnimations(triggers),
             ignoreScaleDeformation,
+            cache,
             stagger,
             staggerLimit
         });

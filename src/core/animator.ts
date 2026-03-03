@@ -1,6 +1,6 @@
 import Clip, { ClipConfig, ClipInitials } from "./clip2";
 import { getParentAnimator, registerAnimator, unregisterAnimator } from "./state";
-import Track from "./track2";
+import Track, { CacheKey } from "./track2";
 
 export type LifeCycleTrigger = 'mount' | 'unmount';
 
@@ -28,6 +28,7 @@ export default class Animator<T extends string> {
     tracks: Set<Element> = new Set();
     trackList: Track[] = [];
     ignoreScaleDeformation: boolean;
+    cache: CacheKey[];
     stagger: number;
     staggerLimit: number;
     initialStyles: ClipInitials | null = null;
@@ -38,7 +39,7 @@ export default class Animator<T extends string> {
     paused = false;
     frame = 0;
 
-    constructor({ id, parentId, inherit, clips, lifeCycleAnimations, ignoreScaleDeformation, stagger, staggerLimit }: {
+    constructor({ id, parentId, inherit, clips, lifeCycleAnimations, ignoreScaleDeformation, cache, stagger, staggerLimit }: {
         id: string;
         parentId: string;
         inherit: boolean | number;
@@ -49,6 +50,7 @@ export default class Animator<T extends string> {
             [key in LifeCycleTrigger]?: T[];
         };
         ignoreScaleDeformation: boolean;
+        cache: CacheKey[];
         stagger: number;
         staggerLimit: number;
     }) {
@@ -56,6 +58,7 @@ export default class Animator<T extends string> {
         this.clips = clips;
         this.lifeCycleAnimations = lifeCycleAnimations;
         this.ignoreScaleDeformation = ignoreScaleDeformation;
+        this.cache = cache;
         this.stagger = stagger;
         this.staggerLimit = staggerLimit;
 
@@ -105,7 +108,7 @@ export default class Animator<T extends string> {
     addTrack(element: any, index: number) {
         if (!(element instanceof HTMLElement || element instanceof SVGElement) || this.tracks.has(element)) return;
 
-        const track = new Track(element),
+        const track = new Track(element, this.cache),
             animations = this.lifeCycleAnimations['mount'];
 
         this.tracks.add(element);

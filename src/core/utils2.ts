@@ -3,6 +3,8 @@ import { ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes } from "./clip2";
 
 export const keyframeEpsilon = .0001;
 
+export const clampLowerBound = (num: number, precision = 8) => Math.sign(num) * Math.max(Math.abs(num), 1 / Math.pow(10, precision));
+
 export function serializeTriggers(triggers: {
     [key: string]: AnimationTrigger[] | undefined;
 }) {
@@ -97,7 +99,9 @@ export function parseClipKeyframes(keyframes: ClipKeyframes, initial: ClipInitia
     return Array.from(map.values()).sort((a, b) => a.offset - b.offset);
 }
 
-export function scaleCorrectRadius(radius: string, scale: [number, number], previousScale: [number, number]) {
+export type ScaleTuple = readonly [number, number];
+
+export function scaleCorrectRadius(radius: string, scale: ScaleTuple, previousScale: ScaleTuple) {
     const array = radius.split(/\s*\/\s*/);
     if (array.length < 2) array[1] = array[0];
 
@@ -108,7 +112,7 @@ export function scaleCorrectRadius(radius: string, scale: [number, number], prev
     }).join('/');
 }
 
-export function scaleCorrectShadow(shadow: string, scale: [number, number], previousScale: [number, number]) {
+export function scaleCorrectShadow(shadow: string, scale: ScaleTuple, previousScale: ScaleTuple) {
     const [color, params, inset] = shadow
         .split(/(?<=px),\s?/)[0]
         .split(/(?<=\))\s|\s(?=inset)/);

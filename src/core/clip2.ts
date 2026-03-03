@@ -15,7 +15,7 @@ export type ClipConfig = {
     composite?: BlendMode;
 };
 
-export type ClipKey = keyof React.CSSProperties;
+export type ClipKey = keyof React.CSSProperties; // strokeLength?
 
 export type ClipKeyframe = null | string | number | {
     to?: string | number;
@@ -52,7 +52,7 @@ export default class Clip {
         easing = 'ease',
         composite = 'none',
         ...keyframes
-    }: ClipOptions, initial: ClipInitials) {
+    }: ClipOptions, initial: ClipInitials = {}) {
         this.duration = duration;
         this.delay = delay;
         this.repeat = repeat;

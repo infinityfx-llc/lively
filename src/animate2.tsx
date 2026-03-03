@@ -1,11 +1,11 @@
 // - notes:
 // - with global state construct virtual element tree that can be used for unmounting logic
-// - consider what props to cascade; (clips, stagger, etc.)
+// - consider what props to cascade; (clips, triggers, stagger, paused, cache?)
 
 import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef } from "react";
 import Animator, { AnimationTrigger } from "./core/animator";
 import Clip, { ClipInitials, ClipOptions } from "./core/clip2";
-import { getLifeCycleAnimations, serializeTriggers } from "./core/utils2";
+import { getLifeCycleAnimations, mergeRefs, serializeTriggers } from "./core/utils2";
 import { CacheKey } from "./core/track2";
 
 type AnimateProps<T extends string> = {
@@ -78,7 +78,7 @@ export default function Animate<T extends string>(this: any, {
     useImperativeHandle(ref, () => animator, []);
 
     useLayoutEffect(() => {
-        document.fonts.ready.finally(animator.mount);
+        document.fonts.ready.finally(animator.mount); // bind animator?
 
         return () => animator.dispose();
     }, []);
@@ -113,7 +113,10 @@ export default function Animate<T extends string>(this: any, {
             if (!isValidElement(child)) return child;
 
             return cloneElement(child as React.ReactElement<React.HTMLProps<any>>, {
-                ref: (el: any) => animator.addTrack(el, i),
+                ref: mergeRefs(
+                    (child as React.ReactElement<any>).props.ref,
+                    el => animator.addTrack(el, i)
+                ),
                 style: animator.mergeInitialStyles(initial)
             });
         })}

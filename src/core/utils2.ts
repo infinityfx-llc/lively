@@ -1,9 +1,19 @@
+import { Children, isValidElement } from "react";
 import { AnimationTrigger, LifeCycleTrigger } from "./animator";
 import { ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes } from "./clip2";
 
 export const keyframeEpsilon = .0001;
 
 export const clampLowerBound = (num: number, precision = 8) => Math.sign(num) * Math.max(Math.abs(num), 1 / Math.pow(10, precision));
+
+export function mergeRefs(...refs: React.Ref<any>[]) {
+    return (value: any) => {
+        refs.forEach(ref => {
+            if (ref && 'current' in ref) ref.current = value;
+            if (ref instanceof Function) ref(value);
+        });
+    };
+}
 
 export function serializeTriggers(triggers: {
     [key: string]: AnimationTrigger[] | undefined;
@@ -138,4 +148,16 @@ export function scaleCorrectShadow(shadow: string, scale: ScaleTuple, previousSc
     }
 
     return shadows.map(val => `${color} ${val.map(val => `${val}px`).join(' ')}${inset ? ' inset' : ''}`).join(', ');
+}
+
+export function getRemovedAnimators(children: React.ReactNode, animatorIds: Set<string>) {
+    Children.forEach(children, child => {
+        if (!isValidElement(child)) return;
+
+        if ('livelyId' in child) animatorIds.delete(child.livelyId as string);
+
+        getRemovedAnimators((child as React.ReactElement<React.HTMLProps<any>>).props.children, animatorIds);
+    });
+
+    return Array.from(animatorIds.values());
 }

@@ -90,8 +90,6 @@ export default class Animator<T extends string> {
     }
 
     dispose() {
-        this.state = 'unmounting';
-
         cancelAnimationFrame(this.frame);
         unregisterAnimator(this.id);
         if (this.parent) this.parent.dependents.delete(this);
@@ -203,6 +201,12 @@ export default class Animator<T extends string> {
         }
 
         return elapsed;
+    }
+
+    transition() {
+        if (this.state !== 'mounted') return;
+
+        this.trackList.forEach(track => track.transition());
     }
 
     pause() {

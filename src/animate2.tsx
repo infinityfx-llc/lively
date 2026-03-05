@@ -108,10 +108,10 @@ export default function Animate<T extends string>({
     }, [triggers]);
 
     useEffect(() => {
-        if (onAnimationEnd) animator.on('end', onAnimationEnd);
+        if (onAnimationEnd) animator.on('animationend', onAnimationEnd);
 
         return () => {
-            if (onAnimationEnd) animator.off('end', onAnimationEnd);
+            if (onAnimationEnd) animator.off('animationend', onAnimationEnd);
         }
     }, [onAnimationEnd]);
 

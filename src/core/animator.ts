@@ -12,7 +12,7 @@ export type AnimationOptions = Omit<ClipConfig, 'duration' | 'easing'> & {
     tag?: string;
 };
 
-export type AnimationEvent = 'end'; // add more
+export type AnimatorEvent = 'animationend' | 'transition' | 'unmount';
 
 export default class Animator<T extends string> {
 
@@ -33,7 +33,7 @@ export default class Animator<T extends string> {
     staggerLimit: number;
     initialStyles: ClipInitials | null = null;
     eventListeners: {
-        [key in AnimationEvent]?: Set<(...args: any) => void>;
+        [key in AnimatorEvent]?: Set<(...args: any) => void>;
     } = {};
     state: 'unmounted' | 'unmounting' | 'mounted' = 'unmounted';
     paused = false;
@@ -68,17 +68,17 @@ export default class Animator<T extends string> {
         if (this.parent) this.parent.dependents.add(this);
     }
 
-    on<K extends (...args: any) => void>(event: AnimationEvent, callback: K) {
+    on<K extends (...args: any) => void>(event: AnimatorEvent, callback: K) {
         if (!(event in this.eventListeners)) this.eventListeners[event] = new Set();
 
         this.eventListeners[event]!.add(callback);
     }
 
-    off<K extends (...args: any) => void>(event: AnimationEvent, callback: K) {
+    off<K extends (...args: any) => void>(event: AnimatorEvent, callback: K) {
         this.eventListeners[event]?.delete(callback);
     }
 
-    dispatch(event: AnimationEvent, ...args: any) {
+    dispatch(event: AnimatorEvent, ...args: any) {
         this.eventListeners[event]?.forEach(callback => callback(...args));
     }
 
@@ -197,7 +197,7 @@ export default class Animator<T extends string> {
             const added = track.push(clip, {
                 ...options,
                 delay: delay + Math.min(i++, this.staggerLimit - 1) * this.stagger
-            }, i === this.tracks.size ? () => this.dispatch('end', tag) : undefined);
+            }, i === this.tracks.size ? () => this.dispatch('animationend', tag) : undefined);
 
             elapsed = Math.max(elapsed, added);
         }
@@ -209,6 +209,7 @@ export default class Animator<T extends string> {
         if (this.state !== 'mounted') return;
 
         this.trackList.forEach(track => track.transition());
+        this.dispatch('transition');
     }
 
     togglePlayState(paused: boolean) {

@@ -99,6 +99,8 @@ export default function Animate<T extends string>({
     }, []);
 
     useEffect(() => {
+        // event listener for cache update on window resize?
+        
         const serialized = serializeTriggers(triggers);
 
         forEachTrigger(triggers, (animation, _, options) => {
@@ -108,6 +110,8 @@ export default function Animate<T extends string>({
 
         previousTriggers.current = serialized;
     }, [triggers]);
+
+    // todo: reactive animate/links
 
     useEffect(() => {
         if (onAnimationEnd) animator.on('animationend', onAnimationEnd);

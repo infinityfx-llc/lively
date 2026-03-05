@@ -14,6 +14,7 @@ export type StyleCache = {
 };
 
 export type TrackAnimation = Animation & {
+    name?: string;
     blendmode: BlendMode;
 };
 
@@ -71,6 +72,7 @@ export default class Track {
     push(clip: Clip, options: AnimationOptions = {}, onEnded?: () => void) {
         const { commit, blendmode, ...config } = clip.getConfig(options);
         const animation = this.element.animate(clip.keyframes, config) as TrackAnimation;
+        animation.name = options.tag;
         animation.blendmode = blendmode;
 
         animation.onfinish = () => {
@@ -139,8 +141,23 @@ export default class Track {
         });
     }
 
-    clear() {
-        // todo
+    clear(animation?: string) {
+        if (!this.active) return;
+        
+        this.animations.forEach(entry => {
+            if (animation && entry.name !== animation) return;
+
+            entry.onfinish = null;
+
+            try {
+                entry.finish();
+            } catch {
+                entry.cancel();
+            }
+        });
+
+        this.animations = this.animations.filter(animation => animation.playState === 'running');
+        this.active = this.animations.filter(animation => animation.blendmode === 'none').length;
     }
 
     toggle(paused: boolean) {

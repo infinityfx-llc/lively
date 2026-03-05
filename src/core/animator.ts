@@ -224,9 +224,8 @@ export default class Animator<T extends string> {
         this.dependents.forEach(animator => animator.setPlayState(paused));
     }
 
-    stop() {
-        // stop only specific animation?
-        this.trackList.forEach(track => track.clear());
+    stop(animation?: T) {
+        this.trackList.forEach(track => track.clear(animation));
     }
 
 }

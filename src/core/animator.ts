@@ -217,11 +217,11 @@ export default class Animator<T extends string> {
         this.dispatch('transition');
     }
 
-    togglePlayState(paused: boolean) {
+    setPlayState(paused: boolean) {
         this.trackList.forEach(track => track.toggle(paused));
         this.paused = paused;
 
-        // should cascade to children?
+        this.dependents.forEach(animator => animator.setPlayState(paused));
     }
 
     stop() {

@@ -117,7 +117,7 @@ export default function Animate<T extends string>({
         }
     }, [onAnimationEnd]);
 
-    useEffect(() => animator.togglePlayState(paused), [paused]);
+    useEffect(() => animator.setPlayState(paused), [paused]);
 
     return <AnimateContext value={id}>
         {Children.map(children, (child, i) => {

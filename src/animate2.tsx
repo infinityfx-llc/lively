@@ -83,9 +83,9 @@ export default function Animate<T extends string>({
     useImperativeHandle(ref, () => animator, []);
 
     useLayoutEffect(() => {
-        registerToLayoutGroup(layoutId, id);
+        const skipMount = registerToLayoutGroup(layoutId, id);
 
-        document.fonts.ready.finally(() => animator.mount());
+        if (!skipMount) document.fonts.ready.finally(() => animator.mount());
 
         return () => {
             unregisterFromLayoutGroup(layoutId, id);

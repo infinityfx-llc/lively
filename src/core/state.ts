@@ -4,6 +4,7 @@ const registeredAnimators = new Map<string, Animator<any>>();
 
 const registeredLayoutGroups = new Map<string, {
     animators: Set<string>;
+    skipInitialMount: boolean;
 }>();
 
 export function getParentAnimator(id: string, stepsRemoved: number) {
@@ -32,9 +33,10 @@ export function unregisterAnimator(id: string) {
     registeredAnimators.delete(id);
 }
 
-export function registerLayoutGroup(id: string) {
+export function registerLayoutGroup(id: string, skipInitialMount: boolean) {
     const data = registeredLayoutGroups.get(id) || {
-        animators: new Set<string>()
+        animators: new Set<string>(),
+        skipInitialMount
     };
 
     registeredLayoutGroups.set(id, data);
@@ -50,7 +52,12 @@ export function unregisterLayoutGroup(id: string) {
 export function registerToLayoutGroup(layoutId: string, id: string) {
     const layoutGroup = registeredLayoutGroups.get(layoutId);
 
-    if (layoutGroup) layoutGroup.animators.add(id);
+    if (layoutGroup) {
+        layoutGroup.animators.add(id);
+        return layoutGroup.skipInitialMount;
+    }
+
+    return false;
 }
 
 export function unregisterFromLayoutGroup(layoutId: string, id: string) {

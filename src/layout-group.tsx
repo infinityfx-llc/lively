@@ -18,7 +18,7 @@ export default function LayoutGroup({
     const timeout = useRef(0);
     const unmountingEnds = useRef(0);
     const content = useRef(children);
-    const { animators } = useMemo(() => registerLayoutGroup(id), []);
+    const { animators } = useMemo(() => registerLayoutGroup(id, skipInitialMount), []);
     const [_, forceUpdate] = useState(0);
 
     const removed = filterRemovedAnimators(children, new Set(animators));
@@ -50,8 +50,6 @@ export default function LayoutGroup({
             forceUpdate(n => n + 1);
         }, unmountingDelay);
     } else {
-        // newly mounted animators should prevent mount here?
-
         content.current = children;
     }
 

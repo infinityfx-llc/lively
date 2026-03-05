@@ -140,7 +140,7 @@ export default class Animator<T extends string> {
         let animations = this.lifeCycleAnimations[on],
             elapsed = 0;
 
-        if (animations) animations.forEach(animation => Math.max(this.play(animation, options), elapsed));
+        if (animations) animations.forEach(animation => elapsed = Math.max(this.play(animation, options), elapsed));
 
         return elapsed;
     }

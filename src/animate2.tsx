@@ -105,19 +105,22 @@ export default function Animate<T extends string>(this: any, {
     }, [onAnimationEnd]);
 
     useEffect(() => {
-        animator.pause(); // todo
+        if (paused) animator.pause(); // todo
     }, [paused]);
 
     return <AnimateContext value={id}>
         {Children.map(children, (child, i) => {
             if (!isValidElement(child)) return child;
 
+            let { ref, style } = (child as React.ReactElement<React.HTMLProps<any>>).props;
+            style = Object.assign({}, style);
+
             return cloneElement(child as React.ReactElement<React.HTMLProps<any>>, {
                 ref: mergeRefs(
-                    (child as React.ReactElement<any>).props.ref,
+                    ref || null,
                     el => animator.addTrack(el, i)
                 ),
-                style: animator.mergeInitialStyles(initial)
+                style: Object.assign(style, animator.mergeInitialStyles(initial))
             });
         })}
     </AnimateContext>;

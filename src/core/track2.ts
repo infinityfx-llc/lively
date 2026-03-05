@@ -76,7 +76,7 @@ export default class Track {
         animation.onfinish = () => {
             try {
                 if (commit) animation.commitStyles();
-            } finally {
+            } catch { } finally {
                 animation.cancel();
                 this.advance();
                 onEnded?.();
@@ -92,7 +92,7 @@ export default class Track {
             this.animations.push(animation);
             if (blendmode === 'none') this.active++;
 
-            return config.duration * config.iterations + config.delay;
+            return (config.duration * config.iterations + config.delay) / 1000;
         }
     }
 

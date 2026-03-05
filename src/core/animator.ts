@@ -13,7 +13,7 @@ export type AnimationOptions = Omit<ClipConfig, 'duration' | 'easing'> & {
     tag?: string;
 };
 
-export type AnimatorEvent = 'animationend' | 'transition' | 'unmount';
+export type AnimatorEvent = 'animationend' | 'transitionstart' | 'unmount';
 
 export default class Animator<T extends string> {
 
@@ -184,9 +184,8 @@ export default class Animator<T extends string> {
         return elapsed;
     }
 
-    push(clip: Clip, { override, delay = 0, tag, ...options }: AnimationOptions) {
-        let elapsed = 0, i = 0;
-        if (clip.isEmpty) return 0;
+    forEachTrack(callback: (track: Track, index: number) => void) {
+        let i = 0;
 
         while (i < this.tracks.size) {
             const track = this.trackList[i];
@@ -197,15 +196,24 @@ export default class Animator<T extends string> {
                 continue;
             }
 
+            callback(track, i++);
+        }
+    }
+
+    push(clip: Clip, { override, delay = 0, tag, ...options }: AnimationOptions) {
+        if (clip.isEmpty) return 0;
+
+        let elapsed = 0;
+        this.forEachTrack((track, i) => {
             if (override) track.clear();
 
             const added = track.push(clip, {
                 ...options,
-                delay: delay + Math.min(i++, this.staggerLimit - 1) * this.stagger
+                delay: delay + Math.min(i, this.staggerLimit - 1) * this.stagger
             }, i === this.tracks.size ? () => this.dispatch('animationend', tag) : undefined);
 
             elapsed = Math.max(elapsed, added);
-        }
+        });
 
         return elapsed;
     }
@@ -214,7 +222,7 @@ export default class Animator<T extends string> {
         if (this.state !== 'mounted') return;
 
         this.trackList.forEach(track => track.transition());
-        this.dispatch('transition');
+        this.dispatch('transitionstart');
     }
 
     setPlayState(paused: boolean) {

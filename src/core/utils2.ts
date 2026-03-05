@@ -1,7 +1,8 @@
 import { Children, isValidElement } from "react";
 import { AnimationOptions, AnimationTrigger, LifeCycleTrigger } from "./animator";
-import { ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes } from "./clip2";
+import Clip, { ClipConfig, ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes, ClipOptions } from "./clip2";
 import { AnimateProps, AnimateTriggers } from "../animate2";
+import LinkValue from "./link-value";
 
 export const keyframeEpsilon = .0001;
 
@@ -173,4 +174,37 @@ export function filterRemovedAnimators(children: React.ReactNode, animatorIds: S
     });
 
     return animatorIds;
+}
+
+export const ClipConfigKeys: {
+    [key in keyof Required<ClipConfig>]: number;
+} = {
+    duration: 0,
+    delay: 1,
+    repeat: 2,
+    alternate: 3,
+    reverse: 4,
+    easing: 5,
+    composite: 6
+};
+
+export function getLinkValues(animate: Clip | ClipOptions, callback: (key: ClipKey, linkValue: LinkValue<any>) => void) {
+    const linkValues: {
+        [key in ClipKey]?: LinkValue<any>;
+    } = {};
+
+    if (animate instanceof Clip) return linkValues;
+
+    for (const key in animate) {
+        const value = animate[key as keyof ClipOptions];
+        if (typeof value !== 'object' && !(key in ClipConfigKeys)) {
+            const linkValue = new LinkValue(value);
+
+            linkValue.on('change', () => callback(key as ClipKey, linkValue));
+
+            linkValues[key as ClipKey] = linkValue;
+        }
+    }
+
+    return linkValues;
 }

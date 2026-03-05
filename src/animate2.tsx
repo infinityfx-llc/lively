@@ -1,14 +1,13 @@
-// - notes:
-// - consider what props to cascade; (clips, triggers, stagger, paused, cache?)
 'use client';
 
 import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import Animator, { AnimationOptions, AnimationTrigger } from "./core/animator";
-import Clip, { ClipInitials, ClipOptions } from "./core/clip2";
-import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers } from "./core/utils2";
+import Clip, { ClipInitials, ClipKey, ClipOptions } from "./core/clip2";
+import { forEachTrigger, getLifeCycleAnimations, getLinkValues, mergeRefs, serializeTriggers } from "./core/utils2";
 import { CacheKey } from "./core/track2";
 import { LayoutGroupContext } from "./layout-group";
 import { registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
+import LinkValue from "./core/link-value";
 
 export type AnimateTriggers<T extends string> = {
     [key in T]?: AnimationTrigger[] | ({ on: AnimationTrigger[] } & AnimationOptions);
@@ -29,7 +28,7 @@ export type AnimateProps<T extends string> = {
     ignoreScaleDeformation?: boolean;
     cache?: CacheKey[];
     paused?: boolean;
-    onAnimationEnd?: (animation: T) => void;
+    onAnimationEnd?: (animation?: T) => void;
 };
 
 export const AnimateContext = createContext<string>('');
@@ -54,8 +53,11 @@ export default function Animate<T extends string>({
     const id = '_la' + useId();
     const parentId = use(AnimateContext);
     const layoutId = use(LayoutGroupContext);
-    (triggers as any)._livelyId = id; // better typing?
+    (triggers as any)._livelyId = id; // on re-render doesn't get assigned in time for parent to read..
 
+    const linkValues = useRef<{
+        [key in ClipKey]?: LinkValue<any>;
+    }>({});
     const previousTriggers = useRef(serializeTriggers(triggers));
     const data = useRef<Animator<any>>(null);
     if (!data.current) {
@@ -84,6 +86,22 @@ export default function Animate<T extends string>({
     useImperativeHandle(ref, () => animator, []);
 
     useLayoutEffect(() => {
+        linkValues.current = getLinkValues(animate, (key, linkValue) => {
+            animator.forEachTrack((track, i) => {
+                const [value, options] = linkValue.get(i);
+
+                const clip = new Clip({
+                    ...options,
+                    composite: 'override',
+                    [key]: value
+                });
+
+                track.push(clip, {}, i === animator.tracks.size ? () => animator.dispatch('animationend') : undefined); // callback needed?
+            });
+        });
+
+        // event listener for cache update on window resize?
+
         animator.register(parentId, inherit);
 
         const skipMount = registerToLayoutGroup(layoutId, id);
@@ -93,14 +111,13 @@ export default function Animate<T extends string>({
 
         return () => {
             unregisterFromLayoutGroup(layoutId, id);
-
             animator.dispose();
+
+            // remove event listeners from linkValues
         }
     }, []);
 
     useEffect(() => {
-        // event listener for cache update on window resize?
-        
         const serialized = serializeTriggers(triggers);
 
         forEachTrigger(triggers, (animation, _, options) => {
@@ -111,7 +128,18 @@ export default function Animate<T extends string>({
         previousTriggers.current = serialized;
     }, [triggers]);
 
-    // todo: reactive animate/links
+    useEffect(() => {
+        if (animate instanceof Clip || animator.state !== 'mounted') return;
+
+        for (const key in animate) {
+            if (key in linkValues.current) {
+                linkValues.current[key as ClipKey]!.set(animate[key as ClipKey], {
+                    duration: animate.duration,
+                    easing: animate.easing
+                });
+            }
+        }
+    }, [animate]);
 
     useEffect(() => {
         if (onAnimationEnd) animator.on('animationend', onAnimationEnd);

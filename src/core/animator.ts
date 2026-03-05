@@ -7,6 +7,7 @@ export type LifeCycleTrigger = 'mount' | 'unmount';
 export type AnimationTrigger = LifeCycleTrigger | boolean | number;
 
 export type AnimationOptions = Omit<ClipConfig, 'duration' | 'easing'> & {
+    cascade?: 'forward' | 'reverse';
     override?: boolean;
     commit?: boolean;
     tag?: string;
@@ -151,9 +152,7 @@ export default class Animator<T extends string> {
         return elapsed;
     }
 
-    play(animation: T | Clip, { cascade = 'forward', delay = 0, tag, ...options }: AnimationOptions & {
-        cascade?: 'forward' | 'reverse'; // add to base AnimationOptions type?
-    } = {}) {
+    play(animation: T | Clip, { cascade = 'forward', delay = 0, tag, ...options }: AnimationOptions = {}) {
         if (this.paused || (this.parent && !tag)) return 0;
 
         // if (tag && tag in this.clips) clip = this.clips[tag as T]; // wip

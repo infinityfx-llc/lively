@@ -3,12 +3,16 @@
 'use client';
 
 import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef } from "react";
-import Animator, { AnimationTrigger } from "./core/animator";
+import Animator, { AnimationOptions, AnimationTrigger } from "./core/animator";
 import Clip, { ClipInitials, ClipOptions } from "./core/clip2";
-import { getLifeCycleAnimations, mergeRefs, serializeTriggers } from "./core/utils2";
+import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers } from "./core/utils2";
 import { CacheKey } from "./core/track2";
 import { LayoutGroupContext } from "./layout-group";
 import { registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
+
+export type AnimateTriggers<T extends string> = {
+    [key in T]?: AnimationTrigger[] | ({ on: AnimationTrigger[] } & AnimationOptions);
+};
 
 export type AnimateProps<T extends string> = {
     ref?: React.Ref<Animator<T | 'animate'>>;
@@ -19,9 +23,7 @@ export type AnimateProps<T extends string> = {
     clips?: {
         [key in T]: ClipOptions | Clip;
     };
-    triggers?: {
-        [key in T | 'animate']?: AnimationTrigger[];
-    };
+    triggers?: AnimateTriggers<T | 'animate'>;
     stagger?: number;
     staggerLimit?: number;
     ignoreScaleDeformation?: boolean;
@@ -99,12 +101,10 @@ export default function Animate<T extends string>({
     useEffect(() => {
         const serialized = serializeTriggers(triggers);
 
-        for (const animation in triggers) {
-
-            if (serialized[animation] !== previousTriggers.current[animation]) animator.play(animation as any);
-            // ^ allow for AnimationOptions?
+        forEachTrigger(triggers, (animation, _, options) => {
+            if (serialized[animation] !== previousTriggers.current[animation]) animator.play(animation as any, options);
             // also should only play when boolean === true?
-        }
+        });
 
         previousTriggers.current = serialized;
     }, [triggers]);

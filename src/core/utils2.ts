@@ -1,7 +1,7 @@
 import { Children, isValidElement } from "react";
-import { AnimationTrigger, LifeCycleTrigger } from "./animator";
+import { AnimationOptions, AnimationTrigger, LifeCycleTrigger } from "./animator";
 import { ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes } from "./clip2";
-import { AnimateProps } from "../animate2";
+import { AnimateProps, AnimateTriggers } from "../animate2";
 
 export const keyframeEpsilon = .0001;
 
@@ -16,40 +16,43 @@ export function mergeRefs(...refs: React.Ref<any>[]) {
     };
 }
 
-export function serializeTriggers(triggers: {
-    [key: string]: AnimationTrigger[] | undefined;
-}) {
+export function forEachTrigger<T extends string>(triggers: AnimateTriggers<T>, callback: (key: T, triggerList: AnimationTrigger[], options: AnimationOptions) => void) {
+    for (const key in triggers) {
+        const entry = triggers[key];
+        if (typeof entry !== 'object') continue;
+
+        const { on, ...options } = 'on' in entry ? entry : { on: entry };
+
+        callback(key, on, options);
+    }
+}
+
+export function serializeTriggers<T extends string>(triggers: AnimateTriggers<T>) {
     const serialized: {
         [key: string]: string;
     } = {};
 
-    for (const key in triggers) {
-        if (key === '_livelyId') continue;
-
-        serialized[key] = (triggers[key] || []).map(value => value.toString()).join(',');
-    }
+    forEachTrigger(triggers, (key, list) => {
+        serialized[key] = list.map(value => value.toString()).join(',');
+    });
 
     return serialized;
 }
 
-export function getLifeCycleAnimations<T extends string>(triggers: {
-    [key in T]?: AnimationTrigger[];
-}) {
+export function getLifeCycleAnimations<T extends string>(triggers: AnimateTriggers<T>) {
     const animations: {
         [key in LifeCycleTrigger]?: T[];
     } = {};
 
-    for (const name in triggers) {
-        if (name === '_livelyId') continue;
-
+    forEachTrigger(triggers, (key, list) => {
         (['mount', 'unmount'] as const).forEach(trigger => {
-            if (triggers[name] && triggers[name].includes(trigger)) {
+            if (list.includes(trigger)) {
                 if (!(trigger in animations)) animations[trigger] = [];
 
-                animations[trigger]!.push(name);
+                animations[trigger]!.push(key);
             }
         });
-    }
+    });
 
     return animations;
 }

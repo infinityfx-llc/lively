@@ -27,7 +27,7 @@ export default function LayoutGroup({
         let elapsed = 0;
         forEachAnimator(removed, animator => {
             if (animator.state === 'mounted') {
-                elapsed = Math.max(elapsed, animator.trigger('unmount')); // add cascade reverse option here
+                elapsed = Math.max(elapsed, animator.trigger('unmount', { cascade: 'reverse' }));
                 animator.state = 'unmounting';
                 animator.dispatch('unmount');
             }

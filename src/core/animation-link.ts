@@ -1,11 +1,11 @@
-import { Easing } from "./clip2";
+import { Easing } from "./clip";
 
 export type AnimationLinkOptions = {
     duration?: number;
     easing?: Easing;
 };
 
-export type AnimationLinkEvent = 'change'; // if only event rename on to onChange
+export type AnimationLinkEvent = 'change';
 
 export default class AnimationLink<T, K = T> {
 

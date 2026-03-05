@@ -1,6 +1,6 @@
-import Clip, { ClipConfig, ClipInitials } from "./clip2";
+import Clip, { ClipConfig, ClipInitials } from "./clip";
 import { getParentAnimator, isRegistered, registerAnimator, unregisterAnimator } from "./state";
-import Track, { CacheKey } from "./track2";
+import Track, { CacheKey } from "./track";
 
 export type LifeCycleTrigger = 'mount' | 'unmount';
 

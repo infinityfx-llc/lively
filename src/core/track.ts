@@ -1,187 +1,190 @@
-import type Action from "./action";
-import { CachableKey, StyleCache } from "./cache";
-import type { Easing } from "./clip";
-import { lengthToOffset, limitSmallestQuantity } from "./utils";
+import { AnimationOptions } from "./animator";
+import Clip, { BlendMode, ClipKey, ClipOptions } from "./clip";
+import { clampLowerBound, scaleCorrectRadius, scaleCorrectShadow, ScaleTuple } from "./utils";
 
-export type TransitionOptions = {
-    duration?: number;
-    easing?: Easing;
-    reverse?: boolean;
+export type CacheKey = Exclude<ClipKey, 'scale' | 'translate'> | 'x' | 'y' | 'sx' | 'sy';
+
+export type StyleCache = {
+    [key in Exclude<CacheKey, 'x' | 'y' | 'sx' | 'sy'>]?: string;
+} & {
+    x: number;
+    y: number;
+    sx: number;
+    sy: number;
+};
+
+export type TrackAnimation = Animation & {
+    name?: string;
+    blendmode: BlendMode;
 };
 
 export default class Track {
 
-    element: HTMLElement | SVGElement; // use WeakRef??
-    deform: boolean;
-    playing: number = 0;
-    active: Action[] = [];
-    queue: Action[] = [];
+    element: HTMLElement | SVGElement;
+    shouldCache: CacheKey[];
+    styles: CSSStyleDeclaration;
     cache: StyleCache;
-    paused: boolean = false;
-    scale: [number, number] = [1, 1];
-    corrected = {
-        borderRadius: '',
-        boxShadow: ''
+    scale: ScaleTuple = [1, 1];
+    corrected: {
+        borderRadius: string;
+        boxShadow: string;
     };
+    queue: TrackAnimation[] = [];
+    animations: TrackAnimation[] = [];
+    active = 0;
 
-    constructor(element: HTMLElement | SVGElement, deform: boolean, cachable?: CachableKey[]) {
+    constructor(element: HTMLElement | SVGElement, shouldCache: CacheKey[]) {
         this.element = element;
-        this.deform = deform;
-        this.cache = new StyleCache(element, cachable);
+        this.shouldCache = shouldCache;
+
+        this.styles = getComputedStyle(element);
+        this.cache = this.snapshot();
+        this.corrected = {
+            borderRadius: this.styles.borderRadius,
+            boxShadow: this.styles.boxShadow
+        };
     }
 
-    push(action: Action) {
-        action.onfinish = this.next.bind(this);
+    snapshot() {
+        const data: StyleCache = { x: 0, y: 0, sx: 1, sy: 1 };
+        if (this.element instanceof SVGElement) return data;
 
-        if (this.playing && action.composite === 'none') {
-            this.queue.push(action);
-            action.animation.pause();
+        // @ts-expect-error
+        for (const key of this.shouldCache) data[key] = this.styles[key];
+
+        data.sx = this.element.offsetWidth;
+        data.sy = this.element.offsetHeight;
+        data.x = data.sx / 2;
+        data.y = data.sy / 2;
+
+        let parent: HTMLElement | null = this.element;
+        while (parent) {
+            data.x += parent.offsetLeft;
+            data.y += parent.offsetTop;
+
+            parent = parent.parentElement;
+            // offset boundary?
+        }
+
+        return data;
+    }
+
+    push(clip: Clip, options: AnimationOptions = {}, onEnded?: () => void) {
+        const { commit, blendmode, ...config } = clip.getConfig(options);
+        const animation = this.element.animate(clip.keyframes, config) as TrackAnimation;
+        animation.name = options.tag;
+        animation.blendmode = blendmode;
+
+        animation.onfinish = () => {
+            try {
+                if (commit) animation.commitStyles();
+            } catch { } finally {
+                animation.cancel();
+                this.advance();
+                onEnded?.();
+            }
+        };
+
+        if (this.active && blendmode === 'none') {
+            animation.pause();
+            this.queue.push(animation);
+
+            return 0;
         } else {
-            this.active.push(action);
-            if (action.composite === 'none') this.playing++;
-            if (this.paused) action.animation.pause();
+            this.animations.push(animation);
+            if (blendmode === 'none') this.active++;
+
+            return (config.duration * config.iterations + config.delay) / 1000;
         }
     }
 
-    next() {
-        this.cache.update();
+    advance() {
+        if (--this.active > 0) return;
 
-        if (--this.playing > 0) return;
+        this.animations = this.animations.filter(animation => animation.playState === 'running');
+        this.animations.push(...this.queue.splice(0, 1));
+        this.active = this.animations.filter(animation => animation.blendmode === 'none').length;
 
-        this.active = this.active.filter(action => action.animation.playState === 'running');
-        this.active.push(...this.queue.splice(0, 1));
-        this.playing = this.active.filter(action => action.composite === 'none').length;
-
-        this.pause(false);
-        if (!this.playing) this.correct();
+        if (!this.active) this.correct();
     }
 
-    clear(partial?: boolean) {
-        this.active.forEach(action => {
-            action.onfinish = null;
+    transition() { // add transition options
+        const data = this.snapshot();
+        const keyframes: ClipOptions = {};
+        const scale = [1, 1], translate = [0, 0];
+
+        for (const key of this.shouldCache) {
+            switch (key) {
+                case 'x':
+                case 'y':
+                    translate[key === 'x' ? 0 : 1] = this.cache[key] - data[key];
+                    break;
+                case 'sx':
+                case 'sy':
+                    scale[key === 'sx' ? 0 : 1] = this.cache[key] / clampLowerBound(data[key]);
+                    break;
+                default:
+                    keyframes[key] = [this.cache[key]!, null];
+            }
+        }
+
+        keyframes.scale = [scale.join(' '), null];
+        keyframes.translate = [translate.map(num => `${num}px`).join(' '), null];
+        const clip = new Clip(keyframes);
+
+        if (clip.isEmpty) return;
+
+        this.cache = data;
+        this.push(clip, {
+            commit: false,
+            composite: 'combine'
+        });
+    }
+
+    clear(animation?: string) {
+        if (!this.active) return;
+        
+        this.animations.forEach(entry => {
+            if (animation && entry.name !== animation) return;
+
+            entry.onfinish = null;
 
             try {
-                if (!partial) {
-                    action.animation.finish();
-                } else
-                    if (!action.commit && action.composite !== 'combine') {
-                        action.animation.cancel();
-                    }
-            } catch (ex) {
-                action.animation.cancel();
+                entry.finish();
+            } catch {
+                entry.cancel();
             }
         });
 
-        if (!partial) {
-            this.active = [];
-            this.queue = [];
-            this.playing = 0;
-        }
-
-        if (!this.deform) {
-            this.element.style.borderRadius = '';
-            this.element.style.boxShadow = '';
-            this.corrected.borderRadius = this.cache.data.borderRadius = this.cache.computed.borderRadius,
-                this.corrected.boxShadow = this.cache.data.boxShadow = this.cache.computed.boxShadow;
-            this.scale = [1, 1];
-        }
+        this.animations = this.animations.filter(animation => animation.playState === 'running');
+        this.active = this.animations.filter(animation => animation.blendmode === 'none').length;
     }
 
-    pause(value: boolean) {
-        for (const action of this.active) action.animation[value ? 'pause' : 'play']();
-
-        this.paused = value;
-    }
-
-    step(index: number) {
-        for (const action of this.active) action.step(index);
-
-        if (!this.paused && this.active.length) this.correct();
-    }
-
-    transition(previous: Track | undefined, options: TransitionOptions) {
-        this.clear(true);
-
-        const clips = this.cache.difference(previous?.cache.data, options);
-        this.cache.update();
-        previous?.clear();
-        previous?.cache.update();
-
-        clips.forEach(clip => clip.play(this, { commit: false }));
-    }
-
-    apply(prop: string, val: any) { // update cache after this?
-        const isStroke = prop === 'strokeLength';
-        this.element.style[isStroke ? 'strokeDashoffset' : prop as never] = isStroke ? lengthToOffset(val) : val;
-    }
-
-    decomposeScale(): [number, number] {
-        const [xString, yString] = this.cache.computed.scale.split(' ');
-
-        let x = parseFloat(xString),
-            y = yString ? parseFloat(yString) : x;
-
-        if (isNaN(x)) x = 1;
-        if (isNaN(y)) y = 1;
-        if (/%$/.test(xString)) x /= 100;
-        if (/%$/.test(yString)) y /= 100;
-
-        return [limitSmallestQuantity(x, 1e-4), limitSmallestQuantity(y, 1e-4)];
+    toggle(paused: boolean) {
+        this.animations.forEach(animation => animation[paused ? 'pause' : 'play']());
     }
 
     correct() {
-        if (this.deform) return;
+        if (this.element instanceof SVGElement) return;
 
-        const computed = this.cache.computed;
+        const previousRadiusScale: ScaleTuple = this.styles.borderRadius !== this.corrected.borderRadius ? [1, 1] : this.scale;
+        const previousShadowScale: ScaleTuple = this.styles.boxShadow !== this.corrected.boxShadow ? [1, 1] : this.scale;
 
-        const radii = computed.borderRadius.split(/\s*\/\s*/);
-        if (radii.length < 2) radii[1] = radii[0];
-        const shadows = computed.boxShadow.split(/(?<=px),\s?/);
-        const [color, shadow, inset] = shadows[0].split(/(?<=\))\s|\s(?=inset)/);
+        const { width, height } = this.element.getBoundingClientRect();
+        this.scale = [
+            width / clampLowerBound(this.element.offsetWidth),
+            height / clampLowerBound(this.element.offsetHeight)
+        ];
 
-        const previousRadiusScale = computed.borderRadius !== this.corrected.borderRadius ? [1, 1] : this.scale;
-        const previousShadowScale = computed.boxShadow !== this.corrected.boxShadow ? [1, 1] : this.scale;
-        const [x, y] = this.scale = this.decomposeScale();
+        this.element.style.borderRadius = scaleCorrectRadius(this.styles.borderRadius, this.scale, previousRadiusScale);
+        this.element.style.boxShadow = scaleCorrectShadow(this.styles.boxShadow, this.scale, previousShadowScale);
 
-        this.element.style.borderRadius = radii.map((axis, i) => {
-            return axis.split(' ').map(radius => {
-                return parseFloat(radius) * previousRadiusScale[i] / this.scale[i] + (radius.match(/[^\d\.]+$/)?.[0] || 'px');
-            }).join(' ');
-        }).join('/');
-        this.corrected.borderRadius = computed.borderRadius;
+        this.corrected = {
+            borderRadius: this.styles.borderRadius,
+            boxShadow: this.styles.boxShadow
+        };
 
-        if (shadow) {
-            const props = shadow.split(' ').map(parseFloat),
-                i = +(x < y),
-                ms = i ? y : x,
-                pms = Math.max(...previousShadowScale);
-
-            const corrected: [number, number, number, number][] = new Array(3).fill([
-                props[0] * previousShadowScale[0] / x,
-                props[1] * previousShadowScale[1] / y,
-                props[2] * pms / ms,
-                props[3] * pms / ms
-            ]);
-            corrected[1][0] -= i ? 1 / x : 0;
-            corrected[1][1] -= i ? 0 : 1 / y;
-            corrected[2][0] += i ? 1 / x : 0;
-            corrected[2][1] += i ? 0 : 1 / y;
-
-            this.element.style.boxShadow = corrected.map(val => `${color} ${val.map(val => `${val}px`).join(' ')}${inset ? ' inset' : ''}`).join(', ');
-            this.corrected.boxShadow = computed.boxShadow;
-        }
-
-        for (let i = 0; i < this.element.children.length; i++) {
-            const child = this.element.children[i] as HTMLElement;
-            const l = child.offsetLeft,
-                t = child.offsetTop,
-                w = child.offsetWidth,
-                h = child.offsetHeight;
-
-            const [tx, ty] = getComputedStyle(child).translate.split(' ').map(parseFloat);
-
-            child.style.transform = `translate(${-tx || 0}px, ${-ty || 0}px) scale(${1 / x}, ${1 / y}) translate(${l * (1 - x) + w / 2 * (1 - x) + (tx || 0)}px, ${t * (1 - y) + h / 2 * (1 - y) + (ty || 0)}px)`;
-        }
+        // todo: correct child elements?
     }
 
 }

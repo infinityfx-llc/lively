@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { filterRemovedAnimators } from "./core/utils2";
+import { filterRemovedAnimators } from "./core/utils";
 import { forEachAnimator, registerLayoutGroup, unregisterLayoutGroup } from "./core/state";
 
 export const LayoutGroupContext = createContext<string>('');

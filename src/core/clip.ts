@@ -1,130 +1,105 @@
-import Action from "./action";
-import { Link, isLink } from "./link";
-import type Track from "./track";
-import { createDynamic, distributeAnimatableKeyframes, merge, normalizeAnimatableKeyframes } from "./utils";
+import { AnimationOptions } from "./animator";
+import AnimationLink from "./animation-link";
+import { parseClipKeyframes } from "./utils2";
+
+export type BlendMode = 'none' | 'override' | 'combine';
 
 export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end' | (string & {});
-
-export type AnimatableKey = keyof React.CSSProperties | 'strokeLength';
-
-export type AnimatableKeyframe = string | number | null | {
-    value?: string | number;
-    after?: string | number;
-    offset?: number;
-    // easing?: Easing;
-};
-
-type AnimatableProperties = { [key in AnimatableKey]?: Link<any> | ((progress: number, index: number) => any) | AnimatableKeyframe | AnimatableKeyframe[] };
-
-export type AnimatableInitials = React.CSSProperties & { strokeLength?: number | string };
-
-export type CompositeType = 'none' | 'override' | 'combine';
 
 export type ClipConfig = {
     duration?: number;
     delay?: number;
     repeat?: number;
     alternate?: boolean;
-    easing?: Easing;
     reverse?: boolean;
-    composite?: CompositeType;
+    easing?: Easing;
+    composite?: BlendMode;
 };
 
-export type ClipProperties = ClipConfig & AnimatableProperties;
+export type ClipKey = keyof React.CSSProperties; // strokeLength?
 
-export type DynamicProperties = { [key in AnimatableKey]?: (progress: number, index: number) => any };
+export type ClipKeyframe = null | string | number | {
+    to?: string | number;
+    after?: string | number;
+    offset?: number;
+};
+
+export type ClipKeyframes = {
+    [key in ClipKey]?: ClipKeyframe | ClipKeyframe[] | AnimationLink<any>;
+};
+
+export type ClipOptions = ClipConfig & ClipKeyframes;
+
+export type ClipInitials = React.CSSProperties;
 
 export default class Clip {
 
+    isEmpty: boolean;
     keyframes: Keyframe[];
-    initial: React.CSSProperties;
-    dynamic: DynamicProperties = {};
     duration: number;
     delay: number;
     repeat: number;
     alternate: boolean;
-    easing: string;
     reverse: boolean;
-    composite: CompositeType;
-    isEmpty: boolean;
+    easing: Easing;
+    composite: BlendMode;
 
-    constructor({ duration = 1, delay = 0, repeat = 1, alternate = false, easing = 'ease', reverse = false, composite = 'none', ...properties }: ClipProperties, initial: AnimatableInitials = {}) {
-        const keyframes: {
-            [key: number]: Keyframe;
-        } = {};
-
-        for (let prop in properties) {
-            let val = properties[prop as AnimatableKey], init = initial[prop as AnimatableKey];
-
-            if (val instanceof Function) {
-                if (!isLink(val)) this.dynamic[prop as AnimatableKey] = val;
-                continue;
-            }
-
-            const arr = Array.isArray(val) ? val : [val];
-
-            if (arr.length < 2 && init !== undefined) arr.unshift(init);
-            if (arr[0] === null) init !== undefined ? arr[0] = init : arr.splice(0, 1);
-
-            if (!normalizeAnimatableKeyframes(arr)) continue;
-
-            if (prop === 'borderRadius') {
-                this.dynamic[prop] = createDynamic(prop, Object.values(distributeAnimatableKeyframes(prop, arr as any)), easing);
-                continue;
-            }
-
-            distributeAnimatableKeyframes(prop, arr as any, keyframes);
-        }
-
-        // @ts-expect-error
-        this.keyframes = Object.values(keyframes).sort((a, b) => a.offset - b.offset);
-        this.initial = merge({}, initial, this.keyframes.length ? (this.keyframes[0] as any) : {});
-        // this.initial.strokeDashoffset = lengthToOffset((this.initial as any).strokeLength);
-        delete this.initial.offset;
-        this.isEmpty = !this.keyframes.length && !Object.keys(this.dynamic).length;
-        this.duration = this.isEmpty ? 0 : duration;
+    constructor({
+        duration = .5,
+        delay = 0,
+        repeat = 1,
+        alternate = false,
+        reverse = false,
+        easing = 'ease',
+        composite = 'none',
+        ...keyframes
+    }: ClipOptions, initial: ClipInitials = {}) {
+        this.duration = duration;
         this.delay = delay;
         this.repeat = repeat;
         this.alternate = alternate;
-        this.easing = easing;
         this.reverse = reverse;
+        this.easing = easing;
         this.composite = composite;
+
+        this.keyframes = parseClipKeyframes(keyframes, initial);
+        this.isEmpty = !this.keyframes.length;
     }
 
-    static from(data?: ClipProperties | Clip, initial?: AnimatableInitials) {
-        return data instanceof Clip ? data : new Clip(data || {}, initial);
+    getConfig({
+        delay = 0,
+        repeat = this.repeat,
+        alternate = this.alternate,
+        reverse = this.reverse,
+        composite = this.composite,
+        commit = true
+    }: AnimationOptions) {
+
+        return {
+            duration: this.duration * 1000,
+            delay: (this.delay + delay) * 1000,
+            iterations: repeat,
+            directions: alternate ?
+                (reverse ? 'alternate-reverse' as const : 'alternate' as const) :
+                (reverse ? 'reverse' as const : 'normal' as const),
+            easing: this.easing,
+            composite: composite === 'combine' ? 'accumulate' as const : 'replace' as const,
+            blendmode: composite,
+            commit
+        };
     }
 
-    unique(config: ClipConfig) {
-        const clip = new Clip({});
+    static mergeInitialStyles(clips: Clip[], styles: ClipInitials): ClipInitials {
+        const merged = {
+            backfaceVisibility: 'hidden',
+            willChange: 'transform'
+        };
 
-        for (const key in this) {
-            if (this.hasOwnProperty(key)) {
-                (clip as any)[key] = key in config ? config[key as never] : this[key];
-            }
+        for (const clip of clips) {
+            if (!clip.isEmpty) Object.assign(merged, clip.keyframes[0]);
         }
 
-        return clip;
-    }
-
-    play(track: Track, { composite = this.composite, reverse = this.reverse, commit = true, delay = 0 }: { composite?: CompositeType; reverse?: boolean; delay?: number; commit?: boolean; }) {
-        if (this.isEmpty) return;
-
-        const action = new Action(track, this.keyframes, {
-            duration: this.duration * 1000,
-            delay: (delay + this.delay) * 1000,
-            iterations: this.repeat,
-            direction: this.alternate ?
-                (reverse ? 'alternate-reverse' : 'alternate') :
-                (reverse ? 'reverse' : 'normal'),
-            fill: 'both',
-            easing: this.easing,
-            composite
-        }, this.dynamic);
-
-        action.commit = commit;
-
-        track.push(action);
+        return Object.assign(merged, styles);
     }
 
 }

@@ -10,10 +10,8 @@
 
 import Animate from "./animate";
 import LayoutGroup from "./layout-group";
-import useLinkValue from "./hooks/use-link2";
 
 export {
     Animate,
-    LayoutGroup,
-    useLinkValue
+    LayoutGroup
 };

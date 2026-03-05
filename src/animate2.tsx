@@ -2,13 +2,13 @@
 // - consider what props to cascade; (clips, triggers, stagger, paused, cache?)
 'use client';
 
-import { Children, cloneElement, createContext, Fragment, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef } from "react";
+import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import Animator, { AnimationTrigger } from "./core/animator";
 import Clip, { ClipInitials, ClipOptions } from "./core/clip2";
 import { getLifeCycleAnimations, mergeRefs, serializeTriggers } from "./core/utils2";
 import { CacheKey } from "./core/track2";
 import { LayoutGroupContext } from "./layout-group";
-import { getAnimator, registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
+import { registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
 
 export type AnimateProps<T extends string> = {
     ref?: React.Ref<Animator<T | 'animate'>>;
@@ -55,10 +55,8 @@ export default function Animate<T extends string>({
     (triggers as any)._livelyId = id; // better typing?
 
     const previousTriggers = useRef(serializeTriggers(triggers));
-    const animator = useMemo(() => {
-        const animator = getAnimator(id); // clean up this code
-        if (animator) return animator;
-
+    const data = useRef<Animator<any>>(null);
+    if (!data.current) {
         const animations: {
             [key in T | 'animate']: Clip;
         } = {
@@ -67,10 +65,8 @@ export default function Animate<T extends string>({
 
         for (const name in clips) animations[name] = clips[name] instanceof Clip ? clips[name] : new Clip(clips[name], initial);
 
-        return new Animator({
+        data.current = new Animator({
             id,
-            parentId,
-            inherit,
             clips: animations,
             lifeCycleAnimations: getLifeCycleAnimations(triggers),
             ignoreScaleDeformation,
@@ -78,14 +74,18 @@ export default function Animate<T extends string>({
             stagger,
             staggerLimit
         });
-    }, []);
+
+        data.current.register(parentId, inherit);
+    }
+    const { current: animator } = data;
 
     useImperativeHandle(ref, () => animator, []);
 
     useLayoutEffect(() => {
+        animator.register(parentId, inherit);
+
         const skipMount = registerToLayoutGroup(layoutId, id);
         if (skipMount) animator.state = 'mounted';
-        // ^ after unmount, remounting doesn't correctly add id to LayoutGroup? (2nd unmount doesn't work)
 
         document.fonts.ready.finally(() => animator.mount());
 

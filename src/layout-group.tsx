@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { filterRemovedAnimators } from "./core/utils2";
 import { forEachAnimator, registerLayoutGroup, unregisterLayoutGroup } from "./core/state";
 
@@ -18,7 +18,7 @@ export default function LayoutGroup({
     const timeout = useRef(0);
     const unmountingEnds = useRef(0);
     const content = useRef(children);
-    const data = useMemo(() => registerLayoutGroup(id, skipInitialMount), []);
+    const data = registerLayoutGroup(id, skipInitialMount);
     const [_, forceUpdate] = useState(0);
 
     const removed = filterRemovedAnimators(children, new Set(data.animators));
@@ -59,7 +59,7 @@ export default function LayoutGroup({
 
     useEffect(() => {
         data.skipInitialMount = false;
-        
+
         return () => {
             unregisterLayoutGroup(id);
             clearTimeout(timeout.current);

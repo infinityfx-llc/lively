@@ -1,5 +1,5 @@
 import Clip, { ClipConfig, ClipInitials } from "./clip2";
-import { getParentAnimator, registerAnimator, unregisterAnimator } from "./state";
+import { getParentAnimator, isRegistered, registerAnimator, unregisterAnimator } from "./state";
 import Track, { CacheKey } from "./track2";
 
 export type LifeCycleTrigger = 'mount' | 'unmount';
@@ -39,10 +39,8 @@ export default class Animator<T extends string> {
     paused = false;
     frame = 0;
 
-    constructor({ id, parentId, inherit, clips, lifeCycleAnimations, ignoreScaleDeformation, cache, stagger, staggerLimit }: {
+    constructor({ id, clips, lifeCycleAnimations, ignoreScaleDeformation, cache, stagger, staggerLimit }: {
         id: string;
-        parentId: string;
-        inherit: boolean | number;
         clips: {
             [key in T]: Clip;
         };
@@ -54,18 +52,30 @@ export default class Animator<T extends string> {
         stagger: number;
         staggerLimit: number;
     }) {
-        this.id = registerAnimator(id, this);
+        this.id = id;
         this.clips = clips;
         this.lifeCycleAnimations = lifeCycleAnimations;
         this.ignoreScaleDeformation = ignoreScaleDeformation;
         this.cache = cache;
         this.stagger = stagger;
         this.staggerLimit = staggerLimit;
+    }
+
+    register(parentId: string, inherit: boolean | number) {
+        if (isRegistered(this.id)) return;
+
+        registerAnimator(this.id, this);
 
         if (parentId && inherit !== false) {
             this.parent = getParentAnimator(parentId, typeof inherit === 'boolean' ? 0 : inherit);
         }
         if (this.parent) this.parent.dependents.add(this);
+    }
+
+    dispose() {
+        cancelAnimationFrame(this.frame);
+        unregisterAnimator(this.id);
+        if (this.parent) this.parent.dependents.delete(this);
     }
 
     on<K extends (...args: any) => void>(event: AnimatorEvent, callback: K) {
@@ -89,12 +99,6 @@ export default class Animator<T extends string> {
 
         cancelAnimationFrame(this.frame);
         this.tick();
-    }
-
-    dispose() {
-        cancelAnimationFrame(this.frame);
-        unregisterAnimator(this.id);
-        if (this.parent) this.parent.dependents.delete(this);
     }
 
     tick() {
@@ -148,7 +152,7 @@ export default class Animator<T extends string> {
     }
 
     play(animation: T | Clip, { cascade = 'forward', delay = 0, tag, ...options }: AnimationOptions & {
-        cascade?: 'forward' | 'reverse';
+        cascade?: 'forward' | 'reverse'; // add to base AnimationOptions type?
     } = {}) {
         if (this.paused || (this.parent && !tag)) return 0;
 
@@ -173,6 +177,8 @@ export default class Animator<T extends string> {
         let elapsed = 0;
 
         this.dependents.forEach(animator => {
+            // cascade other props to animator here
+
             elapsed = Math.max(elapsed, animator.play(clip, options));
         });
 

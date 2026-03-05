@@ -19,14 +19,12 @@ export function getParentAnimator(id: string, stepsRemoved: number) {
     return parent;
 }
 
-export function getAnimator(id: string) {
-    return registeredAnimators.get(id) || null;
+export function isRegistered(id: string) {
+    return registeredAnimators.has(id);
 }
 
 export function registerAnimator(id: string, animator: Animator<any>) {
     registeredAnimators.set(id, animator);
-
-    return id;
 }
 
 export function unregisterAnimator(id: string) {

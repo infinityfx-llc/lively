@@ -86,6 +86,8 @@ export default class Animator<T extends string> {
         if (this.state === 'unmounted') this.trigger('mount');
 
         this.state = 'mounted';
+
+        cancelAnimationFrame(this.frame);
         this.tick();
     }
 
@@ -209,10 +211,9 @@ export default class Animator<T extends string> {
         this.trackList.forEach(track => track.transition());
     }
 
-    pause() {
-        // also need play method
-        this.trackList.forEach(track => track.toggle(true));
-        this.paused = true;
+    togglePlayState(paused: boolean) {
+        this.trackList.forEach(track => track.toggle(paused));
+        this.paused = paused;
 
         // should cascade to children?
     }

@@ -24,12 +24,10 @@ export default function LayoutGroup({
     const removed = filterRemovedAnimators(children, new Set(animators));
 
     if (removed.size) {
-        // animators that remounted during unmount should play mount animation
-
         let elapsed = 0;
         forEachAnimator(removed, animator => {
             if (animator.state === 'mounted') elapsed = Math.max(elapsed, animator.trigger('unmount')); // add cascade reverse option here
-            animator.state = 'unmounting'; // use this when remounting
+            animator.state = 'unmounting';
         });
 
         unmountingEnds.current = Math.max(unmountingEnds.current, Date.now() + elapsed * 1000);
@@ -39,6 +37,10 @@ export default function LayoutGroup({
     const unmountingDelay = unmountingEnds.current - Date.now();
 
     if (unmountingDelay > 0) {
+        forEachAnimator(animators, animator => {
+            if (animator.state === 'unmounting' && !removed.has(animator.id)) animator.mount();
+        });
+
         timeout.current = setTimeout(() => {
 
             content.current = children;

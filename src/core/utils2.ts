@@ -1,6 +1,7 @@
 import { Children, isValidElement } from "react";
 import { AnimationTrigger, LifeCycleTrigger } from "./animator";
 import { ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes } from "./clip2";
+import { AnimateProps } from "../animate2";
 
 export const keyframeEpsilon = .0001;
 
@@ -22,7 +23,11 @@ export function serializeTriggers(triggers: {
         [key: string]: string;
     } = {};
 
-    for (const key in triggers) serialized[key] = (triggers[key] || []).map(value => value.toString()).join(',');
+    for (const key in triggers) {
+        if (key === '_livelyId') continue;
+
+        serialized[key] = (triggers[key] || []).map(value => value.toString()).join(',');
+    }
 
     return serialized;
 }
@@ -35,6 +40,8 @@ export function getLifeCycleAnimations<T extends string>(triggers: {
     } = {};
 
     for (const name in triggers) {
+        if (name === '_livelyId') continue;
+
         (['mount', 'unmount'] as const).forEach(trigger => {
             if (triggers[name] && triggers[name].includes(trigger)) {
                 if (!(trigger in animations)) animations[trigger] = [];
@@ -150,14 +157,17 @@ export function scaleCorrectShadow(shadow: string, scale: ScaleTuple, previousSc
     return shadows.map(val => `${color} ${val.map(val => `${val}px`).join(' ')}${inset ? ' inset' : ''}`).join(', ');
 }
 
-export function getRemovedAnimators(children: React.ReactNode, animatorIds: Set<string>) {
+export function filterRemovedAnimators(children: React.ReactNode, animatorIds: Set<string>) {
     Children.forEach(children, child => {
         if (!isValidElement(child)) return;
 
-        if ('livelyId' in child) animatorIds.delete(child.livelyId as string);
+        const { props } = child as React.ReactElement<AnimateProps<any>>;
+        if (typeof props.triggers === 'object' && '_livelyId' in props.triggers) {
+            animatorIds.delete(props.triggers._livelyId as any);
+        }
 
-        getRemovedAnimators((child as React.ReactElement<React.HTMLProps<any>>).props.children, animatorIds);
+        filterRemovedAnimators(props.children, animatorIds);
     });
 
-    return Array.from(animatorIds.values());
+    return animatorIds;
 }

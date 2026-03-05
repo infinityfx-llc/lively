@@ -1,6 +1,10 @@
-import React, { useId, useLayoutEffect, useMemo, useRef } from "react";
-import Animator from "./core/animator";
-import { getRemovedAnimators } from "./core/utils2";
+'use client';
+
+import React, { createContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { filterRemovedAnimators } from "./core/utils2";
+import { forEachAnimator, registerLayoutGroup, unregisterLayoutGroup } from "./core/state";
+
+export const LayoutGroupContext = createContext<string>('');
 
 export default function LayoutGroup({
     children,
@@ -8,33 +12,38 @@ export default function LayoutGroup({
 }: {
     children: React.ReactNode;
     skipInitialMount?: boolean;
+    mode?: 'wait' | 'swap'; // todo
 }) {
-    const id = useId();
+    const id = '_lg' + useId();
     const timeout = useRef(0);
+    const unmountingEnds = useRef(0);
     const content = useRef(children);
-    const animators = useMemo(() => {
-        // register layout group with state
+    const { animators } = useMemo(() => registerLayoutGroup(id), []);
+    const [_, forceUpdate] = useState(0);
 
-        return [] as Animator<any>[];
-    }, []);
+    const removed = filterRemovedAnimators(children, new Set(animators));
 
-    const animatorIds = new Set<string>();
-    for (const animator of animators) animatorIds.add(animator.id); // optimize
-    const removed = getRemovedAnimators(children, animatorIds);
-
-    if (removed.length) {
+    if (removed.size) {
         // animators that remounted during unmount should play mount animation
-        
-        // play unmount
+
+        let elapsed = 0;
+        forEachAnimator(removed, animator => {
+            if (animator.state === 'mounted') elapsed = Math.max(elapsed, animator.trigger('unmount')); // add cascade reverse option here
+            animator.state = 'unmounting'; // use this when remounting
+        });
+
+        unmountingEnds.current = Math.max(unmountingEnds.current, Date.now() + elapsed * 1000);
     }
 
     clearTimeout(timeout.current);
-    if (timeout.current === null) {
+    const unmountingDelay = unmountingEnds.current - Date.now();
+
+    if (unmountingDelay > 0) {
         timeout.current = setTimeout(() => {
 
             content.current = children;
-            // force update
-        }, 1000);
+            forceUpdate(n => n + 1);
+        }, unmountingDelay);
     } else {
         // newly mounted animators should prevent mount here?
 
@@ -42,10 +51,17 @@ export default function LayoutGroup({
     }
 
     useLayoutEffect(() => {
-        animators.forEach(animator => animator.transition());
-
-        return () => clearTimeout(timeout.current);
+        forEachAnimator(animators, animator => animator.transition());
     });
 
-    return content.current;
+    useEffect(() => {
+        return () => {
+            unregisterLayoutGroup(id);
+            clearTimeout(timeout.current);
+        }
+    }, []);
+
+    return <LayoutGroupContext value={id}>
+        {content.current}
+    </LayoutGroupContext>;
 }

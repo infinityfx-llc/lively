@@ -1,14 +1,16 @@
 // - notes:
-// - with global state construct virtual element tree that can be used for unmounting logic
 // - consider what props to cascade; (clips, triggers, stagger, paused, cache?)
+'use client';
 
-import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef } from "react";
+import { Children, cloneElement, createContext, Fragment, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef } from "react";
 import Animator, { AnimationTrigger } from "./core/animator";
 import Clip, { ClipInitials, ClipOptions } from "./core/clip2";
 import { getLifeCycleAnimations, mergeRefs, serializeTriggers } from "./core/utils2";
 import { CacheKey } from "./core/track2";
+import { LayoutGroupContext } from "./layout-group";
+import { getAnimator, registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
 
-type AnimateProps<T extends string> = {
+export type AnimateProps<T extends string> = {
     ref?: React.Ref<Animator<T | 'animate'>>;
     children: React.ReactNode;
     inherit?: boolean | number;
@@ -30,7 +32,7 @@ type AnimateProps<T extends string> = {
 
 export const AnimateContext = createContext<string>('');
 
-export default function Animate<T extends string>(this: any, {
+export default function Animate<T extends string>({
     ref,
     children,
     inherit = false,
@@ -47,13 +49,16 @@ export default function Animate<T extends string>(this: any, {
     paused = false,
     onAnimationEnd
 }: AnimateProps<T>) {
-    const id = useId();
+    const id = '_la' + useId();
     const parentId = use(AnimateContext);
-
-    this.livelyId = id; // test if this can be read from a LayoutGroup
+    const layoutId = use(LayoutGroupContext);
+    (triggers as any)._livelyId = id; // better typing?
 
     const previousTriggers = useRef(serializeTriggers(triggers));
     const animator = useMemo(() => {
+        const animator = getAnimator(id); // clean up this code
+        if (animator) return animator;
+
         const animations: {
             [key in T | 'animate']: Clip;
         } = {
@@ -78,9 +83,15 @@ export default function Animate<T extends string>(this: any, {
     useImperativeHandle(ref, () => animator, []);
 
     useLayoutEffect(() => {
-        document.fonts.ready.finally(animator.mount); // bind animator?
+        registerToLayoutGroup(layoutId, id);
 
-        return () => animator.dispose();
+        document.fonts.ready.finally(() => animator.mount());
+
+        return () => {
+            unregisterFromLayoutGroup(layoutId, id);
+
+            animator.dispose();
+        }
     }, []);
 
     useEffect(() => {

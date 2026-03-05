@@ -67,5 +67,8 @@ export function unregisterFromLayoutGroup(layoutId: string, id: string) {
 }
 
 export function forEachAnimator(ids: Set<string>, callback: (animator: Animator<any>) => void) {
-    ids.forEach(id => callback(registeredAnimators.get(id)!));
+    ids.forEach(id => {
+        const animator = registeredAnimators.get(id);
+        if (animator) callback(animator);
+    });
 }

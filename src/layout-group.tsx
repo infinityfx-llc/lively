@@ -18,10 +18,10 @@ export default function LayoutGroup({
     const timeout = useRef(0);
     const unmountingEnds = useRef(0);
     const content = useRef(children);
-    const { animators } = useMemo(() => registerLayoutGroup(id, skipInitialMount), []);
+    const data = useMemo(() => registerLayoutGroup(id, skipInitialMount), []);
     const [_, forceUpdate] = useState(0);
 
-    const removed = filterRemovedAnimators(children, new Set(animators));
+    const removed = filterRemovedAnimators(children, new Set(data.animators));
 
     if (removed.size) {
         let elapsed = 0;
@@ -40,7 +40,7 @@ export default function LayoutGroup({
     const unmountingDelay = unmountingEnds.current - Date.now();
 
     if (unmountingDelay > 0) {
-        forEachAnimator(animators, animator => {
+        forEachAnimator(data.animators, animator => {
             if (animator.state === 'unmounting' && !removed.has(animator.id)) animator.mount();
         });
 
@@ -54,10 +54,12 @@ export default function LayoutGroup({
     }
 
     useLayoutEffect(() => {
-        forEachAnimator(animators, animator => animator.transition());
+        forEachAnimator(data.animators, animator => animator.transition());
     });
 
     useEffect(() => {
+        data.skipInitialMount = false;
+        
         return () => {
             unregisterLayoutGroup(id);
             clearTimeout(timeout.current);

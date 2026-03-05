@@ -84,8 +84,10 @@ export default function Animate<T extends string>({
 
     useLayoutEffect(() => {
         const skipMount = registerToLayoutGroup(layoutId, id);
+        if (skipMount) animator.state = 'mounted';
+        // ^ after unmount, remounting doesn't correctly add id to LayoutGroup? (2nd unmount doesn't work)
 
-        if (!skipMount) document.fonts.ready.finally(() => animator.mount());
+        document.fonts.ready.finally(() => animator.mount());
 
         return () => {
             unregisterFromLayoutGroup(layoutId, id);

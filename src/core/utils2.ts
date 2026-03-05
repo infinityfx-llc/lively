@@ -97,6 +97,8 @@ export function parseClipKeyframes(keyframes: ClipKeyframes, initial: ClipInitia
 
     for (const prop in keyframes) {
         const value = keyframes[prop as ClipKey]!;
+        if (value instanceof LinkValue) continue;
+
         const array = Array.isArray(value) ? value : [value];
 
         if (array.length < 2) array.unshift(initial[prop as ClipKey] ?? null);
@@ -197,6 +199,11 @@ export function getLinkValues(animate: Clip | ClipOptions, callback: (key: ClipK
 
     for (const key in animate) {
         const value = animate[key as keyof ClipOptions];
+        if (value instanceof LinkValue) {
+            value.on('change', () => callback(key as ClipKey, value));
+            // ^ no way of removing listener?
+        }
+
         if (typeof value !== 'object' && !(key in ClipConfigKeys)) {
             const linkValue = new LinkValue(value);
 

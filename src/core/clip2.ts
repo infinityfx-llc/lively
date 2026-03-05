@@ -1,4 +1,5 @@
 import { AnimationOptions } from "./animator";
+import LinkValue from "./link-value";
 import { parseClipKeyframes } from "./utils2";
 
 export type BlendMode = 'none' | 'override' | 'combine';
@@ -24,7 +25,7 @@ export type ClipKeyframe = null | string | number | {
 };
 
 export type ClipKeyframes = {
-    [key in ClipKey]?: ClipKeyframe | ClipKeyframe[];
+    [key in ClipKey]?: ClipKeyframe | ClipKeyframe[] | LinkValue<any>;
 };
 
 export type ClipOptions = ClipConfig & ClipKeyframes;

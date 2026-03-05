@@ -7,7 +7,7 @@ export type LinkValueOptions = {
 
 export type LinkValueTransform<T, K> = (value: T, index?: number) => K;
 
-export type LinkValueEvent = 'change';
+export type LinkValueEvent = 'change'; // if only event rename on to onChange
 
 export default class LinkValue<T, K = T> { // name just Link?
 

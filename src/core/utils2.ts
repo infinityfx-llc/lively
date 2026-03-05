@@ -2,7 +2,7 @@ import { Children, isValidElement } from "react";
 import { AnimationOptions, AnimationTrigger, LifeCycleTrigger } from "./animator";
 import Clip, { ClipConfig, ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes, ClipOptions } from "./clip2";
 import { AnimateProps, AnimateTriggers } from "../animate2";
-import LinkValue from "./link-value";
+import AnimationLink from "./animation-link";
 
 export const keyframeEpsilon = .0001;
 
@@ -97,7 +97,7 @@ export function parseClipKeyframes(keyframes: ClipKeyframes, initial: ClipInitia
 
     for (const prop in keyframes) {
         const value = keyframes[prop as ClipKey]!;
-        if (value instanceof LinkValue) continue;
+        if (value instanceof AnimationLink) continue;
 
         const array = Array.isArray(value) ? value : [value];
 
@@ -190,28 +190,29 @@ export const ClipConfigKeys: {
     composite: 6
 };
 
-export function getLinkValues(animate: Clip | ClipOptions, callback: (key: ClipKey, linkValue: LinkValue<any>) => void) {
-    const linkValues: {
-        [key in ClipKey]?: LinkValue<any>;
+export function activateAnimationLinks(animate: Clip | ClipOptions, callback: (key: ClipKey, link: AnimationLink<any>) => void) {
+    const links: {
+        [key in ClipKey]?: AnimationLink<any>;
     } = {};
+    const callbacks: (() => void)[] = [];
+    const disposeAnimationLinks = () => callbacks.forEach(remove => remove());
 
-    if (animate instanceof Clip) return linkValues;
+    if (animate instanceof Clip) return [links, disposeAnimationLinks] as const;
 
     for (const key in animate) {
         const value = animate[key as keyof ClipOptions];
-        if (value instanceof LinkValue) {
-            value.on('change', () => callback(key as ClipKey, value));
-            // ^ no way of removing listener?
+        if (value instanceof AnimationLink) {
+            callbacks.push(value.on('change', () => callback(key as ClipKey, value)));
         }
 
         if (typeof value !== 'object' && !(key in ClipConfigKeys)) {
-            const linkValue = new LinkValue(value);
+            const link = new AnimationLink(value);
 
-            linkValue.on('change', () => callback(key as ClipKey, linkValue));
+            link.on('change', () => callback(key as ClipKey, link));
 
-            linkValues[key as ClipKey] = linkValue;
+            links[key as ClipKey] = link;
         }
     }
 
-    return linkValues;
+    return [links, disposeAnimationLinks] as const;
 }

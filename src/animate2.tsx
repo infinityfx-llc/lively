@@ -3,11 +3,11 @@
 import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import Animator, { AnimationOptions, AnimationTrigger } from "./core/animator";
 import Clip, { ClipInitials, ClipKey, ClipOptions } from "./core/clip2";
-import { forEachTrigger, getLifeCycleAnimations, getLinkValues, mergeRefs, serializeTriggers } from "./core/utils2";
+import { forEachTrigger, getLifeCycleAnimations, activateAnimationLinks, mergeRefs, serializeTriggers } from "./core/utils2";
 import { CacheKey } from "./core/track2";
 import { LayoutGroupContext } from "./layout-group";
 import { registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
-import LinkValue from "./core/link-value";
+import AnimationLink from "./core/animation-link";
 
 export type AnimateTriggers<T extends string> = {
     [key in T]?: AnimationTrigger[] | ({ on: AnimationTrigger[] } & AnimationOptions);
@@ -55,8 +55,8 @@ export default function Animate<T extends string>({
     const layoutId = use(LayoutGroupContext);
     (triggers as any)._livelyId = id; // on re-render doesn't get assigned in time for parent to read..
 
-    const linkValues = useRef<{
-        [key in ClipKey]?: LinkValue<any>;
+    const links = useRef<{
+        [key in ClipKey]?: AnimationLink<any>;
     }>({});
     const previousTriggers = useRef(serializeTriggers(triggers));
     const data = useRef<Animator<any>>(null);
@@ -86,21 +86,18 @@ export default function Animate<T extends string>({
     useImperativeHandle(ref, () => animator, []);
 
     useLayoutEffect(() => {
-        linkValues.current = getLinkValues(animate, (key, linkValue) => {
+        const [animationLinks, disposeAnimationLinks] = activateAnimationLinks(animate, (key, link) => {
             animator.forEachTrack((track, i) => {
-                const [value, options] = linkValue.get(i);
-
                 const clip = new Clip({
-                    ...options,
+                    ...link.options,
                     composite: 'override',
-                    [key]: value
+                    [key]: link.get(i)
                 });
 
                 track.push(clip, {}, i === animator.tracks.size ? () => animator.dispatch('animationend') : undefined); // callback needed?
             });
         });
-
-        // event listener for cache update on window resize?
+        links.current = animationLinks;
 
         animator.register(parentId, inherit);
 
@@ -109,11 +106,15 @@ export default function Animate<T extends string>({
 
         document.fonts.ready.finally(() => animator.mount());
 
+        const updateAnimatorCache = () => animator.forEachTrack(track => track.snapshot());
+        window.addEventListener('resize', updateAnimatorCache);
+
         return () => {
+            disposeAnimationLinks();
             unregisterFromLayoutGroup(layoutId, id);
             animator.dispose();
-
-            // remove event listeners from linkValues
+            
+            window.removeEventListener('resize', updateAnimatorCache);
         }
     }, []);
 
@@ -132,8 +133,8 @@ export default function Animate<T extends string>({
         if (animate instanceof Clip || animator.state !== 'mounted') return;
 
         for (const key in animate) {
-            if (key in linkValues.current) {
-                linkValues.current[key as ClipKey]!.set(animate[key as ClipKey], {
+            if (key in links.current) {
+                links.current[key as ClipKey]!.set(animate[key as ClipKey], {
                     duration: animate.duration,
                     easing: animate.easing
                 });
@@ -157,6 +158,7 @@ export default function Animate<T extends string>({
 
             let { ref, style } = (child as React.ReactElement<React.HTMLProps<any>>).props;
             style = Object.assign({}, style);
+            // set initial styles from animation links
 
             return cloneElement(child as React.ReactElement<React.HTMLProps<any>>, {
                 ref: mergeRefs(

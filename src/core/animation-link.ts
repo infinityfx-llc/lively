@@ -1,21 +1,19 @@
 import { Easing } from "./clip2";
 
-export type LinkValueOptions = {
+export type AnimationLinkOptions = {
     duration?: number;
     easing?: Easing;
 };
 
-export type LinkValueTransform<T, K> = (value: T, index?: number) => K;
+export type AnimationLinkEvent = 'change'; // if only event rename on to onChange
 
-export type LinkValueEvent = 'change'; // if only event rename on to onChange
-
-export default class LinkValue<T, K = T> { // name just Link?
+export default class AnimationLink<T, K = T> {
 
     value: T;
-    options: LinkValueOptions = {};
+    options: AnimationLinkOptions = {};
     getWithIndex: (index: number) => K;
     eventListeners: {
-        [key in LinkValueEvent]?: Set<(value: T) => void>;
+        [key in AnimationLinkEvent]?: Set<(value: T) => void>;
     } = {};
 
     constructor(initial: T, getWithIndex?: (index: number) => K) {
@@ -23,7 +21,7 @@ export default class LinkValue<T, K = T> { // name just Link?
         this.getWithIndex = getWithIndex || (() => this.value) as any;
     }
 
-    set(value: T, options: LinkValueOptions = {}) { // default duration?
+    set(value: T, options: AnimationLinkOptions = {}) {
         this.value = value;
         this.options = options;
 
@@ -31,13 +29,10 @@ export default class LinkValue<T, K = T> { // name just Link?
     }
 
     get(index = 0) {
-        return [
-            this.getWithIndex(index),
-            this.options
-        ] as const;
+        return this.getWithIndex(index);
     }
 
-    on(event: LinkValueEvent, callback: (value: T) => void) {
+    on(event: AnimationLinkEvent, callback: (value: T) => void) {
         if (!(event in this.eventListeners)) this.eventListeners[event] = new Set();
 
         this.eventListeners[event]!.add(callback);
@@ -47,7 +42,7 @@ export default class LinkValue<T, K = T> { // name just Link?
         };
     }
 
-    dispatch(event: LinkValueEvent) {
+    dispatch(event: AnimationLinkEvent) {
         this.eventListeners[event]?.forEach(callback => callback(this.value));
     }
 

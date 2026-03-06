@@ -8,6 +8,8 @@ export const keyframeEpsilon = .0001;
 
 export const clampLowerBound = (num: number, precision = 8) => Math.sign(num) * Math.max(Math.abs(num), 1 / Math.pow(10, precision));
 
+export const asArray = (value: number | number[]) => Array.isArray(value) ? value : [value];
+
 export function mergeRefs(...refs: React.Ref<any>[]) {
     return (value: any) => {
         refs.forEach(ref => {

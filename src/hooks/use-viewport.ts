@@ -19,6 +19,7 @@ export default function useViewport<T extends Element = Element>(threshold = .5)
                 x: (x + width * threshold) / (window.innerWidth + 2 * width * (threshold - .5)),
                 y: (y + height * threshold) / (window.innerHeight + 2 * height * (threshold - .5))
             });
+            // ^ should have duration 0
         }
 
         update();

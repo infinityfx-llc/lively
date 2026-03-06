@@ -1,3 +1,5 @@
+'use client';
+
 import { useLayoutEffect, useRef, useState } from "react";
 import useViewport from "./use-viewport";
 

@@ -139,6 +139,8 @@ export default class Animator<T extends string> {
     }
 
     pretime(clip: Clip, options: AnimationOptions) {
+        if (clip.isEmpty) return 0;
+        
         const { duration, delay, iterations } = clip.getConfig(options);
         return duration * iterations + delay + Math.max(Math.min(this.tracks.size, this.staggerLimit) - 1, 0) * this.stagger;
     }

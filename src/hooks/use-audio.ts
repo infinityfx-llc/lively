@@ -46,8 +46,7 @@ export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency =
                 values[i] = Math.max(0, (100 + value) / 70);
             }
 
-            link.set(values); // after transform clip duration is that of parent link, thus incorrect
-            // ^ also should have duration 0
+            link.set(values, { duration: 0 });
 
             frame = requestAnimationFrame(update);
         }

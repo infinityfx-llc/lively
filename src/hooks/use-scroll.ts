@@ -16,8 +16,7 @@ export default function useScroll<T extends HTMLElement>(target?: React.RefObjec
             link.set({
                 x: element.scrollLeft / ((element.scrollWidth - element.clientWidth) || 1),
                 y: element.scrollTop / ((element.scrollHeight - element.clientHeight) || 1)
-            });
-            // ^ should have duration 0
+            }, { duration: 0 });
         }
 
         update();

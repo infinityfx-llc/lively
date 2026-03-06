@@ -19,7 +19,10 @@ export default function useLink<T, K = T>(initial: T | AnimationLink<T>, transfo
     useEffect(() => {
         if (!isLink) return;
 
-        return initial.on('change', () => ref.current.dispatch('change'));
+        return initial.on('change', () => {
+            Object.assign(ref.current.options, initial.options);
+            ref.current.dispatch('change');
+        });
     }, []);
 
     return ref.current;

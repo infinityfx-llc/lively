@@ -131,6 +131,7 @@ export default class Track {
         keyframes.scale = [scale.join(' '), null];
         keyframes.translate = [translate.map(num => `${num}px`).join(' '), null];
         const clip = new Clip(keyframes);
+        // figure out if this transition can be done with a spring animation
 
         if (clip.isEmpty) return;
 

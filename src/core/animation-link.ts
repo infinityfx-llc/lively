@@ -10,7 +10,9 @@ export type AnimationLinkEvent = 'change';
 export default class AnimationLink<T, K = T> {
 
     value: T;
-    options: AnimationLinkOptions = {};
+    options: AnimationLinkOptions = {
+        duration: 0.4
+    };
     getWithIndex: (index: number) => K;
     eventListeners: {
         [key in AnimationLinkEvent]?: Set<(value: T) => void>;
@@ -23,7 +25,7 @@ export default class AnimationLink<T, K = T> {
 
     set(value: T, options: AnimationLinkOptions = {}) {
         this.value = value;
-        this.options = options;
+        Object.assign(this.options, options);
 
         this.dispatch('change');
     }

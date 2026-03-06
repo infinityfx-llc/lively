@@ -1,3 +1,4 @@
+import { TransitionOptions } from "./animation-link";
 import { AnimationOptions } from "./animator";
 import Clip, { BlendMode, ClipKey, ClipOptions } from "./clip";
 import { clampLowerBound, scaleCorrectRadius, scaleCorrectShadow, ScaleTuple } from "./utils";
@@ -107,23 +108,23 @@ export default class Track {
         if (!this.active) this.correct();
     }
 
-    transition() { // add transition options
+    transition(from = this.cache, options: TransitionOptions = {}) {
         const data = this.snapshot();
-        const keyframes: ClipOptions = {};
+        const keyframes: ClipOptions = options;
         const scale = [1, 1], translate = [0, 0];
 
         for (const key of this.shouldCache) {
             switch (key) {
                 case 'x':
                 case 'y':
-                    translate[key === 'x' ? 0 : 1] = this.cache[key] - data[key];
+                    translate[key === 'x' ? 0 : 1] = from[key] - data[key];
                     break;
                 case 'sx':
                 case 'sy':
-                    scale[key === 'sx' ? 0 : 1] = this.cache[key] / clampLowerBound(data[key]);
+                    scale[key === 'sx' ? 0 : 1] = from[key] / clampLowerBound(data[key]);
                     break;
                 default:
-                    keyframes[key] = [this.cache[key]!, null];
+                    keyframes[key] = [from[key]!, null];
             }
         }
 
@@ -143,7 +144,7 @@ export default class Track {
 
     clear(animation?: string) {
         if (!this.active) return;
-        
+
         this.animations.forEach(entry => {
             if (animation && entry.name !== animation) return;
 

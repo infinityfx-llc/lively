@@ -53,7 +53,7 @@ export default function LayoutGroup({
         content.current = children;
     }
 
-    useLayoutEffect(() => {
+    useLayoutEffect(() => { // maybe not needed to do in layoutgroup, do in animate itself?
         forEachAnimator(data.animators, animator => animator.transition());
     });
 

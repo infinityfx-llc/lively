@@ -1,6 +1,6 @@
 import { Easing } from "./clip";
 
-export type AnimationLinkOptions = {
+export type TransitionOptions = {
     duration?: number;
     easing?: Easing;
 };
@@ -10,7 +10,7 @@ export type AnimationLinkEvent = 'change';
 export default class AnimationLink<T, K = T> {
 
     value: T;
-    options: AnimationLinkOptions = {
+    options: TransitionOptions = {
         duration: 0.4
     };
     getWithIndex: (index: number) => K;
@@ -23,7 +23,7 @@ export default class AnimationLink<T, K = T> {
         this.getWithIndex = getWithIndex || (() => this.value) as any;
     }
 
-    set(value: T, options: AnimationLinkOptions = {}) {
+    set(value: T, options: TransitionOptions = {}) {
         this.value = value;
         Object.assign(this.options, options);
 

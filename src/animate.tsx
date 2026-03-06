@@ -27,6 +27,7 @@ export type AnimateProps<T extends string> = {
     staggerLimit?: number;
     ignoreScaleDeformation?: boolean;
     cache?: CacheKey[];
+    morph?: string; // unique id that can trigger transition animation from one element to another
     paused?: boolean;
     onAnimationEnd?: (animation?: T) => void;
 };

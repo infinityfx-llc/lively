@@ -158,7 +158,6 @@ export default function Animate<T extends string>({
 
             let { ref, style } = (child as React.ReactElement<React.HTMLProps<any>>).props;
             style = Object.assign({}, style);
-            // set initial styles from animation links
 
             return cloneElement(child as React.ReactElement<React.HTMLProps<any>>, {
                 ref: mergeRefs(

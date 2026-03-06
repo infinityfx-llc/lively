@@ -1,7 +1,7 @@
 import { Children, isValidElement } from "react";
 import { AnimationOptions, AnimationTrigger, LifeCycleTrigger } from "./animator";
-import Clip, { ClipConfig, ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes, ClipOptions } from "./clip2";
-import { AnimateProps, AnimateTriggers } from "../animate2";
+import Clip, { ClipConfig, ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes, ClipOptions } from "./clip";
+import { AnimateProps, AnimateTriggers } from "../animate";
 import AnimationLink from "./animation-link";
 
 export const keyframeEpsilon = .0001;
@@ -203,6 +203,8 @@ export function activateAnimationLinks(animate: Clip | ClipOptions, callback: (k
         const value = animate[key as keyof ClipOptions];
         if (value instanceof AnimationLink) {
             callbacks.push(value.on('change', () => callback(key as ClipKey, value)));
+
+            callback(key as ClipKey, value); // duration needs to be 0!
         }
 
         if (typeof value !== 'object' && !(key in ClipConfigKeys)) {

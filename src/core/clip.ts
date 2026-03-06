@@ -1,6 +1,6 @@
 import { AnimationOptions } from "./animator";
 import AnimationLink from "./animation-link";
-import { parseClipKeyframes } from "./utils2";
+import { parseClipKeyframes } from "./utils";
 
 export type BlendMode = 'none' | 'override' | 'combine';
 

@@ -5,7 +5,7 @@ import useLink from "./use-link";
 
 export default function useViewport<T extends Element = Element>(threshold = .5) {
     const ref = useRef<T>(null);
-    const link = useLink<[number, number]>([-1, -1]);
+    const link = useLink({ x: -1, y: -1 });
 
     useLayoutEffect(() => {
         const ctrl = new AbortController();
@@ -15,10 +15,10 @@ export default function useViewport<T extends Element = Element>(threshold = .5)
 
             const { x, y, width, height } = ref.current.getBoundingClientRect();
 
-            link.set([
-                (x + width * threshold) / (window.innerWidth + 2 * width * (threshold - .5)),
-                (y + height * threshold) / (window.innerHeight + 2 * height * (threshold - .5))
-            ]);
+            link.set({
+                x: (x + width * threshold) / (window.innerWidth + 2 * width * (threshold - .5)),
+                y: (y + height * threshold) / (window.innerHeight + 2 * height * (threshold - .5))
+            });
         }
 
         update();

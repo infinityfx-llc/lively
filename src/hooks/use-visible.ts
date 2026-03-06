@@ -8,7 +8,7 @@ export default function useVisible(threshold = .5) {
     const [exited, setExited] = useState(0);
 
     useLayoutEffect(() => {
-        const t = link.on('change', ([x, y]) => {
+        const t = link.on('change', ({ x, y }) => {
             const intersecting = x > 0 && x < 1 && y > 0 && y < 1;
 
             if (!visible.current && intersecting) setEntered(entered + 1);

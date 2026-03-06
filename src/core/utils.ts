@@ -206,7 +206,10 @@ export function activateAnimationLinks(animate: Clip | ClipOptions, callback: (k
         if (value instanceof AnimationLink) {
             callbacks.push(value.on('change', () => callback(key as ClipKey, value)));
 
-            callback(key as ClipKey, value); // duration needs to be 0!
+            value.options.duration = 0;
+            callback(key as ClipKey, value);
+            value.options.duration = .4; // <- clean up code
+            // ^ maybe instead add to initial styles, to prevent layout flashing
         }
 
         if (typeof value !== 'object' && !(key in ClipConfigKeys)) {

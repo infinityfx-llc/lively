@@ -140,7 +140,7 @@ export default class Animator<T extends string> {
 
     pretime(clip: Clip, options: AnimationOptions) {
         if (clip.isEmpty) return 0;
-        
+
         const { duration, delay, iterations } = clip.getConfig(options);
         return duration * iterations + delay + Math.max(Math.min(this.tracks.size, this.staggerLimit) - 1, 0) * this.stagger;
     }
@@ -157,20 +157,21 @@ export default class Animator<T extends string> {
     play(animation: T | Clip, { cascade = 'forward', delay = 0, tag, ...options }: AnimationOptions = {}) {
         if (this.paused || (this.parent && !tag)) return 0;
 
-        // if (tag && tag in this.clips) clip = this.clips[tag as T]; // wip
-        const clip = animation instanceof Clip ? animation : this.clips[animation],
-            duration = this.pretime(clip, options);
+        let clip = typeof animation === 'string' ? this.clips[animation] : animation;
+        if (tag && tag in this.clips) clip = this.clips[tag as T];
+        if (!tag && typeof animation === 'string') tag = animation;
 
+        const duration = this.pretime(clip, options);
         const cascadeDelay = this.cascade(clip, {
             ...options,
             delay: cascade === 'reverse' ? delay : duration + delay,
-            tag: typeof animation === 'string' ? animation : tag
+            tag
         });
 
         return this.push(clip, {
             ...options,
             delay: cascade === 'reverse' ? cascadeDelay + delay : delay,
-            tag: typeof animation === 'string' ? animation : tag
+            tag
         });
     }
 

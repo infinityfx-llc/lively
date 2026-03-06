@@ -88,7 +88,7 @@ export default function Animate<T extends string>({
     useLayoutEffect(() => {
         const [animationLinks, disposeAnimationLinks] = activateAnimationLinks(animate, (key, link) => {
             animator.forEachTrack((track, i) => {
-                const clip = new Clip({ // what if duration is 0?
+                const clip = new Clip({
                     ...link.options,
                     composite: 'override',
                     [key]: link.get(i)
@@ -164,7 +164,8 @@ export default function Animate<T extends string>({
                     ref || null,
                     el => animator.addTrack(el, i)
                 ),
-                style: Object.assign(style, animator.mergeInitialStyles(initial))
+                style: Object.assign(style, animator.mergeInitialStyles(initial)),
+                ['data-lively' as any]: true
             });
         })}
     </AnimateContext>;

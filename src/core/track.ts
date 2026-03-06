@@ -58,12 +58,11 @@ export default class Track {
         data.y = data.sy / 2;
 
         let parent: HTMLElement | null = this.element;
-        while (parent) {
+        while (parent && !parent.dataset.lively) {
             data.x += parent.offsetLeft;
             data.y += parent.offsetTop;
 
             parent = parent.parentElement;
-            // offset boundary?
         }
 
         return data;

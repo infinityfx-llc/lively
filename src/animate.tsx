@@ -6,7 +6,7 @@ import Clip, { ClipInitials, ClipKey, ClipOptions } from "./core/clip";
 import { forEachTrigger, getLifeCycleAnimations, activateAnimationLinks, mergeRefs, serializeTriggers } from "./core/utils";
 import { CacheKey } from "./core/track";
 import { LayoutGroupContext } from "./layout-group";
-import { registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
+import { deleteMorphTarget, getMorphTarget, registerAsMorph, registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
 import AnimationLink from "./core/animation-link";
 
 export type AnimateTriggers<T extends string> = {
@@ -27,7 +27,7 @@ export type AnimateProps<T extends string> = {
     staggerLimit?: number;
     ignoreScaleDeformation?: boolean;
     cache?: CacheKey[];
-    morph?: string; // unique id that can trigger transition animation from one element to another
+    morph?: string;
     paused?: boolean;
     onAnimationEnd?: (animation?: T) => void;
 };
@@ -46,7 +46,8 @@ export default function Animate<T extends string>({
     stagger = 0.07,
     staggerLimit = 10,
     ignoreScaleDeformation = false,
-    cache = ['x', 'y', 'sx', 'sy', 'rotate', 'borderRadius'],
+    cache = ['x', 'y', 'sx', 'sy', 'rotate', 'borderRadius'], // default: []? (maybe export some default presets of options?)
+    morph,
     clips,
     paused = false,
     onAnimationEnd
@@ -102,6 +103,17 @@ export default function Animate<T extends string>({
 
         animator.register(parentId, inherit);
 
+        if (morph) { // <- clean up code
+            const target = getMorphTarget(morph);
+            registerAsMorph(morph, id);
+
+            if (target) {
+                animator.transition(target); // pass transition options?
+                deleteMorphTarget(morph, target.id);
+                animator.state = 'mounted';
+            }
+        }
+
         const skipMount = registerToLayoutGroup(layoutId, id);
         if (skipMount) animator.state = 'mounted';
 
@@ -118,6 +130,12 @@ export default function Animate<T extends string>({
             window.removeEventListener('resize', updateAnimatorCache);
         }
     }, []);
+
+    useLayoutEffect(() => {
+        if (animator.state !== 'mounted' || !cache.length) return;
+
+        animator.transition();
+    });
 
     useEffect(() => {
         const serialized = serializeTriggers(triggers);

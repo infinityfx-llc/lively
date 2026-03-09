@@ -1,12 +1,12 @@
 'use client';
 
-import React, { createContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import React, { createContext, useEffect, useId, useRef, useState } from "react";
 import { filterRemovedAnimators } from "./core/utils";
 import { forEachAnimator, registerLayoutGroup, unregisterLayoutGroup } from "./core/state";
 
 export const LayoutGroupContext = createContext<string>('');
 
-export default function LayoutGroup({
+export default function LayoutGroup({ // rename
     children,
     skipInitialMount = false
 }: {
@@ -52,10 +52,6 @@ export default function LayoutGroup({
     } else {
         content.current = children;
     }
-
-    useLayoutEffect(() => { // maybe not needed to do in layoutgroup, do in animate itself?
-        forEachAnimator(data.animators, animator => animator.transition());
-    });
 
     useEffect(() => {
         data.skipInitialMount = false;

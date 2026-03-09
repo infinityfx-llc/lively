@@ -1,3 +1,4 @@
+import { TransitionOptions } from "./animation-link";
 import Clip, { ClipConfig, ClipInitials } from "./clip";
 import { getParentAnimator, isRegistered, registerAnimator, unregisterAnimator } from "./state";
 import Track, { CacheKey } from "./track";
@@ -73,10 +74,21 @@ export default class Animator<T extends string> {
         if (this.parent) this.parent.dependents.add(this);
     }
 
+    mount() {
+        if (this.state === 'unmounted') this.trigger('mount');
+
+        this.state = 'mounted';
+
+        cancelAnimationFrame(this.frame);
+        this.tick();
+    }
+
     dispose() {
         cancelAnimationFrame(this.frame);
         unregisterAnimator(this.id);
         if (this.parent) this.parent.dependents.delete(this);
+
+        this.state = 'unmounted';
     }
 
     on<K extends (...args: any) => void>(event: AnimatorEvent, callback: K) {
@@ -91,15 +103,6 @@ export default class Animator<T extends string> {
 
     dispatch(event: AnimatorEvent, ...args: any) {
         this.eventListeners[event]?.forEach(callback => callback(...args));
-    }
-
-    mount() {
-        if (this.state === 'unmounted') this.trigger('mount');
-
-        this.state = 'mounted';
-
-        cancelAnimationFrame(this.frame);
-        this.tick();
     }
 
     tick() {
@@ -221,10 +224,16 @@ export default class Animator<T extends string> {
         return elapsed;
     }
 
-    transition() {
-        if (this.state !== 'mounted') return;
+    transition(from?: Animator<any>, options?: TransitionOptions) {
+        // if (this.state !== 'mounted') return;
+        // ^ remove so morph transition can occur?
 
-        this.trackList.forEach(track => track.transition());
+        this.trackList.forEach((track, i) => {
+            const { cache } = from && i < from.tracks.size ? from.trackList[i] : {};
+
+            track.transition(cache, options);
+        });
+
         this.dispatch('transitionstart');
     }
 

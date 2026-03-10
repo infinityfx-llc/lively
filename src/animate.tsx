@@ -3,11 +3,11 @@
 import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import Animator, { AnimationOptions, AnimationTrigger } from "./core/animator";
 import Clip, { ClipInitials, ClipKey, ClipOptions } from "./core/clip";
-import { forEachTrigger, getLifeCycleAnimations, activateAnimationLinks, mergeRefs, serializeTriggers } from "./core/utils";
+import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, getInitialStyleFromLinks, mergeStyles } from "./core/utils";
 import { CacheKey } from "./core/track";
 import { LayoutGroupContext } from "./layout-group";
 import { deleteMorphTarget, getMorphTarget, registerAsMorph, registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
-import AnimationLink from "./core/animation-link";
+import { TransitionOptions } from "./core/animation-link";
 
 export type AnimateTriggers<T extends string> = {
     [key in T]?: AnimationTrigger[] | ({ on: AnimationTrigger[] } & AnimationOptions);
@@ -27,6 +27,7 @@ export type AnimateProps<T extends string> = {
     staggerLimit?: number;
     ignoreScaleDeformation?: boolean;
     cache?: CacheKey[];
+    transition?: TransitionOptions;
     morph?: string;
     paused?: boolean;
     onAnimationEnd?: (animation?: T) => void;
@@ -46,7 +47,8 @@ export default function Animate<T extends string>({
     stagger = 0.07,
     staggerLimit = 10,
     ignoreScaleDeformation = false,
-    cache = ['x', 'y', 'sx', 'sy', 'rotate', 'borderRadius'], // default: []? (maybe export some default presets of options?)
+    cache = ['x', 'y', 'sx', 'sy', 'rotate', 'borderRadius'],
+    transition,
     morph,
     clips,
     paused = false,
@@ -57,9 +59,6 @@ export default function Animate<T extends string>({
     const layoutId = use(LayoutGroupContext);
     (triggers as any)._livelyId = id; // on re-render doesn't get assigned in time for parent to read..
 
-    const links = useRef<{
-        [key in ClipKey]?: AnimationLink<any>;
-    }>({});
     const previousTriggers = useRef(serializeTriggers(triggers));
     const data = useRef<Animator<any>>(null);
     if (!data.current) {
@@ -71,7 +70,7 @@ export default function Animate<T extends string>({
 
         for (const name in clips) animations[name] = clips[name] instanceof Clip ? clips[name] : new Clip(clips[name], initial);
 
-        data.current = new Animator({
+        const animator = data.current = new Animator({
             id,
             clips: animations,
             lifeCycleAnimations: getLifeCycleAnimations(triggers),
@@ -81,34 +80,23 @@ export default function Animate<T extends string>({
             staggerLimit
         });
 
-        data.current.register(parentId, inherit);
+        animator.register(parentId, inherit);
+        animator.addLinks(animate);
     }
     const { current: animator } = data;
 
     useImperativeHandle(ref, () => animator, []);
 
     useLayoutEffect(() => {
-        const [animationLinks, disposeAnimationLinks] = activateAnimationLinks(animate, (key, link) => {
-            animator.forEachTrack((track, i) => {
-                const clip = new Clip({
-                    ...link.options,
-                    composite: 'override',
-                    [key]: link.get(i)
-                });
-
-                track.push(clip, {}, i === animator.tracks.size ? () => animator.dispatch('animationend') : undefined); // callback needed?
-            });
-        });
-        links.current = animationLinks;
-
         animator.register(parentId, inherit);
+        animator.addLinks(animate);
 
         if (morph) { // <- clean up code
             const target = getMorphTarget(morph);
             registerAsMorph(morph, id);
 
             if (target) {
-                animator.transition(target); // pass transition options?
+                animator.transition(target, transition); // if this happens should prevent transition in layoutgroup? (or cache update prevents already?)
                 deleteMorphTarget(morph, target.id);
                 animator.state = 'mounted';
             }
@@ -123,19 +111,12 @@ export default function Animate<T extends string>({
         window.addEventListener('resize', updateAnimatorCache);
 
         return () => {
-            disposeAnimationLinks();
             unregisterFromLayoutGroup(layoutId, id);
             animator.dispose();
 
             window.removeEventListener('resize', updateAnimatorCache);
         }
     }, []);
-
-    useLayoutEffect(() => {
-        if (animator.state !== 'mounted' || !cache.length) return;
-
-        animator.transition();
-    });
 
     useEffect(() => {
         const serialized = serializeTriggers(triggers);
@@ -152,9 +133,11 @@ export default function Animate<T extends string>({
         if (animate instanceof Clip || animator.state !== 'mounted') return;
 
         for (const key in animate) {
-            if (key in links.current) {
-                links.current[key as ClipKey]!.set(animate[key as ClipKey], {
-                    duration: animate.duration,
+            const value = animate[key as ClipKey];
+
+            if (key in animator.links && typeof value !== 'object') {
+                animator.links[key as ClipKey]!.set(value, {
+                    duration: animate.duration, // or use transition prop?
                     easing: animate.easing
                 });
             }
@@ -176,14 +159,17 @@ export default function Animate<T extends string>({
             if (!isValidElement(child)) return child;
 
             let { ref, style } = (child as React.ReactElement<React.HTMLProps<any>>).props;
-            style = Object.assign({}, style);
 
             return cloneElement(child as React.ReactElement<React.HTMLProps<any>>, {
                 ref: mergeRefs(
                     ref || null,
                     el => animator.addTrack(el, i)
                 ),
-                style: Object.assign(style, animator.mergeInitialStyles(initial)),
+                style: mergeStyles(
+                    style,
+                    animator.mergeInitialStyles(initial),
+                    getInitialStyleFromLinks(animator.links, i)
+                ),
                 ['data-lively' as any]: true
             });
         })}

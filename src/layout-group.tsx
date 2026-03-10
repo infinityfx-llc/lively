@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useEffect, useId, useRef, useState } from "react";
+import React, { createContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { filterRemovedAnimators } from "./core/utils";
 import { forEachAnimator, registerLayoutGroup, unregisterLayoutGroup } from "./core/state";
 
@@ -52,6 +52,14 @@ export default function LayoutGroup({ // rename
     } else {
         content.current = children;
     }
+
+    useLayoutEffect(() => {
+        forEachAnimator(data.animators, animator => {
+            if (animator.state !== 'mounted') return;
+
+            animator.transition(); // use animators own transition options
+        });
+    });
 
     useEffect(() => {
         data.skipInitialMount = false;

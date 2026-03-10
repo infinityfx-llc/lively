@@ -1,7 +1,8 @@
-import { TransitionOptions } from "./animation-link";
-import Clip, { ClipConfig, ClipInitials } from "./clip";
+import AnimationLink, { TransitionOptions } from "./animation-link";
+import Clip, { ClipConfig, ClipInitials, ClipKey, ClipOptions } from "./clip";
 import { getParentAnimator, isRegistered, registerAnimator, unregisterAnimator } from "./state";
 import Track, { CacheKey } from "./track";
+import { extractAnimationLinks } from "./utils";
 
 export type LifeCycleTrigger = 'mount' | 'unmount';
 
@@ -27,6 +28,10 @@ export default class Animator<T extends string> {
     lifeCycleAnimations: {
         [key in LifeCycleTrigger]?: T[];
     };
+    links: {
+        [key in ClipKey]?: AnimationLink<any>;
+    } = {};
+    onDisposeLinks: (() => void) | null = null;
     tracks: Set<Element> = new Set();
     trackList: Track[] = [];
     ignoreScaleDeformation: boolean;
@@ -88,6 +93,7 @@ export default class Animator<T extends string> {
         unregisterAnimator(this.id);
         if (this.parent) this.parent.dependents.delete(this);
 
+        this.onDisposeLinks?.(); // <- clean up code
         this.state = 'unmounted';
     }
 
@@ -111,6 +117,25 @@ export default class Animator<T extends string> {
         });
 
         this.frame = requestAnimationFrame(this.tick.bind(this));
+    }
+
+    addLinks(animate: Clip | ClipOptions) {
+        const [links, disposeLinks] = extractAnimationLinks(animate, (key, link) => {
+            this.forEachTrack((track, i) => {
+                const clip = new Clip({
+                    ...link.options,
+                    composite: 'override',
+                    [key]: link.get(i)
+                });
+
+                track.push(clip, {}, i === this.tracks.size ?
+                    () => this.dispatch('animationend') :
+                    undefined);
+            });
+        });
+
+        this.links = links;
+        this.onDisposeLinks = disposeLinks;
     }
 
     addTrack(element: any, index: number) {

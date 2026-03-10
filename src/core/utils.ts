@@ -19,6 +19,14 @@ export function mergeRefs(...refs: React.Ref<any>[]) {
     };
 }
 
+export function mergeStyles(...stylesList: (React.CSSProperties | undefined)[]) {
+    const merged = {};
+
+    for (const styles of stylesList) Object.assign(merged, styles);
+
+    return merged;
+}
+
 export function forEachTrigger<T extends string>(triggers: AnimateTriggers<T>, callback: (key: T, triggerList: AnimationTrigger[], options: AnimationOptions) => void) {
     for (const key in triggers) {
         const entry = triggers[key];
@@ -192,7 +200,7 @@ export const ClipConfigKeys: {
     composite: 6
 };
 
-export function activateAnimationLinks(animate: Clip | ClipOptions, callback: (key: ClipKey, link: AnimationLink<any>) => void) {
+export function extractAnimationLinks(animate: Clip | ClipOptions, callback: (key: ClipKey, link: AnimationLink<any>) => void) {
     const links: {
         [key in ClipKey]?: AnimationLink<any>;
     } = {};
@@ -202,14 +210,12 @@ export function activateAnimationLinks(animate: Clip | ClipOptions, callback: (k
     if (animate instanceof Clip) return [links, disposeAnimationLinks] as const;
 
     for (const key in animate) {
-        const value = animate[key as keyof ClipOptions];
+        const value = animate[key as ClipKey];
+
         if (value instanceof AnimationLink) {
             callbacks.push(value.on('change', () => callback(key as ClipKey, value)));
 
-            value.options.duration = 0;
-            callback(key as ClipKey, value);
-            value.options.duration = .4; // <- clean up code
-            // ^ maybe instead add to initial styles, to prevent layout flashing
+            links[key as ClipKey] = value; // <- clean up code
         }
 
         if (typeof value !== 'object' && !(key in ClipConfigKeys)) {
@@ -222,4 +228,16 @@ export function activateAnimationLinks(animate: Clip | ClipOptions, callback: (k
     }
 
     return [links, disposeAnimationLinks] as const;
+}
+
+export function getInitialStyleFromLinks(links: {
+    [key in ClipKey]?: AnimationLink<any>;
+}, index: number) {
+    const styles: ClipInitials = {};
+
+    for (const key in links) {
+        styles[key as ClipKey] = links[key as ClipKey]!.get(index);
+    }
+
+    return styles;
 }

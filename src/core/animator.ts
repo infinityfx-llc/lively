@@ -88,13 +88,15 @@ export default class Animator<T extends string> {
         this.tick();
     }
 
-    dispose() {
+    dispose(delayUnregistration = false) {
+        this.onDisposeLinks?.(); // <- clean up code
         cancelAnimationFrame(this.frame);
-        unregisterAnimator(this.id);
         if (this.parent) this.parent.dependents.delete(this);
 
-        this.onDisposeLinks?.(); // <- clean up code
         this.state = 'unmounted';
+        delayUnregistration ?
+            setTimeout(() => unregisterAnimator(this.id), 1) : // <- testing
+            unregisterAnimator(this.id);
     }
 
     on<K extends (...args: any) => void>(event: AnimatorEvent, callback: K) {
@@ -250,9 +252,6 @@ export default class Animator<T extends string> {
     }
 
     transition(from?: Animator<any>, options?: TransitionOptions) {
-        // if (this.state !== 'mounted') return;
-        // ^ remove so morph transition can occur?
-
         this.trackList.forEach((track, i) => {
             const { cache } = from && i < from.tracks.size ? from.trackList[i] : {};
 

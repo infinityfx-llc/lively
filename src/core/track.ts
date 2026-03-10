@@ -59,11 +59,12 @@ export default class Track {
         data.y = data.sy / 2;
 
         let parent: HTMLElement | null = this.element;
-        while (parent && !parent.dataset.lively) {
+        while (parent) { // <- check if method takes into account translations and window scroll position
             data.x += parent.offsetLeft;
             data.y += parent.offsetTop;
 
             parent = parent.parentElement;
+            if (parent?.dataset.lively) break;
         }
 
         return data;
@@ -131,7 +132,6 @@ export default class Track {
         keyframes.scale = [scale.join(' '), null];
         keyframes.translate = [translate.map(num => `${num}px`).join(' '), null];
         const clip = new Clip(keyframes);
-        // figure out if this transition can be done with a spring animation
 
         if (clip.isEmpty) return;
 

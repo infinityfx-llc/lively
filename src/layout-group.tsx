@@ -6,7 +6,7 @@ import { forEachAnimator, registerLayoutGroup, unregisterLayoutGroup } from "./c
 
 export const LayoutGroupContext = createContext<string>('');
 
-export default function LayoutGroup({ // rename
+export default function LayoutGroup({
     children,
     skipInitialMount = false
 }: {

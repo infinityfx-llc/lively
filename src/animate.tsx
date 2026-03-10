@@ -91,12 +91,13 @@ export default function Animate<T extends string>({
         animator.register(parentId, inherit);
         animator.addLinks(animate);
 
+        // v Morphs only work first time..
         if (morph) { // <- clean up code
             const target = getMorphTarget(morph);
             registerAsMorph(morph, id);
 
             if (target) {
-                animator.transition(target, transition); // if this happens should prevent transition in layoutgroup? (or cache update prevents already?)
+                animator.transition(target, transition);
                 deleteMorphTarget(morph, target.id);
                 animator.state = 'mounted';
             }
@@ -112,7 +113,7 @@ export default function Animate<T extends string>({
 
         return () => {
             unregisterFromLayoutGroup(layoutId, id);
-            animator.dispose();
+            animator.dispose(!!morph);
 
             window.removeEventListener('resize', updateAnimatorCache);
         }
@@ -134,13 +135,9 @@ export default function Animate<T extends string>({
 
         for (const key in animate) {
             const value = animate[key as ClipKey];
+            if (!(key in animator) || typeof value === 'object') continue;
 
-            if (key in animator.links && typeof value !== 'object') {
-                animator.links[key as ClipKey]!.set(value, {
-                    duration: animate.duration, // or use transition prop?
-                    easing: animate.easing
-                });
-            }
+            animator.links[key as ClipKey]!.set(value, transition);
         }
     }, [animate]);
 

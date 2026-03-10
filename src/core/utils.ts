@@ -205,29 +205,22 @@ export function extractAnimationLinks(animate: Clip | ClipOptions, callback: (ke
         [key in ClipKey]?: AnimationLink<any>;
     } = {};
     const callbacks: (() => void)[] = [];
-    const disposeAnimationLinks = () => callbacks.forEach(remove => remove());
+    const disposeLinks = () => callbacks.forEach(remove => remove());
 
-    if (animate instanceof Clip) return [links, disposeAnimationLinks] as const;
+    if (!(animate instanceof Clip)) {
+        for (const key in animate) {
+            let value = animate[key as ClipKey];
+            if (typeof value !== 'object' && !(key in ClipConfigKeys)) value = new AnimationLink(value);
 
-    for (const key in animate) {
-        const value = animate[key as ClipKey];
+            if (value instanceof AnimationLink) {
+                callbacks.push(value.on('change', () => callback(key as ClipKey, value)));
 
-        if (value instanceof AnimationLink) {
-            callbacks.push(value.on('change', () => callback(key as ClipKey, value)));
-
-            links[key as ClipKey] = value; // <- clean up code
-        }
-
-        if (typeof value !== 'object' && !(key in ClipConfigKeys)) {
-            const link = new AnimationLink(value);
-
-            link.on('change', () => callback(key as ClipKey, link));
-
-            links[key as ClipKey] = link;
+                links[key as ClipKey] = value;
+            }
         }
     }
 
-    return [links, disposeAnimationLinks] as const;
+    return [links, disposeLinks] as const;
 }
 
 export function getInitialStyleFromLinks(links: {

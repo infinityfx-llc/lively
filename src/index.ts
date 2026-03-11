@@ -1,8 +1,13 @@
 import Animate from "./animate";
 import LayoutGroup from "./layout-group";
-// export types
+import Clip from "./core/clip";
+import type AnimationLink from "./core/animation-link";
+import type Animator from "./core/animator";
 
 export {
     Animate,
-    LayoutGroup
+    LayoutGroup,
+    Clip,
+    AnimationLink,
+    Animator
 };

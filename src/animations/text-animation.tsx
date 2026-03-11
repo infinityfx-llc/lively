@@ -11,6 +11,8 @@ export default function TextAnimation({
 }: Omit<AnimateProps<any>, 'stagger' | 'staggerLimit'> & {
     duration?: number;
 }) {
+    let i = 0;
+
     const array = Array.isArray(children) ? children : [children];
     const characters = array.map(child => {
         if (!['string', 'number'].includes(typeof child)) return child;
@@ -18,7 +20,7 @@ export default function TextAnimation({
         return (child as string | number)
             .toString()
             .split('')
-            .map(char => <span style={{
+            .map(char => <span key={i++} style={{
                 display: 'inline-block',
                 whiteSpace: 'pre-wrap'
             }}>{char}</span>);

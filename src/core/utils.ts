@@ -24,10 +24,10 @@ export function mergeStyles(...stylesList: (ClipInitials | undefined)[]) {
 
     for (const styles of stylesList) Object.assign(merged, styles);
     if ('strokeLength' in merged) {
-        merged.strokeDashoffset = 1 - (merged.strokeLength as number);
-        merged.strokeDasharray = 1;
+        merged.strokeDashoffset = 2 - (merged.strokeLength as number);
         delete merged.strokeLength;
     }
+    if ('strokeDashoffset' in merged) merged.strokeDasharray = 2;
 
     return merged;
 }
@@ -112,7 +112,7 @@ export function addKeyframeEntry(map: Map<number, Keyframe>, offset: number, pro
     if (!map.has(offset)) map.set(offset, { offset });
     const entry = map.get(offset)!;
 
-    if (prop === 'strokeLength') return entry.strokeDashoffset = 1 - (value as number);
+    if (prop === 'strokeLength') return entry.strokeDashoffset = 2 - (value as number);
     entry[prop] = value;
 }
 

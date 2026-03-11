@@ -100,6 +100,7 @@ export default class Animator<T extends string> {
         cancelAnimationFrame(this.frame);
         if (this.parent) this.parent.dependents.delete(this);
 
+        this.trackList.forEach(track => track.cache = track.snapshot());
         this.state = 'unmounted';
         unregisterAnimator(this.id);
     }

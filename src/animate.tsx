@@ -3,7 +3,7 @@
 import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import Animator, { AnimationOptions, AnimationTrigger } from "./core/animator";
 import Clip, { ClipInitials, ClipKey, ClipOptions } from "./core/clip";
-import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, getInitialStyleFromLinks, mergeStyles } from "./core/utils";
+import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, getInitialStyleFromLinks, mergeStyles, shouldTrigger } from "./core/utils";
 import { CacheKey } from "./core/track";
 import { LayoutGroupContext } from "./layout-group";
 import { deleteMorphTarget, getMorphTarget, registerAsMorph, registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
@@ -124,8 +124,7 @@ export default function Animate<T extends string>({
         const serialized = serializeTriggers(triggers);
 
         forEachTrigger(triggers, (animation, _, options) => {
-            if (serialized[animation] !== previousTriggers.current[animation]) animator.play(animation as any, options);
-            // also should only play when boolean === true?
+            if (shouldTrigger(previousTriggers.current[animation], serialized[animation])) animator.play(animation as any, options);
         });
 
         previousTriggers.current = serialized;

@@ -40,14 +40,22 @@ export function forEachTrigger<T extends string>(triggers: AnimateTriggers<T>, c
 
 export function serializeTriggers<T extends string>(triggers: AnimateTriggers<T>) {
     const serialized: {
-        [key: string]: string;
+        [key: string]: any[];
     } = {};
 
     forEachTrigger(triggers, (key, list) => {
-        serialized[key] = list.map(value => value.toString()).join(',');
+        serialized[key] = list;
     });
 
     return serialized;
+}
+
+export function shouldTrigger(previous: any[], current: any[]) {
+    previous.forEach((prev, i) => {
+        if (prev !== current[i] && current[i] !== false) return true;
+    });
+
+    return false;
 }
 
 export function getLifeCycleAnimations<T extends string>(triggers: AnimateTriggers<T>) {

@@ -53,18 +53,21 @@ export default class Track {
         // @ts-expect-error
         for (const key of this.shouldCache) data[key] = this.styles[key];
 
-        data.sx = this.element.offsetWidth;
-        data.sy = this.element.offsetHeight;
-        data.x = data.sx / 2;
-        data.y = data.sy / 2;
+        const { width, height, x, y } = this.element.getBoundingClientRect();
+        data.sx = width;
+        data.sy = height;
+        data.x = x + width / 2;
+        data.y = y + height / 2;
 
         let parent: HTMLElement | null = this.element;
-        while (parent) { // <- check if method takes into account translations and window scroll position
-            data.x += parent.offsetLeft;
-            data.y += parent.offsetTop;
+        while (parent = parent?.parentElement) { // <- check if method takes into window scroll position
+            if (parent.dataset.lively) {
+                const { x, y } = parent.getBoundingClientRect(); // also compensate width/height?
+                data.x -= x;
+                data.y -= y;
 
-            parent = parent.parentElement;
-            if (parent?.dataset.lively) break;
+                break;
+            }
         }
 
         return data;
@@ -138,7 +141,7 @@ export default class Track {
         this.cache = data;
         this.push(clip, {
             commit: false,
-            composite: 'combine'
+            composite: 'override'
         });
     }
 

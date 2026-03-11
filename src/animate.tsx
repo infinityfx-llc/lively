@@ -91,7 +91,7 @@ export default function Animate<T extends string>({
         animator.register(parentId, inherit);
         animator.addLinks(animate);
 
-        if (morph) { // <- clean up code
+        if (morph) {
             clearTimeout(timeout.current);
             registerAsMorph(morph, animator);
             const target = getMorphTarget(morph, id);

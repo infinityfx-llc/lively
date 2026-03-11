@@ -82,7 +82,11 @@ export default class Animator<T extends string> {
         if (parentId && inherit !== false) {
             this.parent = getParentAnimator(parentId, typeof inherit === 'boolean' ? 0 : inherit);
         }
-        if (this.parent) this.parent.dependents.add(this);
+        if (this.parent) {
+            this.parent.dependents.add(this);
+            
+            // cascade other props to animator here (ignoreScaleDeformation, transition prop)
+        }
     }
 
     mount() {
@@ -96,7 +100,7 @@ export default class Animator<T extends string> {
 
     dispose() {
         this.stop();
-        this.onDisposeLinks?.(); // <- clean up code
+        this.onDisposeLinks?.();
         cancelAnimationFrame(this.frame);
         if (this.parent) this.parent.dependents.delete(this);
 
@@ -191,7 +195,7 @@ export default class Animator<T extends string> {
     }
 
     play(animation: T | Clip, { cascade = 'forward', delay = 0, tag, ...options }: AnimationOptions = {}) {
-        if (this.paused || (this.parent && !tag)) return 0; // if paused, correct?
+        if (this.paused || (this.parent && !tag)) return 0; // if paused, still push animation, but pause?
 
         let clip = typeof animation === 'string' ? this.clips[animation] : animation;
         if (tag && tag in this.clips) clip = this.clips[tag as T];
@@ -215,8 +219,6 @@ export default class Animator<T extends string> {
         let elapsed = 0;
 
         this.dependents.forEach(animator => {
-            // cascade other props to animator here/or elsewhere (initial, ignoreScaleDeformation, transition)
-
             elapsed = Math.max(elapsed, animator.play(clip, options));
         });
 
@@ -258,7 +260,7 @@ export default class Animator<T extends string> {
     }
 
     transition(from?: Animator<any>, options: TransitionOptions = this.defaultTransitionOptions) {
-        if (this.paused) return; // correct?
+        if (this.paused) return;
 
         this.trackList.forEach((track, i) => {
             const { cache } = from && i < from.tracks.size ? from.trackList[i] : {};

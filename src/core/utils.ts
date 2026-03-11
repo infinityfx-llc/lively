@@ -187,7 +187,7 @@ export function scaleCorrectShadow(shadow: string, scale: ScaleTuple, previousSc
     return shadows.map(val => `${color} ${val.map(val => `${val}px`).join(' ')}${inset ? ' inset' : ''}`).join(', ');
 }
 
-export function filterRemovedAnimators(children: React.ReactNode, animatorIds: Set<string>, prefix = '_la') { // rename?
+export function filterRemovedAnimators(children: React.ReactNode, animatorIds: Set<string>, prefix = '_la') {
     const array = Array.isArray(children) ? children : [children];
 
     for (let i = 0; i < array.length; i++) {

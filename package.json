@@ -14,12 +14,19 @@
 		"./hooks": {
 			"types": "./dist/types/hooks.d.ts",
 			"default": "./dist/hooks.js"
+		},
+		"./animations": {
+			"types": "./dist/types/animations.d.ts",
+			"default": "./dist/animations.js"
 		}
 	},
 	"typesVersions": {
 		"*": {
 			"hooks": [
 				"./dist/types/hooks.d.ts"
+			],
+			"animations": [
+				"./dist/types/animations.d.ts"
 			]
 		}
 	},

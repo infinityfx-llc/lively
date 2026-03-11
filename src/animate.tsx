@@ -54,10 +54,9 @@ export default function Animate<T extends string>({
     paused = false,
     onAnimationEnd
 }: AnimateProps<T>) {
-    const id = '_la' + useId();
+    const id = (triggers as any)._livelyId ?? '_la' + useId();
     const parentId = use(AnimateContext);
     const layoutId = use(LayoutGroupContext);
-    (triggers as any)._livelyId = id; // on re-render doesn't get assigned in time for parent to read..
 
     const timeout = useRef(0);
     const previousTriggers = useRef(serializeTriggers(triggers));

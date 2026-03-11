@@ -177,9 +177,10 @@ export function filterRemovedAnimators(children: React.ReactNode, animatorIds: S
     Children.forEach(children, child => {
         if (!isValidElement(child)) return;
 
-        const { props } = child as React.ReactElement<AnimateProps<any>>;
-        if (typeof props.triggers === 'object' && '_livelyId' in props.triggers) {
-            animatorIds.delete(props.triggers._livelyId as any);
+        const { props, key } = child as React.ReactElement<AnimateProps<any>>;
+        if (typeof props.triggers === 'object' && key) { // as backup to key use path position? (then use array.map instead of Children.forEach)
+            (props.triggers as any)._livelyId = key;
+            animatorIds.delete(key);
         }
 
         filterRemovedAnimators(props.children, animatorIds);

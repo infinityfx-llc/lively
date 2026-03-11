@@ -121,7 +121,7 @@ export default class Animator<T extends string> {
 
     tick() {
         if (!this.paused) this.trackList.forEach(track => {
-            if (!this.ignoreScaleDeformation) track.correct();
+            if (!this.ignoreScaleDeformation && track.animations.length) track.correct();
         });
 
         this.frame = requestAnimationFrame(this.tick.bind(this));

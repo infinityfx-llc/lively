@@ -30,6 +30,7 @@ export default class Track {
         borderRadius: string;
         boxShadow: string;
     };
+    correctionAnimation: Animation | null = null;
     queue: TrackAnimation[] = [];
     animations: TrackAnimation[] = [];
     active = 0;
@@ -109,7 +110,7 @@ export default class Track {
         this.animations.push(...this.queue.splice(0, 1));
         this.active = this.animations.filter(animation => animation.blendmode === 'none').length;
 
-        if (!this.active) this.correct();
+        if (!this.animations.length) this.correct();
     }
 
     transition(from = this.cache, options: TransitionOptions = {}) {
@@ -126,6 +127,10 @@ export default class Track {
                 case 'sx':
                 case 'sy':
                     scale[key === 'sx' ? 0 : 1] = from[key] / clampLowerBound(data[key]);
+                    break;
+                case 'borderRadius':
+                case 'boxShadow':
+                    keyframes[key] = [from[key]!, data[key]!];
                     break;
                 default:
                     keyframes[key] = [from[key]!, null];
@@ -171,6 +176,7 @@ export default class Track {
     correct() {
         if (this.element instanceof SVGElement) return;
 
+        this.correctionAnimation?.cancel();
         const previousRadiusScale: ScaleTuple = this.styles.borderRadius !== this.corrected.borderRadius ? [1, 1] : this.scale;
         const previousShadowScale: ScaleTuple = this.styles.boxShadow !== this.corrected.boxShadow ? [1, 1] : this.scale;
 
@@ -180,13 +186,14 @@ export default class Track {
             height / clampLowerBound(this.element.offsetHeight)
         ];
 
-        this.element.style.borderRadius = scaleCorrectRadius(this.styles.borderRadius, this.scale, previousRadiusScale);
-        this.element.style.boxShadow = scaleCorrectShadow(this.styles.boxShadow, this.scale, previousShadowScale);
-
         this.corrected = {
-            borderRadius: this.styles.borderRadius,
-            boxShadow: this.styles.boxShadow
+            borderRadius: scaleCorrectRadius(this.styles.borderRadius, this.scale, previousRadiusScale),
+            boxShadow: scaleCorrectShadow(this.styles.boxShadow, this.scale, previousShadowScale)
         };
+        this.correctionAnimation = this.element.animate(this.corrected, {
+            duration: 0,
+            fill: 'forwards'
+        });
 
         // todo: correct child elements?
     }

@@ -174,7 +174,22 @@ export default class Track {
     }
 
     correct() {
-        if (this.element instanceof SVGElement) return;
+        for (let i = 0; i < this.element.children.length; i++) {
+            const child = this.element.children[i] as HTMLElement;
+            const l = child.offsetLeft,
+                t = child.offsetTop,
+                w = child.offsetWidth,
+                h = child.offsetHeight;
+
+            const [x, y] = this.scale;
+            const [tx, ty] = getComputedStyle(child).translate.split(' ').map(parseFloat);
+
+            child.style.transform = `translate(${-tx || 0}px, ${-ty || 0}px) scale(${1 / x}, ${1 / y}) translate(${l * (1 - x) + w / 2 * (1 - x) + (tx || 0)}px, ${t * (1 - y) + h / 2 * (1 - y) + (ty || 0)}px)`;
+        } // ^ improve child correction implementation
+
+        if (this.element instanceof SVGElement ||
+            (this.styles.borderRadius === '0px' &&
+                this.styles.boxShadow === 'none')) return;
 
         this.correctionAnimation?.cancel();
         const previousRadiusScale: ScaleTuple = this.styles.borderRadius !== this.corrected.borderRadius ? [1, 1] : this.scale;
@@ -194,8 +209,6 @@ export default class Track {
             duration: 0,
             fill: 'forwards'
         });
-
-        // todo: correct child elements?
     }
 
 }

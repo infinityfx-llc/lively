@@ -184,7 +184,7 @@ export default class Animator<T extends string> {
     }
 
     play(animation: T | Clip, { cascade = 'forward', delay = 0, tag, ...options }: AnimationOptions = {}) {
-        if (this.paused || (this.parent && !tag)) return 0;
+        if (this.paused || (this.parent && !tag)) return 0; // if paused, correct?
 
         let clip = typeof animation === 'string' ? this.clips[animation] : animation;
         if (tag && tag in this.clips) clip = this.clips[tag as T];
@@ -251,6 +251,8 @@ export default class Animator<T extends string> {
     }
 
     transition(from?: Animator<any>, options?: TransitionOptions) {
+        if (this.paused) return; // correct?
+
         this.trackList.forEach((track, i) => {
             const { cache } = from && i < from.tracks.size ? from.trackList[i] : {};
 

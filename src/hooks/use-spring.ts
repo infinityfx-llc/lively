@@ -41,8 +41,8 @@ export default function useSpring(initial: number | number[], {
         }
 
         link.value = isArray ? values as any : values[0];
+        link.options.duration = 0;
         link.dispatch('change');
-        // set duration 0?
 
         state.current.time = Date.now();
         if (difference > .01) requestAnimationFrame(update);

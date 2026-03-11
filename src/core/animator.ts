@@ -88,15 +88,13 @@ export default class Animator<T extends string> {
         this.tick();
     }
 
-    dispose(delayUnregistration = false) {
+    dispose() {
         this.onDisposeLinks?.(); // <- clean up code
         cancelAnimationFrame(this.frame);
         if (this.parent) this.parent.dependents.delete(this);
 
         this.state = 'unmounted';
-        delayUnregistration ?
-            setTimeout(() => unregisterAnimator(this.id), 1) : // <- testing
-            unregisterAnimator(this.id);
+        unregisterAnimator(this.id);
     }
 
     on<K extends (...args: any) => void>(event: AnimatorEvent, callback: K) {

@@ -59,6 +59,7 @@ export default function Animate<T extends string>({
     const layoutId = use(LayoutGroupContext);
     (triggers as any)._livelyId = id; // on re-render doesn't get assigned in time for parent to read..
 
+    const timeout = useRef(0);
     const previousTriggers = useRef(serializeTriggers(triggers));
     const data = useRef<Animator<any>>(null);
     if (!data.current) {
@@ -91,14 +92,14 @@ export default function Animate<T extends string>({
         animator.register(parentId, inherit);
         animator.addLinks(animate);
 
-        // v Morphs only work first time..
         if (morph) { // <- clean up code
-            const target = getMorphTarget(morph);
-            registerAsMorph(morph, id);
+            clearTimeout(timeout.current);
+            registerAsMorph(morph, animator);
+            const target = getMorphTarget(morph, id);
 
             if (target) {
                 animator.transition(target, transition);
-                deleteMorphTarget(morph, target.id);
+                deleteMorphTarget(morph, target);
                 animator.state = 'mounted';
             }
         }
@@ -112,8 +113,9 @@ export default function Animate<T extends string>({
         window.addEventListener('resize', updateAnimatorCache);
 
         return () => {
+            animator.dispose();
             unregisterFromLayoutGroup(layoutId, id);
-            animator.dispose(!!morph);
+            if (morph) timeout.current = deleteMorphTarget(morph, animator, 1);
 
             window.removeEventListener('resize', updateAnimatorCache);
         }

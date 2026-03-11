@@ -8,7 +8,8 @@ export const LayoutGroupContext = createContext<string>('');
 
 export default function LayoutGroup({
     children,
-    skipInitialMount = false
+    skipInitialMount = false,
+    mode = 'wait'
 }: {
     children: React.ReactNode;
     skipInitialMount?: boolean;
@@ -41,7 +42,10 @@ export default function LayoutGroup({
 
     if (unmountingDelay > 0) {
         forEachAnimator(data.animators, animator => {
-            if (animator.state === 'unmounting' && !removed.has(animator.id)) animator.mount();
+            if (animator.state === 'unmounting' && !removed.has(animator.id)) {
+                animator.trigger('mount', { override: true });
+                animator.state = 'mounted';
+            }
         });
 
         timeout.current = setTimeout(() => {
@@ -57,7 +61,7 @@ export default function LayoutGroup({
         forEachAnimator(data.animators, animator => {
             if (animator.state !== 'mounted') return;
 
-            animator.transition(); // use animators own transition options
+            animator.transition();
         });
     });
 

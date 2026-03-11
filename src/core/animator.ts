@@ -35,6 +35,7 @@ export default class Animator<T extends string> {
     tracks: Set<Element> = new Set();
     trackList: Track[] = [];
     ignoreScaleDeformation: boolean;
+    defaultTransitionOptions: TransitionOptions;
     cache: CacheKey[];
     stagger: number;
     staggerLimit: number;
@@ -46,7 +47,7 @@ export default class Animator<T extends string> {
     paused = false;
     frame = 0;
 
-    constructor({ id, clips, lifeCycleAnimations, ignoreScaleDeformation, cache, stagger, staggerLimit }: {
+    constructor({ id, clips, lifeCycleAnimations, ignoreScaleDeformation, transition, stagger, staggerLimit }: {
         id: string;
         clips: {
             [key in T]: Clip;
@@ -55,15 +56,20 @@ export default class Animator<T extends string> {
             [key in LifeCycleTrigger]?: T[];
         };
         ignoreScaleDeformation: boolean;
-        cache: CacheKey[];
+        transition: TransitionOptions & {
+            cache?: CacheKey[];
+        };
         stagger: number;
         staggerLimit: number;
     }) {
+        const { cache, ...options } = transition;
+
         this.id = id;
         this.clips = clips;
         this.lifeCycleAnimations = lifeCycleAnimations;
         this.ignoreScaleDeformation = ignoreScaleDeformation;
-        this.cache = cache;
+        this.defaultTransitionOptions = options;
+        this.cache = cache ?? ['x', 'y', 'sx', 'sy', 'rotate', 'borderRadius'];
         this.stagger = stagger;
         this.staggerLimit = staggerLimit;
     }
@@ -250,7 +256,7 @@ export default class Animator<T extends string> {
         return elapsed;
     }
 
-    transition(from?: Animator<any>, options?: TransitionOptions) {
+    transition(from?: Animator<any>, options: TransitionOptions = this.defaultTransitionOptions) {
         if (this.paused) return; // correct?
 
         this.trackList.forEach((track, i) => {

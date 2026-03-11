@@ -26,8 +26,9 @@ export type AnimateProps<T extends string> = {
     stagger?: number;
     staggerLimit?: number;
     ignoreScaleDeformation?: boolean;
-    cache?: CacheKey[];
-    transition?: TransitionOptions;
+    transition?: TransitionOptions & {
+        cache?: CacheKey[];
+    };
     morph?: string;
     paused?: boolean;
     onAnimationEnd?: (animation?: T) => void;
@@ -47,8 +48,7 @@ export default function Animate<T extends string>({
     stagger = 0.07,
     staggerLimit = 10,
     ignoreScaleDeformation = false,
-    cache = ['x', 'y', 'sx', 'sy', 'rotate', 'borderRadius'], // merge with transition prop?
-    transition,
+    transition = {},
     morph,
     clips,
     paused = false,
@@ -75,7 +75,7 @@ export default function Animate<T extends string>({
             clips: animations,
             lifeCycleAnimations: getLifeCycleAnimations(triggers),
             ignoreScaleDeformation,
-            cache,
+            transition,
             stagger,
             staggerLimit
         });
@@ -97,7 +97,7 @@ export default function Animate<T extends string>({
             const target = getMorphTarget(morph, id);
 
             if (target) {
-                animator.transition(target, transition);
+                animator.transition(target);
                 deleteMorphTarget(morph, target);
                 animator.state = 'mounted';
             }
@@ -138,7 +138,7 @@ export default function Animate<T extends string>({
             const value = animate[key as ClipKey];
             if (!(key in animator.links) || typeof value === 'object') continue;
 
-            animator.links[key as ClipKey]!.set(value, transition);
+            animator.links[key as ClipKey]!.set(value, animator.defaultTransitionOptions);
         }
     }, [animate]);
 

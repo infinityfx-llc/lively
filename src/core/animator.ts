@@ -89,6 +89,7 @@ export default class Animator<T extends string> {
     }
 
     dispose() {
+        this.stop();
         this.onDisposeLinks?.(); // <- clean up code
         cancelAnimationFrame(this.frame);
         if (this.parent) this.parent.dependents.delete(this);

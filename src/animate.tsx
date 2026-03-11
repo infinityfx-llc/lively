@@ -47,7 +47,7 @@ export default function Animate<T extends string>({
     stagger = 0.07,
     staggerLimit = 10,
     ignoreScaleDeformation = false,
-    cache = ['x', 'y', 'sx', 'sy', 'rotate', 'borderRadius'],
+    cache = ['x', 'y', 'sx', 'sy', 'rotate', 'borderRadius'], // merge with transition prop?
     transition,
     morph,
     clips,

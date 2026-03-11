@@ -173,18 +173,22 @@ export function scaleCorrectShadow(shadow: string, scale: ScaleTuple, previousSc
     return shadows.map(val => `${color} ${val.map(val => `${val}px`).join(' ')}${inset ? ' inset' : ''}`).join(', ');
 }
 
-export function filterRemovedAnimators(children: React.ReactNode, animatorIds: Set<string>) {
-    Children.forEach(children, child => {
-        if (!isValidElement(child)) return;
+export function filterRemovedAnimators(children: React.ReactNode, animatorIds: Set<string>, prefix = '_la') { // rename?
+    const array = Array.isArray(children) ? children : [children];
 
-        const { props, key } = child as React.ReactElement<AnimateProps<any>>;
-        if (typeof props.triggers === 'object' && key) { // as backup to key use path position? (then use array.map instead of Children.forEach)
-            (props.triggers as any)._livelyId = key;
-            animatorIds.delete(key);
+    for (let i = 0; i < array.length; i++) {
+        if (!isValidElement(array[i])) continue;
+
+        const { props, key } = array[i] as React.ReactElement<AnimateProps<any>>;
+        const id = prefix + (key !== null ? `${key}_` : i);
+
+        if (typeof props.triggers === 'object') {
+            (props.triggers as any)._livelyId = id;
+            animatorIds.delete(id);
         }
 
-        filterRemovedAnimators(props.children, animatorIds);
-    });
+        filterRemovedAnimators(props.children, animatorIds, id);
+    }
 
     return animatorIds;
 }

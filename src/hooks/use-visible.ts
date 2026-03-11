@@ -3,9 +3,9 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import useViewport from "./use-viewport";
 
-export default function useVisible(threshold = .5) {
+export default function useVisible<T extends Element = any>(threshold = .5) {
     const visible = useRef(false);
-    const [ref, link] = useViewport(threshold);
+    const [ref, link] = useViewport<T>(threshold);
     const [entered, setEntered] = useState(0);
     const [exited, setExited] = useState(0);
 

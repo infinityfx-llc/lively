@@ -208,7 +208,7 @@ export default class Animator<T extends string> {
         let elapsed = 0;
 
         this.dependents.forEach(animator => {
-            // cascade other props to animator here
+            // cascade other props to animator here/or elsewhere (initial, ignoreScaleDeformation, transition)
 
             elapsed = Math.max(elapsed, animator.play(clip, options));
         });

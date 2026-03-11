@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export default function useHover<T extends HTMLElement = HTMLElement>() {
+export default function useHover<T extends HTMLElement = any>() {
     const ref = useRef<T>(null);
     const [hovering, setHovering] = useState(false);
 
@@ -17,5 +17,5 @@ export default function useHover<T extends HTMLElement = HTMLElement>() {
         return () => ctrl.abort();
     }, []);
 
-    return [ref, hovering];
+    return [ref, hovering] as const;
 }

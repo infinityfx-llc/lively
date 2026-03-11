@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export default function useTap<T extends HTMLElement = HTMLElement>() {
+export default function useTap<T extends HTMLElement = any>() {
     const ref = useRef<T>(null);
     const [tapping, setTapping] = useState(false);
 
@@ -17,5 +17,5 @@ export default function useTap<T extends HTMLElement = HTMLElement>() {
         return () => ctrl.abort();
     }, []);
 
-    return [ref, tapping];
+    return [ref, tapping] as const;
 }

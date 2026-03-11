@@ -1,4 +1,4 @@
-import { Children, isValidElement } from "react";
+import { isValidElement } from "react";
 import { AnimationOptions, AnimationTrigger, LifeCycleTrigger } from "./animator";
 import Clip, { ClipConfig, ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes, ClipOptions } from "./clip";
 import { AnimateProps, AnimateTriggers } from "../animate";

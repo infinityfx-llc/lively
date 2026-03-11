@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef } from "react";
 import useLink from "./use-link";
 
-export default function useViewport<T extends Element = Element>(threshold = .5) {
+export default function useViewport<T extends Element = any>(threshold = .5) {
     const ref = useRef<T>(null);
     const link = useLink({ x: -1, y: -1 });
 

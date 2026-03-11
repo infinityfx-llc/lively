@@ -136,7 +136,7 @@ export default function Animate<T extends string>({
 
         for (const key in animate) {
             const value = animate[key as ClipKey];
-            if (!(key in animator) || typeof value === 'object') continue;
+            if (!(key in animator.links) || typeof value === 'object') continue;
 
             animator.links[key as ClipKey]!.set(value, transition);
         }

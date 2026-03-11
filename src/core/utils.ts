@@ -19,10 +19,15 @@ export function mergeRefs(...refs: React.Ref<any>[]) {
     };
 }
 
-export function mergeStyles(...stylesList: (React.CSSProperties | undefined)[]) {
-    const merged = {};
+export function mergeStyles(...stylesList: (ClipInitials | undefined)[]) {
+    const merged: React.CSSProperties = {};
 
     for (const styles of stylesList) Object.assign(merged, styles);
+    if ('strokeLength' in merged) {
+        merged.strokeDashoffset = 1 - (merged.strokeLength as number);
+        merged.strokeDasharray = 1;
+        delete merged.strokeLength;
+    }
 
     return merged;
 }
@@ -107,6 +112,7 @@ export function addKeyframeEntry(map: Map<number, Keyframe>, offset: number, pro
     if (!map.has(offset)) map.set(offset, { offset });
     const entry = map.get(offset)!;
 
+    if (prop === 'strokeLength') return entry.strokeDashoffset = 1 - (value as number);
     entry[prop] = value;
 }
 

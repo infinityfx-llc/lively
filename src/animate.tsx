@@ -156,17 +156,19 @@ export default function Animate<T extends string>({
             if (!isValidElement(child)) return child;
 
             let { ref, style } = (child as React.ReactElement<React.HTMLProps<any>>).props;
+            style = mergeStyles(
+                style,
+                animator.mergeInitialStyles(initial),
+                getInitialStyleFromLinks(animator.links, i)
+            );
 
             return cloneElement(child as React.ReactElement<React.HTMLProps<any>>, {
                 ref: mergeRefs(
                     ref || null,
                     el => animator.addTrack(el, i)
                 ),
-                style: mergeStyles(
-                    style,
-                    animator.mergeInitialStyles(initial),
-                    getInitialStyleFromLinks(animator.links, i)
-                ),
+                style,
+                ['pathLength' as any]: 'strokeDasharray' in style ? 1 : undefined,
                 ['data-lively' as any]: true
             });
         })}

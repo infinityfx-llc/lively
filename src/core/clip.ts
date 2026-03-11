@@ -16,7 +16,7 @@ export type ClipConfig = {
     composite?: BlendMode;
 };
 
-export type ClipKey = keyof React.CSSProperties; // strokeLength?
+export type ClipKey = keyof React.CSSProperties | 'strokeLength';
 
 export type ClipKeyframe = null | string | number | {
     to?: string | number;
@@ -30,7 +30,9 @@ export type ClipKeyframes = {
 
 export type ClipOptions = ClipConfig & ClipKeyframes;
 
-export type ClipInitials = React.CSSProperties;
+export type ClipInitials = React.CSSProperties & {
+    strokeLength?: number;
+};
 
 export default class Clip {
 
@@ -96,7 +98,10 @@ export default class Clip {
         };
 
         for (const clip of clips) {
-            if (!clip.isEmpty) Object.assign(merged, clip.keyframes[0]);
+            if (!clip.isEmpty) {
+                const { offset, ...styles } = clip.keyframes[0];
+                Object.assign(merged, styles);
+            }
         }
 
         return Object.assign(merged, styles);

@@ -74,7 +74,7 @@ export default function LayoutGroup({
 
             animator.transition();
         });
-    });
+    }, [children]);
 
     useEffect(() => {
         data.skipInitialMount = false;

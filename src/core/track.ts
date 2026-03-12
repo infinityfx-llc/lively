@@ -34,6 +34,7 @@ export default class Track {
     queue: TrackAnimation[] = [];
     animations: TrackAnimation[] = [];
     active = 0;
+    timeout = 0;
     correctAfterEnded = false;
 
     constructor(element: HTMLElement | SVGElement, shouldCache: CacheKey[]) {
@@ -105,6 +106,9 @@ export default class Track {
     }
 
     advance() {
+        clearTimeout(this.timeout);
+        this.timeout = setTimeout(() => this.cache = this.snapshot(), 1 / 120);
+
         if (--this.active > 0) return;
 
         this.animations = this.animations.filter(animation => animation.playState === 'running');
@@ -116,7 +120,7 @@ export default class Track {
 
     transition(from = this.cache, options: TransitionOptions = {}) {
         const data = this.snapshot();
-        const keyframes: ClipOptions = options;
+        const keyframes: ClipOptions = { ...options, composite: 'override' };
         const scale = [1, 1], translate = [0, 0];
 
         for (const key of this.shouldCache) {
@@ -138,17 +142,19 @@ export default class Track {
             }
         }
 
-        keyframes.scale = [scale.join(' '), null];
-        keyframes.translate = [translate.map(num => `${num}px`).join(' '), null];
-        const clip = new Clip(keyframes);
-
-        if (clip.isEmpty) return;
+        [
+            new Clip(keyframes),
+            new Clip({
+                ...options,
+                scale: [scale.join(' '), null],
+                translate: [translate.map(num => `${num}px`).join(' '), null],
+                composite: 'combine' // test if combine or override works better
+            })
+        ]
+            .filter(clip => !clip.isEmpty)
+            .forEach(clip => this.push(clip, { commit: false }));
 
         this.cache = data;
-        this.push(clip, {
-            commit: false,
-            composite: 'override'
-        });
     }
 
     clear(animation?: string) {

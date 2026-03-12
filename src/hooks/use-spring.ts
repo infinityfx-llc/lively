@@ -46,6 +46,7 @@ export default function useSpring(initial: number | number[], {
 
         state.current.time = Date.now();
         if (difference > .01) requestAnimationFrame(update);
+        // else dispatch animation end somehow?
     }, []);
 
     link.set = (value) => {

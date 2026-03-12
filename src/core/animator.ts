@@ -84,7 +84,7 @@ export default class Animator<T extends string> {
         }
         if (this.parent) {
             this.parent.dependents.add(this);
-            
+
             // cascade other props to animator here (ignoreScaleDeformation, transition prop)
         }
     }
@@ -140,9 +140,7 @@ export default class Animator<T extends string> {
                     [key]: link.get(i)
                 });
 
-                track.push(clip, {}, i === this.tracks.size ?
-                    () => this.dispatch('animationend') :
-                    undefined);
+                track.push(clip);
             });
         });
 
@@ -251,7 +249,7 @@ export default class Animator<T extends string> {
             const added = track.push(clip, {
                 ...options,
                 delay: delay + Math.min(i, this.staggerLimit - 1) * this.stagger
-            }, i === this.tracks.size ? () => this.dispatch('animationend', tag) : undefined);
+            }, i === this.tracks.size - 1 ? () => this.dispatch('animationend', tag) : undefined);
 
             elapsed = Math.max(elapsed, added);
         });

@@ -1,5 +1,5 @@
 import { TransitionOptions } from "./animation-link";
-import Animator, { AnimationOptions } from "./animator";
+import { AnimationOptions } from "./animator";
 import Clip, { BlendMode, ClipKey, ClipOptions } from "./clip";
 import { clampLowerBound, correctForParentScale, scaleCorrectRadius, scaleCorrectShadow, ScaleTuple } from "./utils";
 
@@ -19,10 +19,16 @@ export type TrackAnimation = Animation & {
     blendmode: BlendMode;
 };
 
+export type CorrectionAlignment = {
+    x: 'left' | 'center' | 'right';
+    y: 'top' | 'center' | 'bottom';
+};
+
 export default class Track {
 
     element: HTMLElement | SVGElement;
     shouldCache: CacheKey[];
+    align: CorrectionAlignment;
     styles: CSSStyleDeclaration;
     cache: StyleCache;
     scale: ScaleTuple = [1, 1];
@@ -37,9 +43,10 @@ export default class Track {
     timeout = 0;
     correctAfterEnded = false;
 
-    constructor(element: HTMLElement | SVGElement, shouldCache: CacheKey[]) {
+    constructor(element: HTMLElement | SVGElement, shouldCache: CacheKey[], align: CorrectionAlignment) {
         this.element = element;
         this.shouldCache = shouldCache;
+        this.align = align;
 
         this.styles = getComputedStyle(element);
         this.cache = this.snapshot();
@@ -184,7 +191,7 @@ export default class Track {
         if (this.element instanceof SVGElement) return;
 
         const offset: any = (/none|0px/.test(this.styles.translate) ? '0 0' : this.styles.translate).split(' ').map(parseFloat);
-        correctForParentScale(this.element, offset);
+        correctForParentScale(this.element, offset, this.align);
 
         if (!this.animations.length && !this.correctAfterEnded) return;
         this.correctAfterEnded = false;

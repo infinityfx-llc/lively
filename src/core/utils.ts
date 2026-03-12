@@ -4,6 +4,7 @@ import Clip, { ClipConfig, ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes, C
 import { AnimateTriggers } from "../animate";
 import AnimationLink from "./animation-link";
 import { getParentAnimator } from "./state";
+import { CorrectionAlignment } from "./track";
 
 export const keyframeEpsilon = .0001;
 
@@ -198,7 +199,7 @@ export function scaleCorrectShadow(shadow: string, scale: ScaleTuple, previousSc
     return shadows.map(val => `${color} ${val.map(val => `${val}px`).join(' ')}${inset ? ' inset' : ''}`).join(', ');
 }
 
-export function correctForParentScale(element: HTMLElement, offset: [number, number], { alignX = 'left', alignY = 'top' } = {}) { // todo alignment
+export function correctForParentScale(element: HTMLElement, offset: [number, number], align: CorrectionAlignment) {
     let animator;
     let parent: HTMLElement | null = element;
     while (parent = parent?.parentElement) {
@@ -213,8 +214,8 @@ export function correctForParentScale(element: HTMLElement, offset: [number, num
     const { width, height } = parent.getBoundingClientRect();
     const x = clampLowerBound(parent.offsetWidth / width),
         y = clampLowerBound(parent.offsetHeight / height);
-    const dx = alignX === 'center' ? 0 : (element.offsetWidth - element.offsetWidth * x) / 2 * (alignX === 'right' ? 1 : -1);
-    const dy = alignY === 'center' ? 0 : (element.offsetHeight - element.offsetHeight * y) / 2 * (alignY === 'bottom' ? 1 : -1);
+    const dx = align.x === 'center' ? 0 : (element.offsetWidth - element.offsetWidth * x) / 2 * (align.x === 'right' ? 1 : -1);
+    const dy = align.y === 'center' ? 0 : (element.offsetHeight - element.offsetHeight * y) / 2 * (align.y === 'bottom' ? 1 : -1);
 
     element.style.transform = `translate(${dx - offset[0] * 2}px, ${dy - offset[1] * 2}px) scale(${x}, ${y}) translate(${offset[0] / x}px, ${offset[1] / y}px)`;
 }

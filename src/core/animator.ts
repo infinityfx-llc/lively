@@ -1,7 +1,7 @@
 import AnimationLink, { TransitionOptions } from "./animation-link";
 import Clip, { ClipConfig, ClipInitials, ClipKey, ClipOptions } from "./clip";
 import { getParentAnimator, isRegistered, registerAnimator, unregisterAnimator } from "./state";
-import Track, { CacheKey } from "./track";
+import Track, { CacheKey, CorrectionAlignment } from "./track";
 import { extractAnimationLinks } from "./utils";
 
 export type LifeCycleTrigger = 'mount' | 'unmount';
@@ -22,6 +22,7 @@ export default class Animator<T extends string> {
     id: string;
     parent: Animator<any> | null = null;
     dependents: Set<Animator<any>> = new Set();
+    inherit: ('ignoreScaleDeformation' | 'defaultTransitionOptions' | 'cache' | 'align')[] = [];
     clips: {
         [key in T]: Clip;
     };
@@ -37,6 +38,7 @@ export default class Animator<T extends string> {
     ignoreScaleDeformation: boolean;
     defaultTransitionOptions: TransitionOptions;
     cache: CacheKey[];
+    align: CorrectionAlignment;
     stagger: number;
     staggerLimit: number;
     initialStyles: ClipInitials | null = null;
@@ -47,7 +49,7 @@ export default class Animator<T extends string> {
     paused = false;
     frame = 0;
 
-    constructor({ id, clips, lifeCycleAnimations, ignoreScaleDeformation, transition, stagger, staggerLimit }: {
+    constructor({ id, clips, lifeCycleAnimations, deformCorrection, transition, stagger, staggerLimit }: {
         id: string;
         clips: {
             [key in T]: Clip;
@@ -55,23 +57,29 @@ export default class Animator<T extends string> {
         lifeCycleAnimations: {
             [key in LifeCycleTrigger]?: T[];
         };
-        ignoreScaleDeformation: boolean;
-        transition: TransitionOptions & {
+        deformCorrection?: CorrectionAlignment | boolean;
+        transition?: TransitionOptions & {
             cache?: CacheKey[];
         };
         stagger: number;
         staggerLimit: number;
     }) {
-        const { cache, ...options } = transition;
+        const { cache, ...options } = transition || {};
 
         this.id = id;
         this.clips = clips;
         this.lifeCycleAnimations = lifeCycleAnimations;
-        this.ignoreScaleDeformation = ignoreScaleDeformation;
+        this.ignoreScaleDeformation = deformCorrection === undefined ? false : !deformCorrection;
         this.defaultTransitionOptions = options;
-        this.cache = cache ?? ['x', 'y', 'sx', 'sy', 'rotate', 'borderRadius'];
+        this.cache = cache || ['x', 'y', 'sx', 'sy', 'rotate', 'borderRadius'];
+        this.align = typeof deformCorrection === 'object' ? deformCorrection : { x: 'left', y: 'top' };
         this.stagger = stagger;
         this.staggerLimit = staggerLimit;
+
+        if (deformCorrection === undefined) this.inherit.push('ignoreScaleDeformation');
+        if (deformCorrection === undefined) this.inherit.push('align');
+        if (!transition) this.inherit.push('defaultTransitionOptions');
+        if (!cache) this.inherit.push('cache');
     }
 
     register(parentId: string, inherit: boolean | number) {
@@ -85,7 +93,8 @@ export default class Animator<T extends string> {
         if (this.parent) {
             this.parent.dependents.add(this);
 
-            // cascade other props to animator here (ignoreScaleDeformation, transition prop)
+            // @ts-expect-error
+            for (const key of this.inherit) this[key] = this.parent[key];
         }
     }
 
@@ -151,7 +160,7 @@ export default class Animator<T extends string> {
     addTrack(element: any, index: number) {
         if (!(element instanceof HTMLElement || element instanceof SVGElement) || this.tracks.has(element)) return;
 
-        const track = new Track(element, this.cache),
+        const track = new Track(element, this.cache, this.align),
             animations = this.lifeCycleAnimations['mount'];
 
         this.tracks.add(element);

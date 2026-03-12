@@ -4,7 +4,7 @@ import { Children, cloneElement, createContext, isValidElement, use, useEffect, 
 import Animator, { AnimationOptions, AnimationTrigger } from "./core/animator";
 import Clip, { ClipInitials, ClipKey, ClipOptions } from "./core/clip";
 import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, getInitialStyleFromLinks, mergeStyles, shouldTrigger } from "./core/utils";
-import { CacheKey } from "./core/track";
+import { CacheKey, CorrectionAlignment } from "./core/track";
 import { LayoutGroupContext } from "./layout-group";
 import { deleteMorphTarget, getMorphTarget, registerAsMorph, registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
 import { TransitionOptions } from "./core/animation-link";
@@ -25,7 +25,7 @@ export type AnimateProps<T extends string> = {
     triggers?: AnimateTriggers<T | 'animate'>;
     stagger?: number;
     staggerLimit?: number;
-    ignoreScaleDeformation?: boolean;
+    deformCorrection?: CorrectionAlignment | boolean;
     transition?: TransitionOptions & {
         cache?: CacheKey[];
     };
@@ -47,8 +47,8 @@ export default function Animate<T extends string>({
     },
     stagger = 0.07,
     staggerLimit = 10,
-    ignoreScaleDeformation = false,
-    transition = {},
+    deformCorrection,
+    transition,
     morph,
     clips,
     paused = false,
@@ -74,7 +74,7 @@ export default function Animate<T extends string>({
             id,
             clips: animations,
             lifeCycleAnimations: getLifeCycleAnimations(triggers),
-            ignoreScaleDeformation,
+            deformCorrection,
             transition,
             stagger,
             staggerLimit

@@ -26,7 +26,7 @@ export type AnimateProps<T extends string> = {
     stagger?: number;
     staggerLimit?: number;
     deformCorrection?: CorrectionAlignment | boolean;
-    transition?: TransitionOptions & {
+    transition?: TransitionOptions & { // add option to mark element as position:fixed (to avoid problems with scroll offset)
         cache?: CacheKey[];
     };
     morph?: string;

@@ -174,6 +174,7 @@ export default class Track {
     }
 
     correct() {
+        // get parent element scale, if not 1 1, then correct this.element
         for (let i = 0; i < this.element.children.length; i++) {
             const child = this.element.children[i] as HTMLElement;
             const l = child.offsetLeft,
@@ -202,7 +203,7 @@ export default class Track {
         ];
 
         this.corrected = {
-            borderRadius: scaleCorrectRadius(this.styles.borderRadius, this.scale, previousRadiusScale),
+            borderRadius: scaleCorrectRadius(this.styles.borderRadius, this.scale, previousRadiusScale), // sometimes returns NaN?
             boxShadow: scaleCorrectShadow(this.styles.boxShadow, this.scale, previousShadowScale)
         };
         this.correctionAnimation = this.element.animate(this.corrected, {

@@ -1,4 +1,4 @@
-import { isValidElement } from "react";
+import { cloneElement, isValidElement } from "react";
 import { AnimationOptions, AnimationTrigger, LifeCycleTrigger } from "./animator";
 import Clip, { ClipConfig, ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes, ClipOptions } from "./clip";
 import { AnimateProps, AnimateTriggers } from "../animate";
@@ -187,24 +187,40 @@ export function scaleCorrectShadow(shadow: string, scale: ScaleTuple, previousSc
     return shadows.map(val => `${color} ${val.map(val => `${val}px`).join(' ')}${inset ? ' inset' : ''}`).join(', ');
 }
 
-export function filterRemovedAnimators(children: React.ReactNode, animatorIds: Set<string>, prefix = '_la') {
+export function filterRemovedAnimators(children: React.ReactNode, toRemove: Set<string>, prefix = '_la') {
     const array = Array.isArray(children) ? children : [children];
 
     for (let i = 0; i < array.length; i++) {
         if (!isValidElement(array[i])) continue;
 
-        const { props, key } = array[i] as React.ReactElement<AnimateProps<any>>;
+        const { props, key } = array[i] as React.ReactElement<any>;
         const id = prefix + (key !== null ? `${key}_` : i);
 
         if (typeof props.triggers === 'object') {
-            (props.triggers as any)._livelyId = id;
-            animatorIds.delete(id);
+            props.triggers._livelyId = id;
+            toRemove.delete(id);
         }
 
-        filterRemovedAnimators(props.children, animatorIds, id);
+        filterRemovedAnimators(props.children, toRemove, id);
     }
 
-    return animatorIds;
+    return toRemove;
+}
+
+export function getRemovedAnimators(children: React.ReactNode, removed: Set<string>) {
+    const array = Array.isArray(children) ? children : [children];
+    const animators: [number, React.ReactElement<any>][] = [];
+
+    for (let i = 0; i < array.length; i++) {
+        if (!isValidElement(array[i])) continue;
+
+        const { key } = array[i] as React.ReactElement<any>;
+        const id = '_la' + (key !== null ? `${key}_` : i);
+
+        if (removed.has(id)) animators.push([i, array[i]]);
+    }
+
+    return animators;
 }
 
 export const ClipConfigKeys: {

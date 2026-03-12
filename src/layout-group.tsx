@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { filterRemovedAnimators } from "./core/utils";
+import { filterRemovedAnimators, getRemovedAnimators } from "./core/utils";
 import { forEachAnimator, registerLayoutGroup, unregisterLayoutGroup } from "./core/state";
 
 export const LayoutGroupContext = createContext<string>('');
@@ -13,7 +13,7 @@ export default function LayoutGroup({
 }: {
     children: React.ReactNode;
     skipInitialMount?: boolean;
-    mode?: 'wait' | 'swap'; // todo
+    mode?: 'wait' | 'sync';
 }) {
     const id = '_lg' + useId();
     const timeout = useRef(0);
@@ -25,6 +25,16 @@ export default function LayoutGroup({
     const removed = filterRemovedAnimators(children, new Set(data.animators));
 
     if (removed.size) {
+        if (mode === 'sync') { // only works for non-nested children
+            const updated = Array.isArray(children) ? children.slice() : [children];
+
+            for (const [index, element] of getRemovedAnimators(content.current, removed)) {
+                updated.splice(index, 0, element);
+            }
+
+            content.current = updated;
+        }
+
         let elapsed = 0;
         forEachAnimator(removed, animator => {
             if (animator.state === 'mounted') {

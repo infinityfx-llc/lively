@@ -1,12 +1,18 @@
-import { cloneElement, isValidElement } from "react";
+import { isValidElement } from "react";
 import { AnimationOptions, AnimationTrigger, LifeCycleTrigger } from "./animator";
 import Clip, { ClipConfig, ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes, ClipOptions } from "./clip";
-import { AnimateProps, AnimateTriggers } from "../animate";
+import { AnimateTriggers } from "../animate";
 import AnimationLink from "./animation-link";
 
 export const keyframeEpsilon = .0001;
 
-export const clampLowerBound = (num: number, precision = 8) => Math.sign(num) * Math.max(Math.abs(num), 1 / Math.pow(10, precision));
+export function clampLowerBound(num: number, precision = 8) {
+    const lowerBound = 1 / Math.pow(10, precision);
+
+    if (isNaN(num)) return lowerBound;
+
+    return (num < 0 ? -1 : 1) * Math.max(Math.abs(num), lowerBound);
+}
 
 export const asArray = (value: number | number[]) => Array.isArray(value) ? value : [value];
 
@@ -149,6 +155,8 @@ export function parseClipKeyframes(keyframes: ClipKeyframes, initial: ClipInitia
 export type ScaleTuple = readonly [number, number];
 
 export function scaleCorrectRadius(radius: string, scale: ScaleTuple, previousScale: ScaleTuple) {
+    if (/^\s*$|0px/.test(radius)) return radius;
+
     const array = radius.split(/\s*\/\s*/);
     if (array.length < 2) array[1] = array[0];
 
@@ -160,6 +168,8 @@ export function scaleCorrectRadius(radius: string, scale: ScaleTuple, previousSc
 }
 
 export function scaleCorrectShadow(shadow: string, scale: ScaleTuple, previousScale: ScaleTuple) {
+    if (/^\s*$|none/.test(shadow)) return shadow;
+
     const [color, params, inset] = shadow
         .split(/(?<=px),\s?/)[0]
         .split(/(?<=\))\s|\s(?=inset)/);
@@ -185,6 +195,30 @@ export function scaleCorrectShadow(shadow: string, scale: ScaleTuple, previousSc
     }
 
     return shadows.map(val => `${color} ${val.map(val => `${val}px`).join(' ')}${inset ? ' inset' : ''}`).join(', ');
+}
+
+export function correctForParentScale(element: HTMLElement) {
+    let parent: HTMLElement | null = element;
+    while (parent = parent?.parentElement) { // <- clean up code
+        if (parent.dataset.lively) break;
+    }
+
+    if (!parent?.dataset.lively) return;
+
+    const { width, height } = parent.getBoundingClientRect();
+    const x = clampLowerBound(width / parent.offsetWidth),
+        y = clampLowerBound(height / parent.offsetHeight);
+
+    const l = element.offsetLeft,
+        t = element.offsetTop,
+        w = element.offsetWidth,
+        h = element.offsetHeight;
+
+    // todo:
+    // const [tx, ty] = getComputedStyle(child).translate.split(' ').map(parseFloat);
+
+    // element.style.transform = `translate(${-tx || 0}px, ${-ty || 0}px) scale(${1 / x}, ${1 / y}) translate(${l * (1 - x) + w / 2 * (1 - x) + (tx || 0)}px, ${t * (1 - y) + h / 2 * (1 - y) + (ty || 0)}px)`;
+    element.style.transform = `scale(${1 / x}, ${1 / y})`;
 }
 
 export function filterRemovedAnimators(children: React.ReactNode, toRemove: Set<string>, prefix = '_la') {

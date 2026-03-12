@@ -1,7 +1,7 @@
 import { TransitionOptions } from "./animation-link";
 import { AnimationOptions } from "./animator";
 import Clip, { BlendMode, ClipKey, ClipOptions } from "./clip";
-import { clampLowerBound, scaleCorrectRadius, scaleCorrectShadow, ScaleTuple } from "./utils";
+import { clampLowerBound, correctForParentScale, scaleCorrectRadius, scaleCorrectShadow, ScaleTuple } from "./utils";
 
 export type CacheKey = Exclude<ClipKey, 'scale' | 'translate'> | 'x' | 'y' | 'sx' | 'sy';
 
@@ -34,6 +34,7 @@ export default class Track {
     queue: TrackAnimation[] = [];
     animations: TrackAnimation[] = [];
     active = 0;
+    correctAfterEnded = false;
 
     constructor(element: HTMLElement | SVGElement, shouldCache: CacheKey[]) {
         this.element = element;
@@ -110,7 +111,7 @@ export default class Track {
         this.animations.push(...this.queue.splice(0, 1));
         this.active = this.animations.filter(animation => animation.blendmode === 'none').length;
 
-        if (!this.animations.length) this.correct();
+        this.correctAfterEnded = true;
     }
 
     transition(from = this.cache, options: TransitionOptions = {}) {
@@ -174,23 +175,12 @@ export default class Track {
     }
 
     correct() {
-        // get parent element scale, if not 1 1, then correct this.element
-        for (let i = 0; i < this.element.children.length; i++) {
-            const child = this.element.children[i] as HTMLElement;
-            const l = child.offsetLeft,
-                t = child.offsetTop,
-                w = child.offsetWidth,
-                h = child.offsetHeight;
+        if (this.element instanceof SVGElement) return;
 
-            const [x, y] = this.scale;
-            const [tx, ty] = getComputedStyle(child).translate.split(' ').map(parseFloat);
+        correctForParentScale(this.element);
 
-            child.style.transform = `translate(${-tx || 0}px, ${-ty || 0}px) scale(${1 / x}, ${1 / y}) translate(${l * (1 - x) + w / 2 * (1 - x) + (tx || 0)}px, ${t * (1 - y) + h / 2 * (1 - y) + (ty || 0)}px)`;
-        } // ^ improve child correction implementation
-
-        if (this.element instanceof SVGElement ||
-            (this.styles.borderRadius === '0px' &&
-                this.styles.boxShadow === 'none')) return;
+        if (!this.animations.length && !this.correctAfterEnded) return;
+        this.correctAfterEnded = false;
 
         this.correctionAnimation?.cancel();
         const previousRadiusScale: ScaleTuple = this.styles.borderRadius !== this.corrected.borderRadius ? [1, 1] : this.scale;
@@ -198,18 +188,20 @@ export default class Track {
 
         const { width, height } = this.element.getBoundingClientRect();
         this.scale = [
-            width / clampLowerBound(this.element.offsetWidth),
-            height / clampLowerBound(this.element.offsetHeight)
+            clampLowerBound(width / this.element.offsetWidth),
+            clampLowerBound(height / this.element.offsetHeight)
         ];
 
         this.corrected = {
-            borderRadius: scaleCorrectRadius(this.styles.borderRadius, this.scale, previousRadiusScale), // sometimes returns NaN?
+            borderRadius: scaleCorrectRadius(this.styles.borderRadius, this.scale, previousRadiusScale),
             boxShadow: scaleCorrectShadow(this.styles.boxShadow, this.scale, previousShadowScale)
         };
-        this.correctionAnimation = this.element.animate(this.corrected, {
-            duration: 0,
-            fill: 'forwards'
-        });
+
+        if (this.corrected.borderRadius !== this.styles.borderRadius ||
+            this.corrected.boxShadow !== this.styles.boxShadow) this.correctionAnimation = this.element.animate(this.corrected, {
+                duration: 0,
+                fill: 'forwards'
+            });
     }
 
 }

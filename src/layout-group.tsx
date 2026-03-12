@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import React, { Children, createContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { filterRemovedAnimators, getRemovedAnimators } from "./core/utils";
 import { forEachAnimator, registerLayoutGroup, unregisterLayoutGroup } from "./core/state";
 
@@ -63,9 +63,10 @@ export default function LayoutGroup({
             content.current = children;
             forceUpdate(n => n + 1);
         }, unmountingDelay);
-    } else {
-        content.current = children;
-    }
+    } else
+        if (mode === 'wait') {
+            content.current = children;
+        }
 
     useLayoutEffect(() => {
         forEachAnimator(data.animators, animator => {

@@ -1,5 +1,5 @@
 import { TransitionOptions } from "./animation-link";
-import { AnimationOptions } from "./animator";
+import Animator, { AnimationOptions } from "./animator";
 import Clip, { BlendMode, ClipKey, ClipOptions } from "./clip";
 import { clampLowerBound, correctForParentScale, scaleCorrectRadius, scaleCorrectShadow, ScaleTuple } from "./utils";
 
@@ -177,7 +177,8 @@ export default class Track {
     correct() {
         if (this.element instanceof SVGElement) return;
 
-        correctForParentScale(this.element);
+        const offset: any = (/none|0px/.test(this.styles.translate) ? '0 0' : this.styles.translate).split(' ').map(parseFloat);
+        correctForParentScale(this.element, offset);
 
         if (!this.animations.length && !this.correctAfterEnded) return;
         this.correctAfterEnded = false;

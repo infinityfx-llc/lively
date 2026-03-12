@@ -169,7 +169,7 @@ export default function Animate<T extends string>({
                 ),
                 style,
                 ['pathLength' as any]: 'strokeDasharray' in style ? 1 : undefined,
-                ['data-lively' as any]: true
+                ['data-lively' as any]: id
             });
         })}
     </AnimateContext>;

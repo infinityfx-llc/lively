@@ -3,6 +3,7 @@ import { AnimationOptions, AnimationTrigger, LifeCycleTrigger } from "./animator
 import Clip, { ClipConfig, ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes, ClipOptions } from "./clip";
 import { AnimateTriggers } from "../animate";
 import AnimationLink from "./animation-link";
+import { getParentAnimator } from "./state";
 
 export const keyframeEpsilon = .0001;
 
@@ -197,28 +198,25 @@ export function scaleCorrectShadow(shadow: string, scale: ScaleTuple, previousSc
     return shadows.map(val => `${color} ${val.map(val => `${val}px`).join(' ')}${inset ? ' inset' : ''}`).join(', ');
 }
 
-export function correctForParentScale(element: HTMLElement) {
+export function correctForParentScale(element: HTMLElement, offset: [number, number], { alignX = 'left', alignY = 'top' } = {}) { // todo alignment
+    let animator;
     let parent: HTMLElement | null = element;
-    while (parent = parent?.parentElement) { // <- clean up code
-        if (parent.dataset.lively) break;
+    while (parent = parent?.parentElement) {
+        if (parent.dataset.lively) {
+            animator = getParentAnimator(parent.dataset.lively, 0);
+            break;
+        }
     }
 
-    if (!parent?.dataset.lively) return;
+    if (!parent || !animator || !animator.trackList.some(track => track.animations.length || track.correctAfterEnded)) return;
 
     const { width, height } = parent.getBoundingClientRect();
-    const x = clampLowerBound(width / parent.offsetWidth),
-        y = clampLowerBound(height / parent.offsetHeight);
+    const x = clampLowerBound(parent.offsetWidth / width),
+        y = clampLowerBound(parent.offsetHeight / height);
+    const dx = alignX === 'center' ? 0 : (element.offsetWidth - element.offsetWidth * x) / 2 * (alignX === 'right' ? 1 : -1);
+    const dy = alignY === 'center' ? 0 : (element.offsetHeight - element.offsetHeight * y) / 2 * (alignY === 'bottom' ? 1 : -1);
 
-    const l = element.offsetLeft,
-        t = element.offsetTop,
-        w = element.offsetWidth,
-        h = element.offsetHeight;
-
-    // todo:
-    // const [tx, ty] = getComputedStyle(child).translate.split(' ').map(parseFloat);
-
-    // element.style.transform = `translate(${-tx || 0}px, ${-ty || 0}px) scale(${1 / x}, ${1 / y}) translate(${l * (1 - x) + w / 2 * (1 - x) + (tx || 0)}px, ${t * (1 - y) + h / 2 * (1 - y) + (ty || 0)}px)`;
-    element.style.transform = `scale(${1 / x}, ${1 / y})`;
+    element.style.transform = `translate(${dx - offset[0] * 2}px, ${dy - offset[1] * 2}px) scale(${x}, ${y}) translate(${offset[0] / x}px, ${offset[1] / y}px)`;
 }
 
 export function filterRemovedAnimators(children: React.ReactNode, toRemove: Set<string>, prefix = '_la') {

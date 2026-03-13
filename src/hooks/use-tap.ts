@@ -12,7 +12,7 @@ export default function useTap<T extends HTMLElement = any>() {
         const ctrl = new AbortController();
 
         ref.current.addEventListener('pointerdown', () => setTapping(true), { signal: ctrl.signal });
-        ref.current.addEventListener('pointerup', () => setTapping(false), { signal: ctrl.signal });
+        window.addEventListener('pointerup', () => setTapping(false), { signal: ctrl.signal });
 
         return () => ctrl.abort();
     }, []);

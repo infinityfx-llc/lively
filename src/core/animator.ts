@@ -89,6 +89,7 @@ export default class Animator<T extends string> {
 
         if (parentId && inherit !== false) {
             this.parent = getParentAnimator(parentId, typeof inherit === 'boolean' ? 0 : inherit);
+            // parent will be null in useEffect remounts, because child mounts first..
         }
         if (this.parent) {
             this.parent.dependents.add(this);
@@ -111,11 +112,13 @@ export default class Animator<T extends string> {
         this.stop();
         this.onDisposeLinks?.();
         cancelAnimationFrame(this.frame);
-        if (this.parent) this.parent.dependents.delete(this);
 
         this.trackList.forEach(track => track.cache = track.snapshot());
         this.state = 'unmounted';
-        unregisterAnimator(this.id);
+
+        unregisterAnimator(this.id); // maybe delay unregistration? (would fix both parent issues and be usefull for morphs)
+        // if delay then cancelTimeout on remount
+        if (this.parent) this.parent.dependents.delete(this);
     }
 
     on<K extends (...args: any) => void>(event: AnimatorEvent, callback: K) {

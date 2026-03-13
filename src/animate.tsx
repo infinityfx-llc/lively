@@ -137,7 +137,10 @@ export default function Animate<T extends string>({
             const value = animate[key as ClipKey];
             if (!(key in animator.links) || typeof value === 'object') continue;
 
-            animator.links[key as ClipKey]!.set(value, animator.defaultTransitionOptions);
+            animator.links[key as ClipKey]!.set(value, {
+                duration: animate.duration,
+                easing: animate.easing
+            });
         }
     }, [animate]);
 

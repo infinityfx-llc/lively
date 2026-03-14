@@ -7,7 +7,7 @@ const registeredLayoutGroups = new Map<string, {
     skipInitialMount: boolean;
 }>();
 
-const morphGroups = new Map<string, Set<Animator<any>>>();
+const morphGroups = new Map<string, Set<string>>();
 
 export function getParentAnimator(id: string, stepsRemoved: number) {
     let parent = registeredAnimators.get(id) || null;
@@ -19,10 +19,6 @@ export function getParentAnimator(id: string, stepsRemoved: number) {
     }
 
     return parent;
-}
-
-export function isRegistered(id: string) {
-    return registeredAnimators.has(id);
 }
 
 export function registerAnimator(id: string, animator: Animator<any>) {
@@ -73,9 +69,9 @@ export function forEachAnimator(ids: Set<string>, callback: (animator: Animator<
     });
 }
 
-export function registerAsMorph(morphId: string, animator: Animator<any>) {
+export function registerAsMorph(morphId: string, id: string) {
     const group = morphGroups.get(morphId) || new Set();
-    group.add(animator);
+    group.add(id);
 
     morphGroups.set(morphId, group);
 }
@@ -84,17 +80,17 @@ export function getMorphTarget(morphId: string, receiverId: string) {
     const targets = morphGroups.get(morphId);
     if (!targets) return null;
 
-    for (const animator of targets) {
+    for (const id of targets) {
+        const animator = registeredAnimators.get(id);
         if (animator && animator.id !== receiverId && animator.state === 'unmounted') return animator;
     }
 
     return null;
 }
 
-export function deleteMorphTarget(morphId: string, animator: Animator<any>, delay = 0) {
+export function deleteMorphTarget(morphId: string, id: string) {
     const group = morphGroups.get(morphId);
-    if (group && delay) return setTimeout(() => group.delete(animator));
-    if (group) group.delete(animator);
+    if (group) group.delete(id);
 
     return 0;
 }

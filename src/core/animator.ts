@@ -1,6 +1,6 @@
 import AnimationLink, { TransitionOptions } from "./animation-link";
 import Clip, { ClipConfig, ClipInitials, ClipKey, ClipOptions } from "./clip";
-import { getParentAnimator, isRegistered, registerAnimator, unregisterAnimator } from "./state";
+import { deleteMorphTarget, getParentAnimator, registerAnimator, registerAsMorph, unregisterAnimator } from "./state";
 import Track, { CacheKey, CorrectionAlignment } from "./track";
 import { extractAnimationLinks } from "./utils";
 
@@ -47,6 +47,7 @@ export default class Animator<T extends string> {
     } = {};
     state: 'unmounted' | 'unmounting' | 'mounted' = 'unmounted';
     paused = false;
+    timeout = 0;
     frame = 0;
 
     constructor({ id, clips, lifeCycleAnimations, deformCorrection, transition, stagger, staggerLimit }: {
@@ -82,14 +83,13 @@ export default class Animator<T extends string> {
         if (!cache) this.inherit.push('cache');
     }
 
-    register(parentId: string, inherit: boolean | number) {
-        if (isRegistered(this.id)) return;
-
+    register(parentId: string, inherit: boolean | number, morph?: string) {
+        clearTimeout(this.timeout);
         registerAnimator(this.id, this);
+        if (morph) registerAsMorph(morph, this.id);
 
         if (parentId && inherit !== false) {
             this.parent = getParentAnimator(parentId, typeof inherit === 'boolean' ? 0 : inherit);
-            // parent will be null in useEffect remounts, because child mounts first..
         }
         if (this.parent) {
             this.parent.dependents.add(this);
@@ -108,17 +108,19 @@ export default class Animator<T extends string> {
         this.tick();
     }
 
-    dispose() {
+    dispose(morph?: string) {
         this.stop();
         this.onDisposeLinks?.();
         cancelAnimationFrame(this.frame);
 
         this.trackList.forEach(track => track.cache = track.snapshot());
         this.state = 'unmounted';
-
-        unregisterAnimator(this.id); // maybe delay unregistration? (would fix both parent issues and be usefull for morphs)
-        // if delay then cancelTimeout on remount
         if (this.parent) this.parent.dependents.delete(this);
+
+        this.timeout = setTimeout(() => {
+            unregisterAnimator(this.id);
+            if (morph) deleteMorphTarget(morph, this.id);
+        }, 1);
     }
 
     on<K extends (...args: any) => void>(event: AnimatorEvent, callback: K) {

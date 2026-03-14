@@ -6,7 +6,7 @@ import Clip, { ClipInitials, ClipKey, ClipOptions } from "./core/clip";
 import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, getInitialStyleFromLinks, mergeStyles, shouldTrigger } from "./core/utils";
 import { CacheKey, CorrectionAlignment } from "./core/track";
 import { LayoutGroupContext } from "./layout-group";
-import { deleteMorphTarget, getMorphTarget, registerAsMorph, registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
+import { deleteMorphTarget, getMorphTarget, registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
 import { TransitionOptions } from "./core/animation-link";
 
 export type AnimateTriggers<T extends string> = {
@@ -58,7 +58,6 @@ export default function Animate<T extends string>({
     const parentId = use(AnimateContext);
     const layoutId = use(LayoutGroupContext);
 
-    const timeout = useRef(0);
     const previousTriggers = useRef(serializeTriggers(triggers));
     const data = useRef<Animator<any>>(null);
     if (!data.current) {
@@ -88,17 +87,15 @@ export default function Animate<T extends string>({
     useImperativeHandle(ref, () => animator, []);
 
     useLayoutEffect(() => {
-        animator.register(parentId, inherit);
+        animator.register(parentId, inherit, morph);
         animator.addLinks(animate);
 
         if (morph) {
-            clearTimeout(timeout.current);
-            registerAsMorph(morph, animator);
             const target = getMorphTarget(morph, id);
 
             if (target) {
                 animator.transition(target);
-                deleteMorphTarget(morph, target);
+                deleteMorphTarget(morph, target.id);
                 animator.state = 'mounted';
             }
         }
@@ -112,9 +109,8 @@ export default function Animate<T extends string>({
         window.addEventListener('resize', updateAnimatorCache);
 
         return () => {
-            animator.dispose();
+            animator.dispose(morph);
             unregisterFromLayoutGroup(layoutId, id);
-            if (morph) timeout.current = deleteMorphTarget(morph, animator, 1);
 
             window.removeEventListener('resize', updateAnimatorCache);
         }

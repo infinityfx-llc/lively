@@ -83,6 +83,7 @@ export default function Animate<T extends string>({
         animator.addLinks(animate);
     }
     const { current: animator } = data;
+    const skipMount = registerToLayoutGroup(layoutId, id);
 
     useImperativeHandle(ref, () => animator, []);
 
@@ -157,7 +158,7 @@ export default function Animate<T extends string>({
             let { ref, style } = (child as React.ReactElement<React.HTMLProps<any>>).props;
             style = mergeStyles(
                 style,
-                animator.mergeInitialStyles(initial),
+                animator.mergeInitialStyles(initial, skipMount),
                 getInitialStyleFromLinks(animator.links, i)
             );
 

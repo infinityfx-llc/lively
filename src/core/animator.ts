@@ -41,7 +41,10 @@ export default class Animator<T extends string> {
     align: CorrectionAlignment;
     stagger: number;
     staggerLimit: number;
-    initialStyles: ClipInitials | null = null;
+    initialStyles: {
+        mounted?: ClipInitials;
+        unmounted?: ClipInitials;
+    } = {};
     eventListeners: {
         [key in AnimatorEvent]?: Set<(...args: any) => void>;
     } = {};
@@ -115,11 +118,11 @@ export default class Animator<T extends string> {
 
         this.trackList.forEach(track => track.cache = track.snapshot());
         this.state = 'unmounted';
-        if (this.parent) this.parent.dependents.delete(this);
 
         this.timeout = setTimeout(() => {
             unregisterAnimator(this.id);
             if (morph) deleteMorphTarget(morph, this.id);
+            if (this.parent) this.parent.dependents.delete(this);
         }, 1);
     }
 
@@ -174,27 +177,30 @@ export default class Animator<T extends string> {
         if (this.state === 'mounted' && animations) animations.forEach(animation => track.push(this.clips[animation]));
     }
 
-    mergeInitialStyles(styles: ClipInitials): ClipInitials {
-        if (this.initialStyles) return this.initialStyles;
+    mergeInitialStyles(styles: ClipInitials, mounted = false): ClipInitials {
+        const key = mounted ? 'mounted' : 'unmounted'; // <- clean up code
+        if (key in this.initialStyles) return this.initialStyles[key]!;
 
         const animations = this.lifeCycleAnimations.mount || [],
-            clips = animations.map(animation => this.clips[animation]);
+            clips = animations
+                .map(animation => this.clips[animation])
+                .filter(clip => !clip.isEmpty);
 
         if (clips.length) {
-            styles = Clip.mergeInitialStyles(clips, styles);
+            styles = Clip.mergeInitialStyles(clips, styles, mounted);
         } else
             if (this.parent) {
-                styles = this.parent.mergeInitialStyles(styles);
+                styles = this.parent.mergeInitialStyles(styles, mounted);
             }
 
-        return this.initialStyles = styles;
+        return this.initialStyles[key] = styles;
     }
 
     pretime(clip: Clip, options: AnimationOptions) {
         if (clip.isEmpty) return 0;
 
         const { duration, delay, iterations } = clip.getConfig(options);
-        return duration * iterations + delay + Math.max(Math.min(this.tracks.size, this.staggerLimit) - 1, 0) * this.stagger;
+        return (duration * iterations + delay) / 1000 + Math.max(Math.min(this.tracks.size, this.staggerLimit) - 1, 0) * this.stagger;
     }
 
     trigger(on: LifeCycleTrigger, options: AnimationOptions = {}) {

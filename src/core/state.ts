@@ -82,7 +82,7 @@ export function getMorphTarget(morphId: string, receiverId: string) {
 
     for (const id of targets) {
         const animator = registeredAnimators.get(id);
-        if (animator && animator.id !== receiverId && animator.state === 'unmounted') return animator;
+        if (animator && animator.id !== receiverId && animator.state !== 'mounted') return animator;
     }
 
     return null;

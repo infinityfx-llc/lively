@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Children, createContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import React, { createContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { filterRemovedAnimators, getRemovedAnimators } from "./core/utils";
 import { forEachAnimator, registerLayoutGroup, unregisterLayoutGroup } from "./core/state";
 

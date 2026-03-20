@@ -140,12 +140,8 @@ export default class Track {
                 case 'sy':
                     scale[key === 'sx' ? 0 : 1] = from[key] / clampLowerBound(data[key]);
                     break;
-                case 'borderRadius':
-                case 'boxShadow':
-                    keyframes[key] = [from[key]!, data[key]!];
-                    break;
                 default:
-                    keyframes[key] = [from[key]!, null];
+                    keyframes[key] = [from[key]!, data[key]!];
             }
         }
 
@@ -165,8 +161,6 @@ export default class Track {
     }
 
     clear(animation?: string) {
-        if (!this.active) return;
-
         this.animations.forEach(entry => {
             if (animation && entry.name !== animation) return;
 

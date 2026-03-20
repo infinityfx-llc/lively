@@ -40,14 +40,21 @@ export function mergeStyles(...stylesList: (ClipInitials | undefined)[]) {
     return merged;
 }
 
-export function forEachTrigger<T extends string>(triggers: AnimateTriggers<T>, callback: (key: T, triggerList: AnimationTrigger[], options: AnimationOptions) => void) {
+export function forEachTrigger<T extends string>(triggers: AnimateTriggers<T>, callback: (key: T, triggerList: AnimationTrigger[], options: AnimationOptions[]) => void) {
     for (const key in triggers) {
-        const entry = triggers[key];
-        if (typeof entry !== 'object') continue;
+        if (key === '_livelyId') continue;
 
-        const { on, ...options } = 'on' in entry ? entry : { on: entry };
+        const optionsArray: AnimationOptions[] = [];
 
-        callback(key, on, options);
+        const list = triggers[key]!.map(value => {
+            const { on, ...options } = typeof value === 'object' && 'on' in value ? value : { on: value };
+
+            optionsArray.push(options);
+
+            return on;
+        });
+
+        callback(key, list, optionsArray);
     }
 }
 
@@ -63,26 +70,18 @@ export function serializeTriggers<T extends string>(triggers: AnimateTriggers<T>
     return serialized;
 }
 
-export function shouldTrigger(previous: any[], current: any[]) {
-    previous.forEach((prev, i) => {
-        if (prev !== current[i] && current[i] !== false) return true;
-    });
-
-    return false;
-}
-
 export function getLifeCycleAnimations<T extends string>(triggers: AnimateTriggers<T>) {
     const animations: {
-        [key in LifeCycleTrigger]?: T[];
+        [key in LifeCycleTrigger]?: [T, AnimationOptions][];
     } = {};
 
-    forEachTrigger(triggers, (key, list) => {
+    forEachTrigger(triggers, (key, list, options) => {
         (['mount', 'unmount'] as const).forEach(trigger => {
-            if (list.includes(trigger)) {
-                if (!(trigger in animations)) animations[trigger] = [];
+            const index = list.indexOf(trigger);
+            if (index < 0) return;
 
-                animations[trigger]!.push(key);
-            }
+            if (!(trigger in animations)) animations[trigger] = [];
+            animations[trigger]!.push([key, options[index]]);
         });
     });
 

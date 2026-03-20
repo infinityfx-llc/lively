@@ -1,6 +1,6 @@
 {
 	"name": "@infinityfx/lively",
-	"version": "5.0.0-alpha.2",
+	"version": "5.0.0-alpha.3",
 	"type": "module",
 	"description": "Feature complete, lightweight react animation library.",
 	"main": "dist/index.js",
@@ -15,9 +15,9 @@
 			"types": "./dist/types/hooks.d.ts",
 			"default": "./dist/hooks.js"
 		},
-		"./animations": {
-			"types": "./dist/types/animations.d.ts",
-			"default": "./dist/animations.js"
+		"./presets": {
+			"types": "./dist/types/presets.d.ts",
+			"default": "./dist/presets.js"
 		}
 	},
 	"typesVersions": {
@@ -25,8 +25,8 @@
 			"hooks": [
 				"./dist/types/hooks.d.ts"
 			],
-			"animations": [
-				"./dist/types/animations.d.ts"
+			"presets": [
+				"./dist/types/presets.d.ts"
 			]
 		}
 	},

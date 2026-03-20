@@ -63,14 +63,14 @@ export default class Track {
         // @ts-expect-error
         for (const key of this.shouldCache) data[key] = this.styles[key];
 
-        const { width, height, x, y } = this.element.getBoundingClientRect();
+        const { width, height, x, y } = this.element.getBoundingClientRect(); // breaks with scrolling?
         data.sx = width;
         data.sy = height;
         data.x = x + width / 2;
         data.y = y + height / 2;
 
         let parent: HTMLElement | null = this.element;
-        while (parent = parent?.parentElement) { // <- check if method takes into window scroll position
+        while (parent = parent?.parentElement) {
             if (parent.dataset.lively) {
                 const { x, y } = parent.getBoundingClientRect(); // also compensate width/height?
                 data.x -= x;
@@ -153,8 +153,8 @@ export default class Track {
             new Clip(keyframes),
             new Clip({
                 ...options,
-                scale: [scale.join(' '), null],
-                translate: [translate.map(num => `${num}px`).join(' '), null],
+                scale: [scale.join(' '), null], // use transform instead?
+                translate: [translate.map(num => `${num}px`).join(' '), null], // use transform instead?
                 composite: 'combine' // test if combine or override works better
             })
         ]

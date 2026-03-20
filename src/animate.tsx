@@ -3,14 +3,14 @@
 import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import Animator, { AnimationOptions, AnimationTrigger } from "./core/animator";
 import Clip, { ClipInitials, ClipKey, ClipOptions } from "./core/clip";
-import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, getInitialStyleFromLinks, mergeStyles, shouldTrigger } from "./core/utils";
+import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, getInitialStyleFromLinks, mergeStyles } from "./core/utils";
 import { CacheKey, CorrectionAlignment } from "./core/track";
 import { LayoutGroupContext } from "./layout-group";
 import { deleteMorphTarget, getMorphTarget, registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
 import { TransitionOptions } from "./core/animation-link";
 
 export type AnimateTriggers<T extends string> = {
-    [key in T]?: AnimationTrigger[] | ({ on: AnimationTrigger[] } & AnimationOptions);
+    [key in T]?: AnimationTrigger[] | ({ on: AnimationTrigger } & AnimationOptions)[];
 };
 
 export type AnimateProps<T extends string> = {
@@ -22,7 +22,7 @@ export type AnimateProps<T extends string> = {
     clips?: {
         [key in T]: ClipOptions | Clip;
     };
-    triggers?: AnimateTriggers<T | 'animate'>;
+    triggers?: AnimateTriggers<T | 'animate'>; // allow for easy reverse of same animation but different trigger
     stagger?: number;
     staggerLimit?: number;
     deformCorrection?: CorrectionAlignment | boolean;
@@ -118,13 +118,15 @@ export default function Animate<T extends string>({
     }, []);
 
     useEffect(() => {
-        const serialized = serializeTriggers(triggers);
+        forEachTrigger(triggers, (animation, list, options) => {
+            const previous = previousTriggers.current[animation];
 
-        forEachTrigger(triggers, (animation, _, options) => {
-            if (shouldTrigger(previousTriggers.current[animation], serialized[animation])) animator.play(animation as any, options);
+            list.forEach((value, i) => {
+                if (previous[i] !== value && value !== false) animator.play(animation, options[i]);
+
+                previous[i] = value;
+            });
         });
-
-        previousTriggers.current = serialized;
     }, [triggers]);
 
     useEffect(() => {
@@ -158,7 +160,7 @@ export default function Animate<T extends string>({
             let { ref, style } = (child as React.ReactElement<React.HTMLProps<any>>).props;
             style = mergeStyles(
                 style,
-                animator.mergeInitialStyles(initial, skipMount),
+                animator.mergeInitialStyles(initial, skipMount ? 'mounted' : 'unmounted'),
                 getInitialStyleFromLinks(animator.links, i)
             );
 

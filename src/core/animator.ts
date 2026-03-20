@@ -27,7 +27,7 @@ export default class Animator<T extends string> {
         [key in T]: Clip;
     };
     lifeCycleAnimations: {
-        [key in LifeCycleTrigger]?: T[];
+        [key in LifeCycleTrigger]?: [T, AnimationOptions][];
     };
     links: {
         [key in ClipKey]?: AnimationLink<any>;
@@ -59,7 +59,7 @@ export default class Animator<T extends string> {
             [key in T]: Clip;
         };
         lifeCycleAnimations: {
-            [key in LifeCycleTrigger]?: T[];
+            [key in LifeCycleTrigger]?: [T, AnimationOptions][];
         };
         deformCorrection?: CorrectionAlignment | boolean;
         transition?: TransitionOptions & {
@@ -174,26 +174,25 @@ export default class Animator<T extends string> {
         this.tracks.add(element);
         this.trackList.splice(index, 0, track);
 
-        if (this.state === 'mounted' && animations) animations.forEach(animation => track.push(this.clips[animation]));
+        if (this.state === 'mounted' && animations) animations.forEach(([name, options]) => track.push(this.clips[name], options)); // won't get clip from parent
     }
 
-    mergeInitialStyles(styles: ClipInitials, mounted = false): ClipInitials {
-        const key = mounted ? 'mounted' : 'unmounted'; // <- clean up code
-        if (key in this.initialStyles) return this.initialStyles[key]!;
+    mergeInitialStyles(styles: ClipInitials, mode: 'mounted' | 'unmounted'): ClipInitials {
+        if (mode in this.initialStyles) return this.initialStyles[mode]!;
 
         const animations = this.lifeCycleAnimations.mount || [],
             clips = animations
-                .map(animation => this.clips[animation])
+                .map(([name]) => this.clips[name]) // take into account options.reverse?
                 .filter(clip => !clip.isEmpty);
 
         if (clips.length) {
-            styles = Clip.mergeInitialStyles(clips, styles, mounted);
+            styles = Clip.mergeInitialStyles(clips, styles, mode === 'mounted');
         } else
             if (this.parent) {
-                styles = this.parent.mergeInitialStyles(styles, mounted);
+                styles = this.parent.mergeInitialStyles(styles, mode);
             }
 
-        return this.initialStyles[key] = styles;
+        return this.initialStyles[mode] = styles;
     }
 
     pretime(clip: Clip, options: AnimationOptions) {
@@ -207,7 +206,7 @@ export default class Animator<T extends string> {
         let animations = this.lifeCycleAnimations[on],
             elapsed = 0;
 
-        if (animations) animations.forEach(animation => elapsed = Math.max(this.play(animation, options), elapsed));
+        if (animations) animations.forEach(animation => elapsed = Math.max(this.play(...animation), elapsed));
 
         return elapsed;
     }

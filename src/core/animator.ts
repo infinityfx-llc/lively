@@ -174,7 +174,7 @@ export default class Animator<T extends string> {
         this.tracks.add(element);
         this.trackList.splice(index, 0, track);
 
-        if (this.state === 'mounted' && animations) animations.forEach(([name, options]) => track.push(this.clips[name], options)); // won't get clip from parent
+        if (this.state === 'mounted' && animations) animations.forEach(([name, options]) => track.push(this.clips[name], options)); // instead of this.clips use this.getClip()? (able to get parent clip)
     }
 
     mergeInitialStyles(styles: ClipInitials, mode: 'mounted' | 'unmounted'): ClipInitials {
@@ -206,13 +206,13 @@ export default class Animator<T extends string> {
         let animations = this.lifeCycleAnimations[on],
             elapsed = 0;
 
-        if (animations) animations.forEach(animation => elapsed = Math.max(this.play(...animation), elapsed));
+        if (animations) animations.forEach(([name, opts]) => elapsed = Math.max(this.play(name, Object.assign(opts, options)), elapsed));
 
         return elapsed;
     }
 
     play(animation: T | Clip, { cascade = 'forward', delay = 0, tag, ...options }: AnimationOptions = {}) {
-        if (this.paused || (this.parent && !tag)) return 0; // if paused, still push animation, but pause?
+        if (this.paused || (this.parent && !tag)) return 0;
 
         let clip = typeof animation === 'string' ? this.clips[animation] : animation;
         if (tag && tag in this.clips) clip = this.clips[tag as T];

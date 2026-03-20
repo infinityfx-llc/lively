@@ -10,7 +10,7 @@ import { deleteMorphTarget, getMorphTarget, registerToLayoutGroup, unregisterFro
 import { TransitionOptions } from "./core/animation-link";
 
 export type AnimateTriggers<T extends string> = {
-    [key in T]?: AnimationTrigger[] | ({ on: AnimationTrigger } & AnimationOptions)[];
+    [key in T]?: (AnimationTrigger | { on: AnimationTrigger } & AnimationOptions)[];
 };
 
 export type AnimateProps<T extends string> = {
@@ -22,7 +22,7 @@ export type AnimateProps<T extends string> = {
     clips?: {
         [key in T]: ClipOptions | Clip;
     };
-    triggers?: AnimateTriggers<T | 'animate'>; // allow for easy reverse of same animation but different trigger
+    triggers?: AnimateTriggers<T | 'animate'>;
     stagger?: number;
     staggerLimit?: number;
     deformCorrection?: CorrectionAlignment | boolean;
@@ -122,7 +122,7 @@ export default function Animate<T extends string>({
             const previous = previousTriggers.current[animation];
 
             list.forEach((value, i) => {
-                if (previous[i] !== value && value !== false) animator.play(animation, options[i]);
+                if (previous[i] !== value && value !== false) animator.play(animation, Object.assign({ tag: animation }, options[i]));
 
                 previous[i] = value;
             });

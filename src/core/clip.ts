@@ -81,11 +81,12 @@ export default class Clip {
             duration: this.duration * 1000,
             delay: (this.delay + delay) * 1000,
             iterations: repeat,
-            directions: alternate ?
+            direction: alternate ?
                 (reverse ? 'alternate-reverse' as const : 'alternate' as const) :
                 (reverse ? 'reverse' as const : 'normal' as const),
             easing: this.easing,
             composite: composite === 'combine' ? 'accumulate' as const : 'replace' as const,
+            // fill: 'both' as const, // not needed?
             blendmode: composite,
             commit
         };

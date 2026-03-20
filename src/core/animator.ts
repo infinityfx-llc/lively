@@ -49,6 +49,7 @@ export default class Animator<T extends string> {
         [key in AnimatorEvent]?: Set<(...args: any) => void>;
     } = {};
     state: 'unmounted' | 'unmounting' | 'mounted' = 'unmounted';
+    isMounting = true;
     paused = false;
     timeout = 0;
     frame = 0;
@@ -112,12 +113,12 @@ export default class Animator<T extends string> {
     }
 
     dispose(morph?: string) {
-        this.stop();
         this.onDisposeLinks?.();
         cancelAnimationFrame(this.frame);
 
         this.trackList.forEach(track => track.cache = track.snapshot());
         this.state = 'unmounted';
+        this.stop();
 
         this.timeout = setTimeout(() => {
             unregisterAnimator(this.id);
@@ -297,6 +298,10 @@ export default class Animator<T extends string> {
 
     stop(animation?: T) {
         this.trackList.forEach(track => track.clear(animation));
+    }
+
+    hide() {
+        this.trackList.forEach(track => track.element.style.visibility = 'hidden');
     }
 
 }

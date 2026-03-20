@@ -58,8 +58,10 @@ export default function Animate<T extends string>({
     const parentId = use(AnimateContext);
     const layoutId = use(LayoutGroupContext);
 
+    const mounted = useRef(0);
+    const skipMount = useRef(registerToLayoutGroup(layoutId, id));
+
     const previousTriggers = useRef(serializeTriggers(triggers));
-    const morphTarget = useRef<Animator<any>>(null);
     const data = useRef<Animator<any>>(null);
     if (!data.current) {
         const animations: {
@@ -80,33 +82,32 @@ export default function Animate<T extends string>({
             staggerLimit
         });
 
-        animator.register(parentId, inherit);
+        animator.register(parentId, inherit, morph);
         animator.addLinks(animate);
     }
     const { current: animator } = data;
-    const skipMount = registerToLayoutGroup(layoutId, id); // could be causing problems with unmount logic?
 
     useImperativeHandle(ref, () => animator, []);
 
     useLayoutEffect(() => {
+        mounted.current = Date.now();
         animator.register(parentId, inherit, morph);
         animator.addLinks(animate);
 
         if (morph) {
-            const target = morphTarget.current || getMorphTarget(morph, id);
-            morphTarget.current = target; // figure out if there is a better way
+            const target = getMorphTarget(morph, id);
 
             if (target) {
                 animator.transition(target);
                 deleteMorphTarget(morph, target.id);
                 animator.state = 'mounted';
 
-                // if target is unmounting, immediately unmount somehow
+                target.hide(); // testing (should cancel unmount animation somehow)
             }
         }
 
-        const skipMount = registerToLayoutGroup(layoutId, id);
-        if (skipMount) animator.state = 'mounted';
+        registerToLayoutGroup(layoutId, id); // needed?
+        if (skipMount.current) animator.state = 'mounted';
 
         document.fonts.ready.finally(() => animator.mount());
 
@@ -114,10 +115,13 @@ export default function Animate<T extends string>({
         window.addEventListener('resize', updateAnimatorCache);
 
         return () => {
+            window.removeEventListener('resize', updateAnimatorCache);
+
+            // v Is needed to prevent double morph transitions
+            if (Date.now() - mounted.current < 2) return; // testing (probably breaks unmount and cascading animations)
+
             animator.dispose(morph);
             unregisterFromLayoutGroup(layoutId, id);
-
-            window.removeEventListener('resize', updateAnimatorCache);
         }
     }, []);
 
@@ -164,7 +168,7 @@ export default function Animate<T extends string>({
             let { ref, style } = (child as React.ReactElement<React.HTMLProps<any>>).props;
             style = mergeStyles(
                 style,
-                animator.mergeInitialStyles(initial, skipMount ? 'mounted' : 'unmounted'),
+                animator.mergeInitialStyles(initial, skipMount.current ? 'mounted' : 'unmounted'),
                 getInitialStyleFromLinks(animator.links, i)
             );
 

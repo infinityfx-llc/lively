@@ -39,8 +39,11 @@ export default function LayoutGroup({
         forEachAnimator(removed, animator => {
             if (animator.state === 'mounted') {
                 elapsed = Math.max(elapsed, animator.trigger('unmount', { cascade: 'reverse', composite: 'override' }));
-                animator.state = 'unmounting';
-                animator.dispatch('unmount');
+
+                if (elapsed) {
+                    animator.state = 'unmounting';
+                    animator.dispatch('unmount');
+                }
             }
         });
 
@@ -70,9 +73,9 @@ export default function LayoutGroup({
 
     useLayoutEffect(() => {
         forEachAnimator(data.animators, animator => {
-            if (animator.state !== 'mounted') return;
+            if (animator.state === 'mounted' && !animator.isMounting) animator.transition();
 
-            animator.transition();
+            animator.isMounting = false; // testing
         });
     }, [children]);
 

@@ -60,6 +60,7 @@ export default function Animate<T extends string>({
 
     const mounted = useRef(0);
     const skipMount = useRef(registerToLayoutGroup(layoutId, id));
+    const morphTarget = useRef<Animator<any>>(null);
 
     const previousTriggers = useRef(serializeTriggers(triggers));
     const data = useRef<Animator<any>>(null);
@@ -95,9 +96,11 @@ export default function Animate<T extends string>({
         animator.addLinks(animate);
 
         if (morph) {
-            const target = getMorphTarget(morph, id);
+            const target = morphTarget.current || getMorphTarget(morph, id);
+            morphTarget.current = target;
 
             if (target) {
+                animator.isMounting = true;
                 animator.transition(target);
                 deleteMorphTarget(morph, target.id);
                 animator.state = 'mounted';
@@ -116,9 +119,6 @@ export default function Animate<T extends string>({
 
         return () => {
             window.removeEventListener('resize', updateAnimatorCache);
-
-            // v Is needed to prevent double morph transitions
-            if (Date.now() - mounted.current < 2) return; // testing (probably breaks unmount and cascading animations)
 
             animator.dispose(morph);
             unregisterFromLayoutGroup(layoutId, id);

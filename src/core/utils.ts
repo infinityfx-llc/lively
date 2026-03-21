@@ -107,7 +107,7 @@ export function transformKeyframeList(list: ClipKeyframe[]) {
             offset: number;
         });
 
-        const current = keyframe.to || keyframe.after;
+        const current = keyframe.to ?? keyframe.after;
         if (last === current) equal++;
         last = current;
     }

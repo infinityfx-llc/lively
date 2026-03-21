@@ -1,8 +1,9 @@
-import { Easing } from "./clip";
+import { BlendMode, Easing } from "./clip";
 
 export type TransitionOptions = {
     duration?: number;
     easing?: Easing;
+    composite?: BlendMode;
 };
 
 export type AnimationLinkEvent = 'change';

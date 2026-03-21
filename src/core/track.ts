@@ -31,7 +31,7 @@ export default class Track {
     align: CorrectionAlignment;
     styles: CSSStyleDeclaration;
     cache: StyleCache;
-    scale: ScaleTuple = [1, 1];
+    scale: ScaleTuple;
     corrected: {
         borderRadius: string;
         boxShadow: string;
@@ -48,12 +48,24 @@ export default class Track {
         this.shouldCache = shouldCache;
         this.align = align;
 
+        this.scale = this.getScale();
         this.styles = getComputedStyle(element);
         this.cache = this.snapshot();
         this.corrected = {
             borderRadius: this.styles.borderRadius,
             boxShadow: this.styles.boxShadow
         };
+    }
+
+    getScale(): ScaleTuple {
+        if (this.element instanceof SVGElement) return [1, 1];
+
+        const { width, height } = this.element.getBoundingClientRect();
+
+        return [
+            clampLowerBound(width / this.element.offsetWidth),
+            clampLowerBound(height / this.element.offsetHeight)
+        ];
     }
 
     snapshot() {
@@ -127,7 +139,7 @@ export default class Track {
 
     transition(from = this.cache, options: TransitionOptions = {}) {
         const data = this.snapshot();
-        const keyframes: ClipOptions = { ...options, composite: 'override' };
+        const keyframes: ClipOptions = { composite: 'override', ...options };
         const scale = [1, 1], translate = [0, 0];
 
         for (const key of this.shouldCache) {
@@ -148,10 +160,10 @@ export default class Track {
         [
             new Clip(keyframes),
             new Clip({
-                ...options,
                 scale: [scale.join(' '), null], // use transform instead?
                 translate: [translate.map(num => `${num}px`).join(' '), null], // use transform instead?
-                composite: 'combine' // test if combine or override works better
+                composite: 'combine', // test if combine or override works better
+                ...options
             })
         ]
             .filter(clip => !clip.isEmpty)
@@ -194,11 +206,7 @@ export default class Track {
         const previousRadiusScale: ScaleTuple = this.styles.borderRadius !== this.corrected.borderRadius ? [1, 1] : this.scale;
         const previousShadowScale: ScaleTuple = this.styles.boxShadow !== this.corrected.boxShadow ? [1, 1] : this.scale;
 
-        const { width, height } = this.element.getBoundingClientRect();
-        this.scale = [
-            clampLowerBound(width / this.element.offsetWidth),
-            clampLowerBound(height / this.element.offsetHeight)
-        ];
+        this.scale = this.getScale();
 
         this.corrected = {
             borderRadius: scaleCorrectRadius(this.styles.borderRadius, this.scale, previousRadiusScale),

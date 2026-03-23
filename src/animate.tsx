@@ -54,7 +54,7 @@ export default function Animate<T extends string>({
     paused = false,
     onAnimationEnd
 }: AnimateProps<T>) {
-    const id = (triggers as any)._livelyId ?? '_la' + useId();
+    const id = (triggers as any)._livelyId ?? '_la' + useId(); // sometimes produces duplicate ids? (morphs inside layoutgroup)
     const parentId = use(AnimateContext);
     const layoutId = use(LayoutGroupContext);
 
@@ -103,7 +103,7 @@ export default function Animate<T extends string>({
                 animator.isMounting = true;
                 animator.transition(target);
                 deleteMorphTarget(morph, target.id);
-                animator.state = 'mounted';
+                animator.state = 'mounted'; // should add mounted initial styles shomehow as well (only if not swapping/reversing)
 
                 target.hide(); // testing (should cancel unmount animation somehow)
             }

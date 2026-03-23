@@ -278,7 +278,7 @@ export default class Animator<T extends string> {
     }
 
     transition(from?: Animator<any>, options: TransitionOptions = this.defaultTransitionOptions) {
-        if (this.paused) return;
+        if (this.paused || !this.cache.length) return;
 
         this.trackList.forEach((track, i) => {
             const { cache } = from && i < from.tracks.size ? from.trackList[i] : {};

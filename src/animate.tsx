@@ -1,6 +1,6 @@
 'use client';
 
-import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef } from "react";
+import { Children, cloneElement, createContext, isValidElement, use, useEffect, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import Animator, { AnimationOptions, AnimationTrigger } from "./core/animator";
 import Clip, { ClipInitials, ClipKey, ClipOptions } from "./core/clip";
 import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, getInitialStyleFromLinks, mergeStyles } from "./core/utils";
@@ -54,12 +54,10 @@ export default function Animate<T extends string>({
     paused = false,
     onAnimationEnd
 }: AnimateProps<T>) {
-    const id = (triggers as any)._livelyId ?? '_la' + useId(); // sometimes produces duplicate ids? (morphs inside layoutgroup)
     const parentId = use(AnimateContext);
     const layoutId = use(LayoutGroupContext);
 
     const mounted = useRef(0);
-    const skipMount = useRef(registerToLayoutGroup(layoutId, id));
     const morphTarget = useRef<Animator<any>>(null);
 
     const previousTriggers = useRef(serializeTriggers(triggers));
@@ -74,7 +72,7 @@ export default function Animate<T extends string>({
         for (const name in clips) animations[name] = clips[name] instanceof Clip ? clips[name] : new Clip(clips[name], initial);
 
         const animator = data.current = new Animator({
-            id,
+            id: (triggers as any)._livelyId,
             clips: animations,
             lifeCycleAnimations: getLifeCycleAnimations(triggers),
             deformCorrection,
@@ -87,6 +85,7 @@ export default function Animate<T extends string>({
         animator.addLinks(animate);
     }
     const { current: animator } = data;
+    const skipMount = useRef(registerToLayoutGroup(layoutId, animator.id));
 
     useImperativeHandle(ref, () => animator, []);
 
@@ -96,20 +95,21 @@ export default function Animate<T extends string>({
         animator.addLinks(animate);
 
         if (morph) {
-            const target = morphTarget.current || getMorphTarget(morph, id);
+            const target = morphTarget.current || getMorphTarget(morph, animator.id);
             morphTarget.current = target;
 
             if (target) {
                 animator.isMounting = true;
                 animator.transition(target);
                 deleteMorphTarget(morph, target.id);
-                animator.state = 'mounted'; // should add mounted initial styles shomehow as well (only if not swapping/reversing)
+                animator.state = 'mounted'; // should add mounted initial styles somehow as well (only if not swapping/reversing)
+                skipMount.current = true; // testing ^
 
                 target.hide(); // testing (should cancel unmount animation somehow)
             }
         }
 
-        registerToLayoutGroup(layoutId, id); // needed?
+        registerToLayoutGroup(layoutId, animator.id); // needed?
         if (skipMount.current) animator.state = 'mounted';
 
         document.fonts.ready.finally(() => animator.mount());
@@ -121,7 +121,7 @@ export default function Animate<T extends string>({
             window.removeEventListener('resize', updateAnimatorCache);
 
             animator.dispose(morph);
-            unregisterFromLayoutGroup(layoutId, id);
+            unregisterFromLayoutGroup(layoutId, animator.id);
         }
     }, []);
 
@@ -161,7 +161,7 @@ export default function Animate<T extends string>({
 
     useEffect(() => animator.setPlayState(paused), [paused]);
 
-    return <AnimateContext value={id}>
+    return <AnimateContext value={animator.id}>
         {Children.map(children, (child, i) => {
             if (!isValidElement(child)) return child;
 
@@ -179,7 +179,7 @@ export default function Animate<T extends string>({
                 ),
                 style,
                 ['pathLength' as any]: 'strokeDasharray' in style ? 1 : undefined,
-                ['data-lively' as any]: id
+                ['data-lively' as any]: animator.id
             });
         })}
     </AnimateContext>;

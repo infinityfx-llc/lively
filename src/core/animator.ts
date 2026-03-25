@@ -2,7 +2,7 @@ import AnimationLink, { TransitionOptions } from "./animation-link";
 import Clip, { ClipConfig, ClipInitials, ClipKey, ClipOptions } from "./clip";
 import { deleteMorphTarget, getParentAnimator, registerAnimator, registerAsMorph, unregisterAnimator } from "./state";
 import Track, { CacheKey, CorrectionAlignment } from "./track";
-import { extractAnimationLinks } from "./utils";
+import { extractAnimationLinks, randId } from "./utils";
 
 export type LifeCycleTrigger = 'mount' | 'unmount';
 
@@ -55,7 +55,7 @@ export default class Animator<T extends string> {
     frame = 0;
 
     constructor({ id, clips, lifeCycleAnimations, deformCorrection, transition, stagger, staggerLimit }: {
-        id: string;
+        id?: string;
         clips: {
             [key in T]: Clip;
         };
@@ -71,7 +71,7 @@ export default class Animator<T extends string> {
     }) {
         const { cache, ...options } = transition || {};
 
-        this.id = id;
+        this.id = id ?? randId();
         this.clips = clips;
         this.lifeCycleAnimations = lifeCycleAnimations;
         this.ignoreScaleDeformation = deformCorrection === undefined ? false : !deformCorrection;
@@ -176,6 +176,7 @@ export default class Animator<T extends string> {
         this.trackList.splice(index, 0, track);
 
         if (this.state === 'mounted' && animations) animations.forEach(([name, options]) => track.push(this.clips[name], options)); // instead of this.clips use this.getClip()? (able to get parent clip)
+        // ^ would also need to cascade lifeCycleAnimations?
     }
 
     mergeInitialStyles(styles: ClipInitials, mode: 'mounted' | 'unmounted'): ClipInitials {

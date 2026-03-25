@@ -6,6 +6,13 @@ import AnimationLink from "./animation-link";
 import { getParentAnimator } from "./state";
 import { CorrectionAlignment } from "./track";
 
+export function randId() {
+    const l = ('' + Date.now()).slice(-8);
+    const r = ('' + Math.random()).slice(2, 10);
+
+    return l + r.padEnd(8, '0');
+}
+
 export const keyframeEpsilon = .0001;
 
 export function clampLowerBound(num: number, precision = 8) {

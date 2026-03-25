@@ -36,9 +36,10 @@ export default function LayoutGroup({
 
         forEachAnimator(removed, animator => {
             if (animator.state === 'mounted') {
-                animator.delayUnmountUntil = Date.now() + 1000 * animator.trigger('unmount', { cascade: 'reverse', composite: 'override' });
+                const delay = animator.trigger('unmount', { cascade: 'reverse', composite: 'override' });
+                animator.delayUnmountUntil = Date.now() + 1000 * delay;
 
-                if (animator.delayUnmountUntil) {
+                if (delay) {
                     animator.state = 'unmounting';
                     animator.dispatch('unmount');
                 }

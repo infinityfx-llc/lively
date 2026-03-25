@@ -107,6 +107,7 @@ export default function Animate<T extends string>({
                 skipMount.current = true; // testing ^ (doesn't work, will need force re-render)
 
                 target.delayUnmountUntil = 0;
+                // ^ doesn't work instantly..
             }
         }
 
@@ -147,7 +148,8 @@ export default function Animate<T extends string>({
 
             animator.links[key as ClipKey]!.set(value, {
                 duration: animate.duration,
-                easing: animate.easing
+                easing: animate.easing,
+                composite: animate.composite
             });
         }
     }, [animate]);

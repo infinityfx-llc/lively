@@ -6,13 +6,6 @@ import AnimationLink from "./animation-link";
 import { getParentAnimator } from "./state";
 import { CorrectionAlignment } from "./track";
 
-export function randId() {
-    const l = ('' + Date.now()).slice(-8);
-    const r = ('' + Math.random()).slice(2, 10);
-
-    return l + r.padEnd(8, '0');
-}
-
 export const keyframeEpsilon = .0001;
 
 export function clampLowerBound(num: number, precision = 8) {
@@ -226,7 +219,7 @@ export function correctForParentScale(element: HTMLElement, offset: [number, num
     element.style.transform = `translate(${dx - offset[0] * 2}px, ${dy - offset[1] * 2}px) scale(${x}, ${y}) translate(${offset[0] / x}px, ${offset[1] / y}px)`;
 }
 
-export function filterRemovedAnimators(children: React.ReactNode, toRemove: Set<string>, prefix = '_la') {
+export function filterRemovedAnimators(children: React.ReactNode, toRemove: Set<string>, prefix: string) {
     const array = Array.isArray(children) ? children : [children];
 
     for (let i = 0; i < array.length; i++) {

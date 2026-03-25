@@ -2,7 +2,7 @@ import AnimationLink, { TransitionOptions } from "./animation-link";
 import Clip, { ClipConfig, ClipInitials, ClipKey, ClipOptions } from "./clip";
 import { deleteMorphTarget, getParentAnimator, registerAnimator, registerAsMorph, unregisterAnimator } from "./state";
 import Track, { CacheKey, CorrectionAlignment } from "./track";
-import { extractAnimationLinks, randId } from "./utils";
+import { extractAnimationLinks } from "./utils";
 
 export type LifeCycleTrigger = 'mount' | 'unmount';
 
@@ -49,13 +49,14 @@ export default class Animator<T extends string> {
         [key in AnimatorEvent]?: Set<(...args: any) => void>;
     } = {};
     state: 'unmounted' | 'unmounting' | 'mounted' = 'unmounted';
+    delayUnmountUntil = 0;
     isMounting = true;
     paused = false;
     timeout = 0;
     frame = 0;
 
     constructor({ id, clips, lifeCycleAnimations, deformCorrection, transition, stagger, staggerLimit }: {
-        id?: string;
+        id: string;
         clips: {
             [key in T]: Clip;
         };
@@ -71,7 +72,7 @@ export default class Animator<T extends string> {
     }) {
         const { cache, ...options } = transition || {};
 
-        this.id = id ?? randId();
+        this.id = id;
         this.clips = clips;
         this.lifeCycleAnimations = lifeCycleAnimations;
         this.ignoreScaleDeformation = deformCorrection === undefined ? false : !deformCorrection;
@@ -299,10 +300,6 @@ export default class Animator<T extends string> {
 
     stop(animation?: T) {
         this.trackList.forEach(track => track.clear(animation));
-    }
-
-    hide() {
-        this.trackList.forEach(track => track.element.style.visibility = 'hidden');
     }
 
 }

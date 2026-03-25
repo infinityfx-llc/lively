@@ -1,6 +1,6 @@
 'use client';
 
-import { Children, cloneElement, createContext, isValidElement, use, useEffect, useImperativeHandle, useLayoutEffect, useRef } from "react";
+import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import Animator, { AnimationOptions, AnimationTrigger } from "./core/animator";
 import Clip, { ClipInitials, ClipKey, ClipOptions } from "./core/clip";
 import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, getInitialStyleFromLinks, mergeStyles } from "./core/utils";
@@ -54,6 +54,7 @@ export default function Animate<T extends string>({
     paused = false,
     onAnimationEnd
 }: AnimateProps<T>) {
+    const id = (triggers as any)._livelyId ?? '_la' + useId();
     const parentId = use(AnimateContext);
     const layoutId = use(LayoutGroupContext);
 
@@ -72,7 +73,7 @@ export default function Animate<T extends string>({
         for (const name in clips) animations[name] = clips[name] instanceof Clip ? clips[name] : new Clip(clips[name], initial);
 
         const animator = data.current = new Animator({
-            id: (triggers as any)._livelyId,
+            id,
             clips: animations,
             lifeCycleAnimations: getLifeCycleAnimations(triggers),
             deformCorrection,
@@ -103,9 +104,9 @@ export default function Animate<T extends string>({
                 animator.transition(target);
                 deleteMorphTarget(morph, target.id);
                 animator.state = 'mounted'; // should add mounted initial styles somehow as well (only if not swapping/reversing)
-                skipMount.current = true; // testing ^
+                skipMount.current = true; // testing ^ (doesn't work, will need force re-render)
 
-                target.hide(); // testing (should cancel unmount animation somehow)
+                target.delayUnmountUntil = 0;
             }
         }
 

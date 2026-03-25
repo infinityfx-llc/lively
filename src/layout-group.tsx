@@ -17,12 +17,11 @@ export default function LayoutGroup({
 }) {
     const id = '_lg' + useId();
     const timeout = useRef(0);
-    const unmountingEnds = useRef(0);
     const content = useRef(children);
     const data = registerLayoutGroup(id, skipInitialMount);
     const [_, forceUpdate] = useState(0);
 
-    const removed = filterRemovedAnimators(children, new Set(data.animators));
+    const removed = filterRemovedAnimators(children, new Set(data.animators), `${id}_la_`);
 
     if (removed.size) {
         if (mode === 'sync') { // only works for non-nested children
@@ -35,23 +34,22 @@ export default function LayoutGroup({
             content.current = updated;
         }
 
-        let elapsed = 0;
         forEachAnimator(removed, animator => {
             if (animator.state === 'mounted') {
-                elapsed = Math.max(elapsed, animator.trigger('unmount', { cascade: 'reverse', composite: 'override' }));
+                animator.delayUnmountUntil = Date.now() + 1000 * animator.trigger('unmount', { cascade: 'reverse', composite: 'override' });
 
-                if (elapsed) {
+                if (animator.delayUnmountUntil) {
                     animator.state = 'unmounting';
                     animator.dispatch('unmount');
                 }
             }
         });
-
-        unmountingEnds.current = Math.max(unmountingEnds.current, Date.now() + elapsed * 1000);
     }
 
+    let endsAt = 0;
+    forEachAnimator(data.animators, animator => endsAt = Math.max(endsAt, animator.delayUnmountUntil));
+    const unmountingDelay = endsAt - Date.now();
     clearTimeout(timeout.current);
-    const unmountingDelay = unmountingEnds.current - Date.now();
 
     if (unmountingDelay > 0) {
         forEachAnimator(data.animators, animator => {
@@ -75,7 +73,7 @@ export default function LayoutGroup({
         forEachAnimator(data.animators, animator => {
             if (animator.state === 'mounted' && !animator.isMounting) animator.transition();
 
-            animator.isMounting = false; // testing
+            animator.isMounting = false;
         });
     }, [children]);
 

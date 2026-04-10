@@ -1,7 +1,7 @@
 import { TransitionOptions } from "./animation-link";
 import { AnimationOptions } from "./animator";
 import Clip, { BlendMode, ClipKey, ClipOptions } from "./clip";
-import { clampLowerBound, correctForParentScale, scaleCorrectRadius, scaleCorrectShadow, ScaleTuple } from "./utils";
+import { clampLowerBound, correctForParentScale, getElementBounds, scaleCorrectRadius, scaleCorrectShadow, ScaleTuple } from "./utils";
 
 export type CacheKey = Exclude<ClipKey, 'scale' | 'translate'> | 'x' | 'y' | 'sx' | 'sy';
 
@@ -31,41 +31,22 @@ export default class Track {
     align: CorrectionAlignment;
     styles: CSSStyleDeclaration;
     cache: StyleCache;
-    scale: ScaleTuple;
-    corrected: {
-        borderRadius: string;
-        boxShadow: string;
-    };
+    scale: ScaleTuple = [1, 1];
     correctionAnimation: Animation | null = null;
     queue: TrackAnimation[] = [];
     animations: TrackAnimation[] = [];
     active = 0;
     timeout = 0;
-    correctAfterEnded = false;
+    correctAfterEnded = true;
 
     constructor(element: HTMLElement | SVGElement, shouldCache: CacheKey[], align: CorrectionAlignment) {
         this.element = element;
         this.shouldCache = shouldCache;
         this.align = align;
 
-        this.scale = this.getScale();
         this.styles = getComputedStyle(element);
         this.cache = this.snapshot();
-        this.corrected = {
-            borderRadius: this.styles.borderRadius,
-            boxShadow: this.styles.boxShadow
-        };
-    }
-
-    getScale(): ScaleTuple {
-        if (this.element instanceof SVGElement) return [1, 1];
-
-        const { width, height } = this.element.getBoundingClientRect();
-
-        return [
-            clampLowerBound(width / this.element.offsetWidth),
-            clampLowerBound(height / this.element.offsetHeight)
-        ];
+        this.correct();
     }
 
     snapshot() {
@@ -75,22 +56,11 @@ export default class Track {
         // @ts-expect-error
         for (const key of this.shouldCache) data[key] = this.styles[key];
 
-        const { width, height, x, y } = this.element.getBoundingClientRect(); // breaks with scrolling?
+        const { x, y, width, height } = getElementBounds(this.element);
         data.sx = width;
         data.sy = height;
-        data.x = x + width / 2;
-        data.y = y + height / 2;
-
-        let parent: HTMLElement | null = this.element;
-        while (parent = parent?.parentElement) {
-            if (parent.dataset.lively) {
-                const { x, y } = parent.getBoundingClientRect(); // also compensate width/height?
-                data.x -= x;
-                data.y -= y;
-
-                break;
-            }
-        }
+        data.x = x;
+        data.y = y;
 
         return data;
     }
@@ -202,19 +172,16 @@ export default class Track {
         if (!this.animations.length && !this.correctAfterEnded) return;
         this.correctAfterEnded = false;
 
-        this.correctionAnimation?.cancel();
-        const previousRadiusScale: ScaleTuple = this.styles.borderRadius !== this.corrected.borderRadius ? [1, 1] : this.scale;
-        const previousShadowScale: ScaleTuple = this.styles.boxShadow !== this.corrected.boxShadow ? [1, 1] : this.scale;
+        this.correctionAnimation?.cancel(); // needs reflow to work?
+        this.scale = getElementBounds(this.element).scale;
 
-        this.scale = this.getScale();
-
-        this.corrected = {
-            borderRadius: scaleCorrectRadius(this.styles.borderRadius, this.scale, previousRadiusScale),
-            boxShadow: scaleCorrectShadow(this.styles.boxShadow, this.scale, previousShadowScale)
+        const corrected = {
+            borderRadius: scaleCorrectRadius(this.styles.borderRadius, this.scale),
+            boxShadow: scaleCorrectShadow(this.styles.boxShadow, this.scale)
         };
 
-        if (this.corrected.borderRadius !== this.styles.borderRadius ||
-            this.corrected.boxShadow !== this.styles.boxShadow) this.correctionAnimation = this.element.animate(this.corrected, {
+        if (corrected.borderRadius !== this.styles.borderRadius ||
+            corrected.boxShadow !== this.styles.boxShadow) this.correctionAnimation = this.element.animate(corrected, {
                 duration: 0,
                 fill: 'forwards'
             });

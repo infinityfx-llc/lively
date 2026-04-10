@@ -155,7 +155,62 @@ export function parseClipKeyframes(keyframes: ClipKeyframes, initial: ClipInitia
 
 export type ScaleTuple = readonly [number, number];
 
-export function scaleCorrectRadius(radius: string, scale: ScaleTuple, previousScale: ScaleTuple) {
+export function parseIndiviualTransform(value: string, defaultValue = [0, 0]) {
+    if (!value || value === 'none') return defaultValue;
+
+    const nums = value.split(/\s+/).map(parseFloat);
+    if (nums.length < 2) nums[1] = nums[0];
+
+    return nums;
+}
+
+export function getElementBounds(element: HTMLElement) { // refactor
+    let x = 0,
+        y = 0,
+        sx = 1,
+        sy = 1,
+        el = element as HTMLElement | null,
+        reachedBoundary = false;
+
+    while (el instanceof HTMLElement) {
+        if (el !== element && el.dataset.lively) reachedBoundary = true;
+
+        const { transform, scale, translate } = getComputedStyle(el);
+        const [_, matrix] = transform.match(/^matrix(?:3d)?\((.+)\)$/) || [];
+
+        let mtx = 0, mty = 0;
+        if (matrix) {
+            const [a, b, c, d, tx, ty] = matrix.split(',').map(parseFloat);
+            sx *= Math.sqrt(a * a + b * b);
+            sy *= Math.sqrt(c * c + d * d);
+            mtx = tx;
+            mty = ty;
+        }
+
+        const [isx, isy] = parseIndiviualTransform(scale, [1, 1]);
+        sx *= isx;
+        sy *= isy;
+
+        if (!reachedBoundary) {
+            const [tx, ty] = parseIndiviualTransform(translate);
+
+            x += el.offsetLeft + tx + mtx; // works with scrolling, but not for position: fixed
+            y += el.offsetTop + ty + mty;
+        }
+
+        el = el.parentElement;
+    }
+
+    return {
+        scale: [clampLowerBound(sx), clampLowerBound(sy)] as ScaleTuple,
+        width: element.offsetWidth * sx,
+        height: element.offsetHeight * sy,
+        x: x + element.offsetWidth * .5,
+        y: y + element.offsetHeight * .5
+    };
+}
+
+export function scaleCorrectRadius(radius: string, scale: ScaleTuple) {
     if (/^\s*$|0px/.test(radius)) return radius;
 
     const array = radius.split(/\s*\/\s*/);
@@ -163,12 +218,12 @@ export function scaleCorrectRadius(radius: string, scale: ScaleTuple, previousSc
 
     return array.map((axis, i) => {
         return axis.split(' ').map(radius => {
-            return parseFloat(radius) * previousScale[i] / scale[i] + (radius.match(/[^\d\.]+$/)?.[0] || 'px');
+            return parseFloat(radius) / scale[i] + (radius.match(/[^\d\.]+$/)?.[0] || 'px');
         }).join(' ');
     }).join('/');
 }
 
-export function scaleCorrectShadow(shadow: string, scale: ScaleTuple, previousScale: ScaleTuple) {
+export function scaleCorrectShadow(shadow: string, scale: ScaleTuple) {
     if (/^\s*$|none/.test(shadow)) return shadow;
 
     const [color, params, inset] = shadow
@@ -178,11 +233,11 @@ export function scaleCorrectShadow(shadow: string, scale: ScaleTuple, previousSc
     if (!params) return '';
 
     const [ofx, ofy, blr, spr] = params.split(' ').map(parseFloat);
-    const ratio = Math.max(...previousScale) / Math.max(...scale);
+    const ratio = 1 / Math.max(...scale);
 
     const shadows = new Array<number[]>(3).fill([
-        ofx * previousScale[0] / scale[0],
-        ofy * previousScale[1] / scale[1],
+        ofx / scale[0],
+        ofy / scale[1],
         blr * ratio,
         spr * ratio
     ]);
@@ -210,9 +265,9 @@ export function correctForParentScale(element: HTMLElement, offset: [number, num
 
     if (!parent || !animator || !animator.trackList.some(track => track.animations.length || track.correctAfterEnded)) return;
 
-    const { width, height } = parent.getBoundingClientRect();
-    const x = clampLowerBound(parent.offsetWidth / width),
-        y = clampLowerBound(parent.offsetHeight / height);
+    const { scale } = getElementBounds(parent);
+    const x = 1 / scale[0];
+    const y = 1 / scale[1];
     const dx = align.x === 'center' ? 0 : (element.offsetWidth - element.offsetWidth * x) / 2 * (align.x === 'right' ? 1 : -1);
     const dy = align.y === 'center' ? 0 : (element.offsetHeight - element.offsetHeight * y) / 2 * (align.y === 'bottom' ? 1 : -1);
 

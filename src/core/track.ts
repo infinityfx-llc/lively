@@ -172,7 +172,7 @@ export default class Track {
         if (!this.animations.length && !this.correctAfterEnded) return;
         this.correctAfterEnded = false;
 
-        this.correctionAnimation?.cancel(); // needs reflow to work?
+        this.correctionAnimation?.cancel();
         this.scale = getElementBounds(this.element).scale;
 
         const corrected = {

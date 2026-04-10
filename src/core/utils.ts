@@ -164,9 +164,9 @@ export function parseIndiviualTransform(value: string, defaultValue = [0, 0]) {
     return nums;
 }
 
-export function getElementBounds(element: HTMLElement) { // refactor
-    let x = 0,
-        y = 0,
+export function getElementBounds(element: HTMLElement) {
+    let x = element.offsetWidth * .5,
+        y = element.offsetHeight * .5,
         sx = 1,
         sy = 1,
         el = element as HTMLElement | null,
@@ -178,13 +178,15 @@ export function getElementBounds(element: HTMLElement) { // refactor
         const { transform, scale, translate } = getComputedStyle(el);
         const [_, matrix] = transform.match(/^matrix(?:3d)?\((.+)\)$/) || [];
 
-        let mtx = 0, mty = 0;
         if (matrix) {
             const [a, b, c, d, tx, ty] = matrix.split(',').map(parseFloat);
             sx *= Math.sqrt(a * a + b * b);
             sy *= Math.sqrt(c * c + d * d);
-            mtx = tx;
-            mty = ty;
+
+            if (!reachedBoundary) {
+                x += tx;
+                y += ty;
+            }
         }
 
         const [isx, isy] = parseIndiviualTransform(scale, [1, 1]);
@@ -194,8 +196,8 @@ export function getElementBounds(element: HTMLElement) { // refactor
         if (!reachedBoundary) {
             const [tx, ty] = parseIndiviualTransform(translate);
 
-            x += el.offsetLeft + tx + mtx; // works with scrolling, but not for position: fixed
-            y += el.offsetTop + ty + mty;
+            x += el.offsetLeft + tx; // works with scrolling, but not for position: fixed
+            y += el.offsetTop + ty;
         }
 
         el = el.parentElement;
@@ -205,8 +207,8 @@ export function getElementBounds(element: HTMLElement) { // refactor
         scale: [clampLowerBound(sx), clampLowerBound(sy)] as ScaleTuple,
         width: element.offsetWidth * sx,
         height: element.offsetHeight * sy,
-        x: x + element.offsetWidth * .5,
-        y: y + element.offsetHeight * .5
+        x,
+        y
     };
 }
 

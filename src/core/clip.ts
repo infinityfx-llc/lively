@@ -92,19 +92,4 @@ export default class Clip {
         };
     }
 
-    static mergeInitialStyles(clips: Clip[], styles: ClipInitials, mounted = false): ClipInitials {
-        const merged = {
-            backfaceVisibility: 'hidden',
-            willChange: 'transform'
-        };
-
-        for (const clip of clips) {
-            const index = mounted !== clip.reverse ? clip.keyframes.length - 1 : 0;
-            const { offset, ...styles } = clip.keyframes[index];
-            Object.assign(merged, styles);
-        }
-
-        return Object.assign(merged, styles);
-    }
-
 }

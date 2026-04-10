@@ -1,6 +1,6 @@
 'use client';
 
-import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef } from "react";
+import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import Animator, { AnimationOptions, AnimationTrigger } from "./core/animator";
 import Clip, { ClipInitials, ClipKey, ClipOptions } from "./core/clip";
 import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, getInitialStyleFromLinks, mergeStyles } from "./core/utils";
@@ -86,7 +86,7 @@ export default function Animate<T extends string>({
         animator.addLinks(animate);
     }
     const { current: animator } = data;
-    const skipMount = useRef(registerToLayoutGroup(layoutId, animator.id));
+    const [skipMount, setSkipMount] = useState(registerToLayoutGroup(layoutId, animator.id));
 
     useImperativeHandle(ref, () => animator, []);
 
@@ -103,16 +103,16 @@ export default function Animate<T extends string>({
                 animator.isMounting = true;
                 animator.transition(target);
                 deleteMorphTarget(morph, target.id);
-                animator.state = 'mounted'; // should add mounted initial styles somehow as well (only if not swapping/reversing)
-                skipMount.current = true; // testing ^ (doesn't work, will need force re-render)
+                animator.state = 'mounted';
+                setSkipMount(true);
 
                 target.delayUnmountUntil = 0;
-                // ^ doesn't work instantly..
+                target.unmount(); // testing
             }
         }
 
         registerToLayoutGroup(layoutId, animator.id); // needed?
-        if (skipMount.current) animator.state = 'mounted';
+        if (skipMount) animator.state = 'mounted';
 
         document.fonts.ready.finally(() => animator.mount());
 
@@ -171,7 +171,7 @@ export default function Animate<T extends string>({
             let { ref, style } = (child as React.ReactElement<React.HTMLProps<any>>).props;
             style = mergeStyles(
                 style,
-                animator.mergeInitialStyles(initial, skipMount.current ? 'mounted' : 'unmounted'),
+                animator.mergeInitialStyles(initial, skipMount ? 'mounted' : 'unmounted'),
                 getInitialStyleFromLinks(animator.links, i)
             );
 

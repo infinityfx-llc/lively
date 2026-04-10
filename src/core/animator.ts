@@ -183,13 +183,25 @@ export default class Animator<T extends string> {
     mergeInitialStyles(styles: ClipInitials, mode: 'mounted' | 'unmounted'): ClipInitials {
         if (mode in this.initialStyles) return this.initialStyles[mode]!;
 
-        const animations = this.lifeCycleAnimations.mount || [],
-            clips = animations
-                .map(([name]) => this.clips[name]) // take into account options.reverse?
-                .filter(clip => !clip.isEmpty);
+        const reversed = mode === 'mounted';
+        const clips = (this.lifeCycleAnimations.mount || [])
+            .map(([name, options]) => [this.clips[name], (options.reverse || false) !== reversed] as const)
+            .filter(([clip]) => !clip.isEmpty);
 
         if (clips.length) {
-            styles = Clip.mergeInitialStyles(clips, styles, mode === 'mounted');
+            const merged = {
+                backfaceVisibility: 'hidden',
+                willChange: 'transform'
+            };
+
+            for (const [clip, reversed] of clips) {
+                const index = reversed !== clip.reverse ? clip.keyframes.length - 1 : 0;
+                const { offset, ...styles } = clip.keyframes[index];
+
+                Object.assign(merged, styles);
+            }
+
+            styles = Object.assign(merged, styles);
         } else
             if (this.parent) {
                 styles = this.parent.mergeInitialStyles(styles, mode);
@@ -300,6 +312,10 @@ export default class Animator<T extends string> {
 
     stop(animation?: T) {
         this.trackList.forEach(track => track.clear(animation));
+    }
+
+    unmount() {
+        this.trackList.forEach(track => track.element.style.display = 'none');
     }
 
 }

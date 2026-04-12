@@ -86,7 +86,7 @@ export default class Clip {
                 (reverse ? 'reverse' as const : 'normal' as const),
             easing: this.easing,
             composite: composite === 'combine' ? 'accumulate' as const : 'replace' as const,
-            fill: 'both' as const,
+            fill: commit ? 'both' as const : 'none' as const,
             blendmode: composite,
             commit
         };

@@ -108,6 +108,8 @@ export default class Track {
     }
 
     transition(from = this.cache, options: TransitionOptions = {}) {
+        this.clear('layout-transition'); // testing
+        
         const data = this.snapshot();
         const keyframes: ClipOptions = { composite: 'override', ...options };
         const scale = [1, 1], translate = [0, 0];
@@ -137,7 +139,7 @@ export default class Track {
             })
         ]
             .filter(clip => !clip.isEmpty)
-            .forEach(clip => this.push(clip, { commit: false }));
+            .forEach(clip => this.push(clip, { commit: false, tag: 'layout-transition' }));
 
         this.cache = data;
     }

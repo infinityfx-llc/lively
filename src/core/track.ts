@@ -175,7 +175,7 @@ export default class Track {
         this.correctAfterEnded = false;
 
         this.correctionAnimation?.cancel();
-        this.scale = getElementBounds(this.element).scale;
+        this.scale = getElementBounds(this.element, true).scale;
 
         const corrected = {
             borderRadius: scaleCorrectRadius(this.styles.borderRadius, this.scale),

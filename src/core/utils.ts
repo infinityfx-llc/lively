@@ -156,7 +156,7 @@ export function parseClipKeyframes(keyframes: ClipKeyframes, initial: ClipInitia
 export type ScaleTuple = readonly [number, number];
 
 export function parseIndiviualTransform(value: string, defaultValue = [0, 0]) {
-    if (!value || value === 'none') return defaultValue;
+    if (!value || /none/.test(value)) return defaultValue;
 
     const nums = value.split(/\s+/).map(parseFloat);
     if (nums.length < 2) nums[1] = nums[0];
@@ -164,49 +164,73 @@ export function parseIndiviualTransform(value: string, defaultValue = [0, 0]) {
     return nums;
 }
 
-export function getElementBounds(element: HTMLElement) {
+export function parseMatrixTransform(transform: string) {
+    const [_, matrix] = transform.match(/^matrix(?:3d)?\((.+)\)$/) || [];
+    if (!matrix) return [1, 1, 0, 0] as const;
+
+    const [a, b, c, d, tx, ty] = matrix.split(',').map(parseFloat);
+    return [
+        Math.sqrt(a * a + b * b),
+        Math.sqrt(c * c + d * d),
+        tx,
+        ty
+    ] as const;
+}
+
+export function getElementTransform(element: HTMLElement) {
+    const { transform, scale, translate } = getComputedStyle(element);
+    const [msx, msy, mtx, mty] = parseMatrixTransform(transform);
+    const [sx, sy] = parseIndiviualTransform(scale, [1, 1]);
+    const [tx, ty] = parseIndiviualTransform(translate);
+
+    return [msx * sx, msy * sy, mtx + tx, mty + ty] as const;
+}
+
+// figure out: fluid navigation.menu has weird morph jump/glitch, maybe cause of this?
+export function getElementBounds(element: HTMLElement, skipOffsetCalculation = false) { // refactor
+    const scale: [number, number] = [1, 1];
+
     let x = element.offsetWidth * .5,
         y = element.offsetHeight * .5,
-        sx = 1,
-        sy = 1,
-        el = element as HTMLElement | null,
-        reachedBoundary = false;
+        el: HTMLElement | null = element,
+        nextOffsetParent: Element | null = element,
+        reachedBoundary = skipOffsetCalculation;
 
     while (el instanceof HTMLElement) {
         if (el !== element && el.dataset.lively) reachedBoundary = true;
 
-        const { transform, scale, translate } = getComputedStyle(el);
-        const [_, matrix] = transform.match(/^matrix(?:3d)?\((.+)\)$/) || [];
+        const { left, top, position } = getComputedStyle(el);
+        const [sx, sy, tx, ty] = getElementTransform(el);
+        scale[0] *= sx;
+        scale[1] *= sy;
 
-        if (matrix) {
-            const [a, b, c, d, tx, ty] = matrix.split(',').map(parseFloat);
-            sx *= Math.sqrt(a * a + b * b);
-            sy *= Math.sqrt(c * c + d * d);
+        if (!reachedBoundary && position === 'fixed') {
+            const [ftx, fty] = parseIndiviualTransform(`${left} ${top}`);
 
-            if (!reachedBoundary) {
-                x += tx;
-                y += ty;
+            x += tx + ftx + window.scrollX;
+            y += ty + fty + window.scrollY;
+
+            reachedBoundary = true;
+        }
+
+        if (!reachedBoundary) {
+            x += tx;
+            y += ty;
+
+            if (el === nextOffsetParent) {
+                x += el.offsetLeft;
+                y += el.offsetTop;
             }
         }
 
-        const [isx, isy] = parseIndiviualTransform(scale, [1, 1]);
-        sx *= isx;
-        sy *= isy;
-
-        if (!reachedBoundary) {
-            const [tx, ty] = parseIndiviualTransform(translate);
-
-            x += el.offsetLeft + tx; // works with scrolling, but not for position: fixed
-            y += el.offsetTop + ty;
-        }
-
+        nextOffsetParent = el.offsetParent;
         el = el.parentElement;
     }
 
     return {
-        scale: [clampLowerBound(sx), clampLowerBound(sy)] as ScaleTuple,
-        width: element.offsetWidth * sx,
-        height: element.offsetHeight * sy,
+        scale: scale.map(clampLowerBound) as unknown as ScaleTuple,
+        width: element.offsetWidth * scale[0],
+        height: element.offsetHeight * scale[1],
         x,
         y
     };
@@ -267,7 +291,7 @@ export function correctForParentScale(element: HTMLElement, offset: [number, num
 
     if (!parent || !animator || !animator.trackList.some(track => track.animations.length || track.correctAfterEnded)) return;
 
-    const { scale } = getElementBounds(parent);
+    const { scale } = getElementBounds(parent, true);
     const x = 1 / scale[0];
     const y = 1 / scale[1];
     const dx = align.x === 'center' ? 0 : (element.offsetWidth - element.offsetWidth * x) / 2 * (align.x === 'right' ? 1 : -1);

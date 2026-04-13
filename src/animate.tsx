@@ -26,7 +26,7 @@ export type AnimateProps<T extends string> = {
     stagger?: number;
     staggerLimit?: number;
     deformCorrection?: CorrectionAlignment | boolean;
-    transition?: TransitionOptions & { // add option to mark element as position:fixed (to avoid problems with scroll offset)
+    transition?: TransitionOptions & {
         cache?: CacheKey[];
     };
     morph?: string;
@@ -107,7 +107,7 @@ export default function Animate<T extends string>({
                 setSkipMount(true);
 
                 target.delayUnmountUntil = 0;
-                target.unmount(); // testing
+                target.unmount(); // testing (breaks with quick re-mounts)
             }
         }
 
@@ -117,7 +117,7 @@ export default function Animate<T extends string>({
         document.fonts.ready.finally(() => animator.mount());
 
         const updateAnimatorCache = () => animator.forEachTrack(track => track.snapshot());
-        window.addEventListener('resize', updateAnimatorCache);
+        window.addEventListener('resize', updateAnimatorCache); // throttle?
 
         return () => {
             window.removeEventListener('resize', updateAnimatorCache);

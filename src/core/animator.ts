@@ -170,7 +170,7 @@ export default class Animator<T extends string> {
     addTrack(element: any, index: number) {
         if (!(element instanceof HTMLElement || element instanceof SVGElement) || this.tracks.has(element)) return;
 
-        const track = new Track(element, this.cache, this.align),
+        const track = new Track(element, this.cache, this.align, this.ignoreScaleDeformation),
             animations = this.lifeCycleAnimations['mount'];
 
         this.tracks.add(element);

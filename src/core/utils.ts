@@ -188,8 +188,8 @@ export function parseFixedOffset(left: string, top: string) {
 export function getElementBounds(element: HTMLElement, skipOffsetCalculation = false) { // refactor and optimize
     const scale: [number, number] = [1, 1];
 
-    let x = element.offsetWidth * .5,
-        y = element.offsetHeight * .5,
+    let x = skipOffsetCalculation ? 0 : element.offsetWidth * .5,
+        y = skipOffsetCalculation ? 0 : element.offsetHeight * .5,
         el: Element | null = element,
         reachedBoundary = skipOffsetCalculation;
 
@@ -218,8 +218,8 @@ export function getElementBounds(element: HTMLElement, skipOffsetCalculation = f
 
     return {
         scale: scale.map(clampLowerBound) as unknown as ScaleTuple,
-        width: element.offsetWidth * scale[0],
-        height: element.offsetHeight * scale[1],
+        width: skipOffsetCalculation ? 0 : element.offsetWidth * scale[0],
+        height: skipOffsetCalculation ? 0 : element.offsetHeight * scale[1],
         x,
         y
     };

@@ -39,14 +39,14 @@ export default class Track {
     timeout = 0;
     correctAfterEnded = true;
 
-    constructor(element: HTMLElement | SVGElement, shouldCache: CacheKey[], align: CorrectionAlignment) {
+    constructor(element: HTMLElement | SVGElement, shouldCache: CacheKey[], align: CorrectionAlignment, ignoreDeformation: boolean) {
         this.element = element;
         this.shouldCache = shouldCache;
         this.align = align;
 
         this.styles = getComputedStyle(element);
         this.cache = this.snapshot();
-        this.correct();
+        if (!ignoreDeformation) this.correct();
     }
 
     snapshot() {
@@ -175,7 +175,7 @@ export default class Track {
         this.correctAfterEnded = false;
 
         this.correctionAnimation?.cancel();
-        this.scale = getElementBounds(this.element, true).scale; // only look at own scale (cache parent scale?)
+        this.scale = getElementBounds(this.element, true).scale;
 
         const corrected = {
             borderRadius: scaleCorrectRadius(this.styles.borderRadius, this.scale),

@@ -155,20 +155,21 @@ export function parseClipKeyframes(keyframes: ClipKeyframes, initial: ClipInitia
 
 export type ScaleTuple = readonly [number, number];
 
-export function parseIndiviualTransform(value: string, defaultValue = [0, 0]) {
-    if (!value || /none/.test(value)) return defaultValue;
+export function parseIndiviualTransform(value: string, defaultValue = 0) {
+    if (!value || value === 'none') return [defaultValue, defaultValue];
 
     const nums = value.split(/\s+/).map(parseFloat);
-    if (nums.length < 2) nums[1] = nums[0];
+    if (nums.length < 2) nums[1] = nums[0] * defaultValue;
 
     return nums;
 }
 
 export function parseMatrixTransform(transform: string) {
-    const [_, matrix] = transform.match(/^matrix(?:3d)?\((.+)\)$/) || [];
+    const matrix = !transform || transform === 'none' ? undefined : transform.match(/^matrix(?:3d)?\((.+)\)$/)?.[1];
     if (!matrix) return [1, 1, 0, 0] as const;
 
     const [a, b, c, d, tx, ty] = matrix.split(',').map(parseFloat);
+
     return [
         Math.sqrt(a * a + b * b),
         Math.sqrt(c * c + d * d),
@@ -177,54 +178,42 @@ export function parseMatrixTransform(transform: string) {
     ] as const;
 }
 
-export function getElementTransform(element: HTMLElement) {
-    const { transform, scale, translate } = getComputedStyle(element);
-    const [msx, msy, mtx, mty] = parseMatrixTransform(transform);
-    const [sx, sy] = parseIndiviualTransform(scale, [1, 1]);
-    const [tx, ty] = parseIndiviualTransform(translate);
+export function parseFixedOffset(left: string, top: string) {
+    const tx = left !== 'auto' ? parseFloat(left) : 0;
+    const ty = top !== 'auto' ? parseFloat(top) : 0;
 
-    return [msx * sx, msy * sy, mtx + tx, mty + ty] as const;
+    return [tx + window.scrollX, ty + window.scrollY] as const;
 }
 
-// figure out: fluid navigation.menu has weird morph jump/glitch, maybe cause of this?
-export function getElementBounds(element: HTMLElement, skipOffsetCalculation = false) { // refactor
+export function getElementBounds(element: HTMLElement, skipOffsetCalculation = false) { // refactor and optimize
     const scale: [number, number] = [1, 1];
 
     let x = element.offsetWidth * .5,
         y = element.offsetHeight * .5,
-        el: HTMLElement | null = element,
-        nextOffsetParent: Element | null = element,
+        el: Element | null = element,
         reachedBoundary = skipOffsetCalculation;
 
     while (el instanceof HTMLElement) {
         if (el !== element && el.dataset.lively) reachedBoundary = true;
 
-        const { left, top, position } = getComputedStyle(el);
-        const [sx, sy, tx, ty] = getElementTransform(el);
-        scale[0] *= sx;
-        scale[1] *= sy;
+        const styles = getComputedStyle(el);
+        const [msx, msy, mtx, mty] = parseMatrixTransform(styles.transform);
+        const [sx, sy] = parseIndiviualTransform(styles.scale, 1);
 
-        if (!reachedBoundary && position === 'fixed') {
-            const [ftx, fty] = parseIndiviualTransform(`${left} ${top}`);
-
-            x += tx + ftx + window.scrollX;
-            y += ty + fty + window.scrollY;
-
-            reachedBoundary = true;
-        }
+        scale[0] *= msx * sx;
+        scale[1] *= msy * sy;
 
         if (!reachedBoundary) {
-            x += tx;
-            y += ty;
+            const [tx, ty] = parseIndiviualTransform(styles.translate);
+            const [ox, oy] = styles.position === 'fixed' ?
+                parseFixedOffset(styles.left, styles.top) :
+                [el.offsetLeft, el.offsetTop];
 
-            if (el === nextOffsetParent) {
-                x += el.offsetLeft;
-                y += el.offsetTop;
-            }
+            x += mtx + tx + ox;
+            y += mty + ty + oy;
         }
 
-        nextOffsetParent = el.offsetParent;
-        el = el.parentElement;
+        el = el.offsetParent;
     }
 
     return {

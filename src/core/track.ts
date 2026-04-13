@@ -109,7 +109,7 @@ export default class Track {
 
     transition(from = this.cache, options: TransitionOptions = {}) {
         this.clear('layout-transition'); // testing
-        
+
         const data = this.snapshot();
         const keyframes: ClipOptions = { composite: 'override', ...options };
         const scale = [1, 1], translate = [0, 0];
@@ -175,7 +175,7 @@ export default class Track {
         this.correctAfterEnded = false;
 
         this.correctionAnimation?.cancel();
-        this.scale = getElementBounds(this.element, true).scale;
+        this.scale = getElementBounds(this.element, true).scale; // only look at own scale (cache parent scale?)
 
         const corrected = {
             borderRadius: scaleCorrectRadius(this.styles.borderRadius, this.scale),

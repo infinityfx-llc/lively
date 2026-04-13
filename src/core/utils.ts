@@ -156,12 +156,12 @@ export function parseClipKeyframes(keyframes: ClipKeyframes, initial: ClipInitia
 export type ScaleTuple = readonly [number, number];
 
 export function parseIndiviualTransform(value: string, defaultValue = 0) {
-    if (!value || value === 'none') return [defaultValue, defaultValue];
+    if (!value || value === 'none') return [defaultValue, defaultValue] as const;
 
     const nums = value.split(/\s+/).map(parseFloat);
     if (nums.length < 2) nums[1] = nums[0] * defaultValue;
 
-    return nums;
+    return nums as [number, number];
 }
 
 export function parseMatrixTransform(transform: string) {
@@ -217,7 +217,10 @@ export function getElementBounds(element: HTMLElement, skipOffsetCalculation = f
     }
 
     return {
-        scale: scale.map(clampLowerBound) as unknown as ScaleTuple,
+        scale: [
+            clampLowerBound(scale[0]),
+            clampLowerBound(scale[1])
+        ] as ScaleTuple,
         width: skipOffsetCalculation ? 0 : element.offsetWidth * scale[0],
         height: skipOffsetCalculation ? 0 : element.offsetHeight * scale[1],
         x,
@@ -268,22 +271,22 @@ export function scaleCorrectShadow(shadow: string, scale: ScaleTuple) {
     return shadows.map(val => `${color} ${val.map(val => `${val}px`).join(' ')}${inset ? ' inset' : ''}`).join(', ');
 }
 
-export function correctForParentScale(element: HTMLElement, offset: [number, number], align: CorrectionAlignment) {
+export function correctForParentScale(element: HTMLElement, offset: readonly [number, number], align: CorrectionAlignment) {
     let animator;
     let parent: HTMLElement | null = element;
     while (parent = parent?.parentElement) {
         if (parent.dataset.lively) {
-            animator = getParentAnimator(parent.dataset.lively, 0);
+            animator = getParentAnimator(parent.dataset.lively, 0); // cache result?
             break;
         }
     }
 
-    if (!parent || !animator || !animator.trackList.some(track => track.animations.length || track.correctAfterEnded)) return;
+    if (!parent || !animator || animator.ignoreScaleDeformation || !animator.trackList.some(track => track.animations.length || track.correctAfterEnded)) return;
 
     const { scale } = getElementBounds(parent, true);
     const x = 1 / scale[0];
     const y = 1 / scale[1];
-    const dx = align.x === 'center' ? 0 : (element.offsetWidth - element.offsetWidth * x) / 2 * (align.x === 'right' ? 1 : -1);
+    const dx = align.x === 'center' ? 0 : (element.offsetWidth - element.offsetWidth * x) / 2 * (align.x === 'right' ? 1 : -1); // causes reflow..
     const dy = align.y === 'center' ? 0 : (element.offsetHeight - element.offsetHeight * y) / 2 * (align.y === 'bottom' ? 1 : -1);
 
     element.style.transform = `translate(${dx - offset[0] * 2}px, ${dy - offset[1] * 2}px) scale(${x}, ${y}) translate(${offset[0] / x}px, ${offset[1] / y}px)`;

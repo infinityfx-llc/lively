@@ -95,7 +95,7 @@ export default function Animate<T extends string>({
         animator.register(parentId, inherit, morph);
         animator.addLinks(animate);
 
-        if (morph) {
+        if (morph) { // fluid nav.group has weird jitter bug
             const target = morphTarget.current || getMorphTarget(morph, animator.id);
             morphTarget.current = target;
 
@@ -144,9 +144,11 @@ export default function Animate<T extends string>({
 
         for (const key in animate) {
             const value = animate[key as ClipKey];
-            if (!(key in animator.links) || typeof value === 'object') continue;
-
-            animator.links[key as ClipKey]!.set(value, {
+            const link = animator.links[key as ClipKey];
+            
+            if (!link || typeof value === 'object' || link.get() === value) continue;
+            
+            link.set(value, {
                 duration: animate.duration,
                 easing: animate.easing,
                 composite: animate.composite

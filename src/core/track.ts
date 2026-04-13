@@ -1,7 +1,7 @@
 import { TransitionOptions } from "./animation-link";
 import { AnimationOptions } from "./animator";
 import Clip, { BlendMode, ClipKey, ClipOptions } from "./clip";
-import { clampLowerBound, correctForParentScale, getElementBounds, scaleCorrectRadius, scaleCorrectShadow, ScaleTuple } from "./utils";
+import { clampLowerBound, correctForParentScale, getElementBounds, parseIndiviualTransform, scaleCorrectRadius, scaleCorrectShadow, ScaleTuple } from "./utils";
 
 export type CacheKey = Exclude<ClipKey, 'scale' | 'translate'> | 'x' | 'y' | 'sx' | 'sy';
 
@@ -168,7 +168,7 @@ export default class Track {
     correct() {
         if (this.element instanceof SVGElement) return;
 
-        const offset: any = (/none|0px/.test(this.styles.translate) ? '0 0' : this.styles.translate).split(' ').map(parseFloat);
+        const offset = parseIndiviualTransform(this.styles.translate);
         correctForParentScale(this.element, offset, this.align);
 
         if (!this.animations.length && !this.correctAfterEnded) return;

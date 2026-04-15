@@ -50,6 +50,8 @@ export default function useSpring(initial: number | number[], {
     }, []);
 
     link.set = (value) => {
+        if (value === state.current.target) return;
+        
         state.current.target = asArray(value);
         state.current.time = Date.now();
 

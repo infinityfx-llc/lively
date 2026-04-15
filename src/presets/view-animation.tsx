@@ -12,7 +12,7 @@ export default function ViewAnimation({
     maxEnters = 1,
     maxExits = 0,
     ...props
-}: Omit<AnimateProps<any>, 'children' | 'animate' | 'clips' | 'triggers' | 'stagger' | 'staggerLimit'> & {
+}: Omit<AnimateProps<'enter' | 'exit'>, 'children' | 'animate' | 'clips' | 'triggers' | 'stagger' | 'staggerLimit'> & {
     children: React.ReactElement<any>;
     enter: ClipOptions | Clip;
     exit?: ClipOptions | Clip;

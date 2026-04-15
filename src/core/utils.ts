@@ -271,25 +271,31 @@ export function scaleCorrectShadow(shadow: string, scale: ScaleTuple) {
     return shadows.map(val => `${color} ${val.map(val => `${val}px`).join(' ')}${inset ? ' inset' : ''}`).join(', ');
 }
 
-export function correctForParentScale(element: HTMLElement, offset: readonly [number, number], align: CorrectionAlignment) {
+export function correctForParentScale(element: HTMLElement, offset: readonly [number, number], align: CorrectionAlignment) { // doesn't take into account intermediate transform parent scale correction
     let animator;
     let parent: HTMLElement | null = element;
     while (parent = parent?.parentElement) {
         if (parent.dataset.lively) {
-            animator = getParentAnimator(parent.dataset.lively, 0); // cache result?
+            animator = getParentAnimator(parent.dataset.lively, 0);
             break;
         }
     }
 
-    if (!parent || !animator || animator.ignoreScaleDeformation || !animator.trackList.some(track => track.animations.length || track.correctAfterEnded)) return;
+    if (!parent || !animator ||
+        animator.ignoreScaleDeformation ||
+        !animator.trackList.some(track => track.animations.length || track.correctAfterEnded)) return;
 
     const { scale } = getElementBounds(parent, true);
     const x = 1 / scale[0];
     const y = 1 / scale[1];
-    const dx = align.x === 'center' ? 0 : (element.offsetWidth - element.offsetWidth * x) / 2 * (align.x === 'right' ? 1 : -1); // causes reflow..
-    const dy = align.y === 'center' ? 0 : (element.offsetHeight - element.offsetHeight * y) / 2 * (align.y === 'bottom' ? 1 : -1);
 
-    element.style.transform = `translate(${dx - offset[0] * 2}px, ${dy - offset[1] * 2}px) scale(${x}, ${y}) translate(${offset[0] / x}px, ${offset[1] / y}px)`;
+    const dx = align.x === 'center' ? 0 : (1 - x) * 50 * (align.x === 'right' ? 1 : -1);
+    const dy = align.y === 'center' ? 0 : (1 - y) * 50 * (align.y === 'bottom' ? 1 : -1);
+
+    const ox = align.x !== 'left' ? 0 : offset[0] * Math.min(scale[0], 1); // only supports top/left alignment
+    const oy = align.y !== 'top' ? 0 : offset[1] * Math.min(scale[1], 1);
+
+    element.style.transform = `translate(${-offset[0]}px, ${-offset[1]}px) translate(${dx}%, ${dy}%) scale(${x}, ${y}) translate(${ox}px, ${oy}px)`;
 }
 
 export function filterRemovedAnimators(children: React.ReactNode, toRemove: Set<string>, prefix: string) {

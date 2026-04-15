@@ -25,6 +25,8 @@ export default class AnimationLink<T, K = T> {
     }
 
     set(value: T, options: TransitionOptions = {}) {
+        if (this.value === value) return;
+
         this.value = value;
         Object.assign(this.options, options);
 

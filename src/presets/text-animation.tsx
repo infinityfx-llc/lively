@@ -4,11 +4,11 @@ import Animate, { AnimateProps } from "../animate";
 
 export type ReactText = string | number | boolean | null | undefined | ReactText[];
 
-export default function TextAnimation({
+export default function TextAnimation<T extends string>({
     children,
     duration = 1,
     ...props
-}: Omit<AnimateProps<any>, 'stagger' | 'staggerLimit'> & {
+}: Omit<AnimateProps<T>, 'stagger' | 'staggerLimit'> & {
     duration?: number;
 }) {
     let i = 0;

@@ -25,10 +25,11 @@ export type AnimateProps<T extends string> = {
     triggers?: AnimateTriggers<T | 'animate'>;
     stagger?: number;
     staggerLimit?: number;
-    deformCorrection?: CorrectionAlignment | boolean;
+    deformCorrection?: CorrectionAlignment | boolean; // allow for partial (no children)
     transition?: TransitionOptions & {
         cache?: CacheKey[];
     };
+    lite?: boolean;
     morph?: string;
     paused?: boolean;
     onAnimationEnd?: (animation?: T) => void;
@@ -49,6 +50,7 @@ export default function Animate<T extends string>({
     staggerLimit = 10,
     deformCorrection,
     transition,
+    lite,
     morph,
     clips,
     paused = false,
@@ -76,8 +78,8 @@ export default function Animate<T extends string>({
             id,
             clips: animations,
             lifeCycleAnimations: getLifeCycleAnimations(triggers),
-            deformCorrection,
-            transition,
+            deformCorrection: lite ? false : deformCorrection,
+            transition: lite ? { cache: [] } : transition,
             stagger,
             staggerLimit
         });
@@ -145,9 +147,9 @@ export default function Animate<T extends string>({
         for (const key in animate) {
             const value = animate[key as ClipKey];
             const link = animator.links[key as ClipKey];
-            
-            if (!link || typeof value === 'object' || link.get() === value) continue;
-            
+
+            if (!link || typeof value === 'object') continue;
+
             link.set(value, {
                 duration: animate.duration,
                 easing: animate.easing,

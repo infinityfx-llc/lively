@@ -15,6 +15,8 @@ export type AnimationOptions = Omit<ClipConfig, 'duration' | 'easing'> & {
     tag?: string;
 };
 
+export type ScaleCorrection = 'none' | 'partial' | 'all';
+
 export type AnimatorEvent = 'animationend' | 'transitionstart' | 'unmount';
 
 export default class Animator<T extends string> {
@@ -22,7 +24,7 @@ export default class Animator<T extends string> {
     id: string;
     parent: Animator<any> | null = null;
     dependents: Set<Animator<any>> = new Set();
-    inherit: ('ignoreScaleDeformation' | 'defaultTransitionOptions' | 'cache' | 'align')[] = [];
+    inherit: ('correction' | 'defaultTransitionOptions' | 'cache' | 'align')[] = [];
     clips: {
         [key in T]: Clip;
     };
@@ -35,7 +37,7 @@ export default class Animator<T extends string> {
     onDisposeLinks: (() => void) | null = null;
     tracks: Set<Element> = new Set();
     trackList: Track[] = [];
-    ignoreScaleDeformation: boolean;
+    correction: ScaleCorrection;
     defaultTransitionOptions: TransitionOptions;
     cache: CacheKey[];
     align: CorrectionAlignment;
@@ -55,7 +57,7 @@ export default class Animator<T extends string> {
     timeout = 0;
     frame = 0;
 
-    constructor({ id, clips, lifeCycleAnimations, deformCorrection, transition, stagger, staggerLimit }: {
+    constructor({ id, clips, lifeCycleAnimations, correction, transition, stagger, staggerLimit, morph }: {
         id: string;
         clips: {
             [key in T]: Clip;
@@ -63,27 +65,31 @@ export default class Animator<T extends string> {
         lifeCycleAnimations: {
             [key in LifeCycleTrigger]?: [T, AnimationOptions][];
         };
-        deformCorrection?: CorrectionAlignment | boolean;
-        transition?: TransitionOptions & {
+        correction?: CorrectionAlignment | ScaleCorrection;
+        transition?: (TransitionOptions & {
             cache?: CacheKey[];
-        };
+        }) | boolean;
         stagger: number;
         staggerLimit: number;
+        morph?: string;
     }) {
-        const { cache, ...options } = transition || {};
+        const { cache, ...options } = typeof transition === 'object' ? transition : {
+            cache: transition === true || morph ? undefined : []
+        };
 
         this.id = id;
         this.clips = clips;
         this.lifeCycleAnimations = lifeCycleAnimations;
-        this.ignoreScaleDeformation = deformCorrection === undefined ? false : !deformCorrection;
+        this.correction = typeof correction === 'string' ? correction :
+            (correction ? 'all' : 'partial');
         this.defaultTransitionOptions = options;
         this.cache = cache || ['x', 'y', 'sx', 'sy', 'rotate', 'borderRadius'];
-        this.align = typeof deformCorrection === 'object' ? deformCorrection : { x: 'left', y: 'top' };
+        this.align = typeof correction === 'object' ? correction : { x: 'left', y: 'top' };
         this.stagger = stagger;
         this.staggerLimit = staggerLimit;
 
-        if (deformCorrection === undefined) this.inherit.push('ignoreScaleDeformation');
-        if (deformCorrection === undefined) this.inherit.push('align');
+        if (correction === undefined) this.inherit.push('correction');
+        if (correction === undefined) this.inherit.push('align');
         if (!transition) this.inherit.push('defaultTransitionOptions');
         if (!cache) this.inherit.push('cache');
     }
@@ -144,7 +150,7 @@ export default class Animator<T extends string> {
 
     tick() {
         if (!this.paused) this.trackList.forEach(track => {
-            if (!this.ignoreScaleDeformation) track.correct();
+            track.correct(this.correction);
         });
 
         this.frame = requestAnimationFrame(this.tick.bind(this));
@@ -170,8 +176,10 @@ export default class Animator<T extends string> {
     addTrack(element: any, index: number) {
         if (!(element instanceof HTMLElement || element instanceof SVGElement) || this.tracks.has(element)) return;
 
-        const track = new Track(element, this.cache, this.align, this.ignoreScaleDeformation),
+        const track = new Track(element, this.cache, this.align),
             animations = this.lifeCycleAnimations['mount'];
+
+        track.correct(this.correction);
 
         this.tracks.add(element);
         this.trackList.splice(index, 0, track);
@@ -208,6 +216,19 @@ export default class Animator<T extends string> {
             }
 
         return this.initialStyles[mode] = styles;
+    }
+
+    setInitialStyles(styles: ClipInitials, mode: 'mounted' | 'unmounted') {
+        styles = this.mergeInitialStyles(styles, mode);
+
+        this.trackList.forEach(track => {
+            for (const key in styles) {
+                // @ts-expect-error
+                track.element.style[key] = styles[key];
+            }
+
+            if (mode === 'unmounted') track.clear(); // testing
+        });
     }
 
     pretime(clip: Clip, options: AnimationOptions) {
@@ -312,10 +333,6 @@ export default class Animator<T extends string> {
 
     stop(animation?: T) {
         this.trackList.forEach(track => track.clear(animation));
-    }
-
-    unmount() {
-        this.trackList.forEach(track => track.element.style.display = 'none');
     }
 
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
-import Animator, { AnimationOptions, AnimationTrigger } from "./core/animator";
+import Animator, { AnimationOptions, AnimationTrigger, ScaleCorrection } from "./core/animator";
 import Clip, { ClipInitials, ClipKey, ClipOptions } from "./core/clip";
 import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, getInitialStyleFromLinks, mergeStyles } from "./core/utils";
 import { CacheKey, CorrectionAlignment } from "./core/track";
@@ -25,11 +25,10 @@ export type AnimateProps<T extends string> = {
     triggers?: AnimateTriggers<T | 'animate'>;
     stagger?: number;
     staggerLimit?: number;
-    deformCorrection?: CorrectionAlignment | boolean; // allow for partial (no children)
-    transition?: TransitionOptions & {
+    correction?: CorrectionAlignment | ScaleCorrection;
+    transition?: (TransitionOptions & {
         cache?: CacheKey[];
-    };
-    lite?: boolean;
+    }) | boolean;
     morph?: string;
     paused?: boolean;
     onAnimationEnd?: (animation?: T) => void;
@@ -48,9 +47,8 @@ export default function Animate<T extends string>({
     },
     stagger = 0.07,
     staggerLimit = 10,
-    deformCorrection,
+    correction,
     transition,
-    lite,
     morph,
     clips,
     paused = false,
@@ -78,17 +76,18 @@ export default function Animate<T extends string>({
             id,
             clips: animations,
             lifeCycleAnimations: getLifeCycleAnimations(triggers),
-            deformCorrection: lite ? false : deformCorrection,
-            transition: lite ? { cache: [] } : transition,
+            correction,
+            transition,
             stagger,
-            staggerLimit
+            staggerLimit,
+            morph
         });
 
         animator.register(parentId, inherit, morph);
         animator.addLinks(animate);
     }
     const { current: animator } = data;
-    const [skipMount, setSkipMount] = useState(registerToLayoutGroup(layoutId, animator.id));
+    const [skipMount] = useState(registerToLayoutGroup(layoutId, animator.id));
 
     useImperativeHandle(ref, () => animator, []);
 
@@ -97,23 +96,23 @@ export default function Animate<T extends string>({
         animator.register(parentId, inherit, morph);
         animator.addLinks(animate);
 
-        if (morph) { // fluid nav.group has weird jitter bug
+        if (morph) { // breaks with rapid back and fourth?
             const target = morphTarget.current || getMorphTarget(morph, animator.id);
             morphTarget.current = target;
 
             if (target) {
                 animator.isMounting = true;
+                animator.setInitialStyles(initial, 'mounted'); // testing
                 animator.transition(target);
                 deleteMorphTarget(morph, target.id);
                 animator.state = 'mounted';
-                setSkipMount(true);
 
                 target.delayUnmountUntil = 0;
-                target.unmount(); // testing (breaks with quick re-mounts)
+                target.setInitialStyles({}, 'unmounted'); // testing 
             }
         }
 
-        registerToLayoutGroup(layoutId, animator.id); // needed?
+        registerToLayoutGroup(layoutId, animator.id);
         if (skipMount) animator.state = 'mounted';
 
         document.fonts.ready.finally(() => animator.mount());
@@ -175,7 +174,7 @@ export default function Animate<T extends string>({
             let { ref, style } = (child as React.ReactElement<React.HTMLProps<any>>).props;
             style = mergeStyles(
                 style,
-                animator.mergeInitialStyles(initial, skipMount ? 'mounted' : 'unmounted'),
+                animator.mergeInitialStyles(initial, skipMount || animator.state !== 'unmounted' ? 'mounted' : 'unmounted'),
                 getInitialStyleFromLinks(animator.links, i)
             );
 

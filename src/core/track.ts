@@ -1,5 +1,5 @@
 import { TransitionOptions } from "./animation-link";
-import { AnimationOptions } from "./animator";
+import { AnimationOptions, ScaleCorrection } from "./animator";
 import Clip, { BlendMode, ClipKey, ClipOptions } from "./clip";
 import { clampLowerBound, correctForParentScale, getElementBounds, parseIndiviualTransform, scaleCorrectRadius, scaleCorrectShadow, ScaleTuple } from "./utils";
 
@@ -39,14 +39,13 @@ export default class Track {
     timeout = 0;
     correctAfterEnded = true;
 
-    constructor(element: HTMLElement | SVGElement, shouldCache: CacheKey[], align: CorrectionAlignment, ignoreDeformation: boolean) {
+    constructor(element: HTMLElement | SVGElement, shouldCache: CacheKey[], align: CorrectionAlignment) {
         this.element = element;
         this.shouldCache = shouldCache;
         this.align = align;
 
         this.styles = getComputedStyle(element);
         this.cache = this.snapshot();
-        if (!ignoreDeformation) this.correct();
     }
 
     snapshot() {
@@ -165,11 +164,13 @@ export default class Track {
         this.animations.forEach(animation => animation[paused ? 'pause' : 'play']());
     }
 
-    correct() {
-        if (this.element instanceof SVGElement) return;
+    correct(mode: ScaleCorrection) {
+        if (mode === 'none' || this.element instanceof SVGElement) return;
 
-        const offset = parseIndiviualTransform(this.styles.translate);
-        correctForParentScale(this.element, offset, this.align);
+        if (mode === 'all') {
+            const offset = parseIndiviualTransform(this.styles.translate);
+            correctForParentScale(this.element, offset, this.align);
+        }
 
         if (!this.animations.length && !this.correctAfterEnded) return;
         this.correctAfterEnded = false;

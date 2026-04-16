@@ -185,7 +185,7 @@ export function parseFixedOffset(left: string, top: string) {
     return [tx + window.scrollX, ty + window.scrollY] as const;
 }
 
-export function getElementBounds(element: HTMLElement, skipOffsetCalculation = false) { // refactor and optimize
+export function getElementBounds(element: HTMLElement, skipOffsetCalculation = false) {
     const scale: [number, number] = [1, 1];
 
     let x = skipOffsetCalculation ? 0 : element.offsetWidth * .5,
@@ -281,9 +281,7 @@ export function correctForParentScale(element: HTMLElement, offset: readonly [nu
         }
     }
 
-    if (!parent || !animator ||
-        animator.ignoreScaleDeformation ||
-        !animator.trackList.some(track => track.animations.length || track.correctAfterEnded)) return;
+    if (!parent || !animator || !animator.trackList.some(track => track.animations.length || track.correctAfterEnded)) return;
 
     const { scale } = getElementBounds(parent, true);
     const x = 1 / scale[0];

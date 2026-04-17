@@ -32,10 +32,13 @@ export default function LayoutGroup({
             }
 
             content.current = updated;
+            // mode: sync breaks newly mounting elements?
         }
 
         forEachAnimator(removed, animator => {
             if (animator.state === 'mounted') {
+                // if has morph then search within newly mounted elements for similar morph, then don't unmount
+                
                 const delay = animator.trigger('unmount', { cascade: 'reverse', composite: 'override' });
                 animator.delayUnmountUntil = Date.now() + 1000 * delay;
 

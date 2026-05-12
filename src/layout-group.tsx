@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { filterRemovedAnimators, getRemovedAnimators } from "./core/utils";
+import { filterRemovedAnimators, getRemovedAnimators, hasMountedMorphTarget } from "./core/utils";
 import { forEachAnimator, registerLayoutGroup, unregisterLayoutGroup } from "./core/state";
 
 export const LayoutGroupContext = createContext<string>('');
@@ -37,7 +37,7 @@ export default function LayoutGroup({
 
         forEachAnimator(removed, animator => {
             if (animator.state === 'mounted') {
-                // if has morph then search within newly mounted elements for similar morph, then don't unmount
+                if (hasMountedMorphTarget(children, animator.morphId)) return; // doesn't work if new morph is outside layoutgroup..
                 
                 const delay = animator.trigger('unmount', { cascade: 'reverse', composite: 'override' });
                 animator.delayUnmountUntil = Date.now() + 1000 * delay;

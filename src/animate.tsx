@@ -6,7 +6,7 @@ import Clip, { ClipInitials, ClipKey, ClipOptions } from "./core/clip";
 import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, getInitialStyleFromLinks, mergeStyles } from "./core/utils";
 import { CacheKey, CorrectionAlignment } from "./core/track";
 import { LayoutGroupContext } from "./layout-group";
-import { deleteMorphTarget, getMorphTarget, registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
+import { getMorphTarget, registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
 import { TransitionOptions } from "./core/animation-link";
 
 export type AnimateTriggers<T extends string> = {
@@ -58,9 +58,6 @@ export default function Animate<T extends string>({
     const parentId = use(AnimateContext);
     const layoutId = use(LayoutGroupContext);
 
-    const mounted = useRef(0);
-    const morphTarget = useRef<Animator<any>>(null);
-
     const previousTriggers = useRef(serializeTriggers(triggers));
     const data = useRef<Animator<any>>(null);
     if (!data.current) {
@@ -92,23 +89,21 @@ export default function Animate<T extends string>({
     useImperativeHandle(ref, () => animator, []);
 
     useLayoutEffect(() => {
-        mounted.current = Date.now();
         animator.register(parentId, inherit, morph);
         animator.addLinks(animate);
 
-        if (morph) { // breaks with rapid back and fourth?
-            const target = morphTarget.current || getMorphTarget(morph, animator.id);
-            morphTarget.current = target;
+        if (morph) {
+            const target = getMorphTarget(morph, animator.id);
 
             if (target) {
                 animator.isMounting = true;
                 animator.setInitialStyles(initial, 'mounted'); // testing
                 animator.transition(target);
-                deleteMorphTarget(morph, target.id);
                 animator.state = 'mounted';
 
-                target.delayUnmountUntil = 0;
-                target.setInitialStyles({}, 'unmounted'); // testing 
+                target.state = 'unmounted';
+                target.delayUnmountUntil = 0; // not enough, should unmount immediately inside layoutgroup
+                target.setInitialStyles({}, 'unmounted'); // testing
             }
         }
 

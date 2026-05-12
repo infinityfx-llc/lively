@@ -332,6 +332,22 @@ export function getRemovedAnimators(children: React.ReactNode, removed: Set<stri
     return animators;
 }
 
+export function hasMountedMorphTarget(children: React.ReactNode, morphId: string) { // todo: refactor
+    const array = Array.isArray(children) ? children : [children];
+
+    for (let i = 0; i < array.length; i++) {
+        if (!isValidElement(array[i])) continue;
+
+        const { props } = array[i] as React.ReactElement<any>;
+
+        if (typeof props.morph === 'string' && props.morph === morphId) return true;
+
+        if (hasMountedMorphTarget(props.children, morphId)) return true;
+    }
+
+    return false;
+}
+
 export const ClipConfigKeys: {
     [key in keyof Required<ClipConfig>]: number;
 } = {

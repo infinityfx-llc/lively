@@ -51,11 +51,13 @@ export default class Animator<T extends string> {
         [key in AnimatorEvent]?: Set<(...args: any) => void>;
     } = {};
     state: 'unmounted' | 'unmounting' | 'mounted' = 'unmounted';
-    delayUnmountUntil = 0;
+    delayUnmountUntil = 0; // still needed?
     isMounting = true;
     paused = false;
     timeout = 0;
     frame = 0;
+
+    morphId: string;
 
     constructor({ id, clips, lifeCycleAnimations, correction, transition, stagger, staggerLimit, morph }: {
         id: string;
@@ -87,6 +89,8 @@ export default class Animator<T extends string> {
         this.align = typeof correction === 'object' ? correction : { x: 'left', y: 'top' };
         this.stagger = stagger;
         this.staggerLimit = staggerLimit;
+
+        this.morphId = morph || '';
 
         if (correction === undefined) this.inherit.push('correction');
         if (correction === undefined) this.inherit.push('align');
@@ -199,7 +203,7 @@ export default class Animator<T extends string> {
         if (clips.length) {
             const merged = {
                 backfaceVisibility: 'hidden',
-                willChange: 'transform'
+                willChange: this.cache.length ? 'transform' : undefined // testing
             };
 
             for (const [clip, reversed] of clips) {

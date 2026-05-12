@@ -148,12 +148,7 @@ export default class Track {
             if (animation && entry.name !== animation) return;
 
             entry.onfinish = null;
-
-            try {
-                entry.finish();
-            } catch {
-                entry.cancel();
-            }
+            entry.cancel();
         });
 
         this.animations = this.animations.filter(animation => animation.playState === 'running');

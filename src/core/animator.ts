@@ -222,8 +222,8 @@ export default class Animator<T extends string> {
         return this.initialStyles[mode] = styles;
     }
 
-    setInitialStyles(styles: ClipInitials, mode: 'mounted' | 'unmounted') {
-        styles = this.mergeInitialStyles(styles, mode);
+    setInitialStyles(mode: 'mounted' | 'unmounted') {
+        const styles = this.mergeInitialStyles({}, mode);
 
         this.trackList.forEach(track => {
             for (const key in styles) {

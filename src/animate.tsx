@@ -6,7 +6,7 @@ import Clip, { ClipInitials, ClipKey, ClipOptions } from "./core/clip";
 import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, getInitialStyleFromLinks, mergeStyles } from "./core/utils";
 import { CacheKey, CorrectionAlignment } from "./core/track";
 import { LayoutGroupContext } from "./layout-group";
-import { getMorphTarget, registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
+import { deleteMorphTarget, getMorphTarget, registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
 import { TransitionOptions } from "./core/animation-link";
 
 export type AnimateTriggers<T extends string> = {
@@ -92,18 +92,18 @@ export default function Animate<T extends string>({
         animator.register(parentId, inherit, morph);
         animator.addLinks(animate);
 
-        if (morph) {
+        if (morph && animator.state !== 'mounted') {
             const target = getMorphTarget(morph, animator.id);
 
             if (target) {
                 animator.isMounting = true;
-                animator.setInitialStyles(initial, 'mounted'); // testing
+                animator.setInitialStyles('mounted'); // testing
                 animator.transition(target);
                 animator.state = 'mounted';
 
-                target.state = 'unmounted';
-                target.delayUnmountUntil = 0; // not enough, should unmount immediately inside layoutgroup
-                target.setInitialStyles({}, 'unmounted'); // testing
+                target.delayUnmountUntil = 0; // fallback for multiple seperate layoutgroups
+                target.setInitialStyles('unmounted'); // testing
+                setTimeout(() => deleteMorphTarget(morph, target.id), 1);
             }
         }
 

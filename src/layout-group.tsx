@@ -38,7 +38,7 @@ export default function LayoutGroup({
         forEachAnimator(removed, animator => {
             if (animator.state === 'mounted') {
                 if (hasMountedMorphTarget(children, animator.morphId)) return; // doesn't work if new morph is outside layoutgroup..
-                
+
                 const delay = animator.trigger('unmount', { cascade: 'reverse', composite: 'override' });
                 animator.delayUnmountUntil = Date.now() + 1000 * delay;
 
@@ -55,14 +55,15 @@ export default function LayoutGroup({
     const unmountingDelay = endsAt - Date.now();
     clearTimeout(timeout.current);
 
-    if (unmountingDelay > 0) {
-        forEachAnimator(data.animators, animator => {
-            if (animator.state === 'unmounting' && !removed.has(animator.id)) {
-                animator.trigger('mount', { override: true });
-                animator.state = 'mounted';
-            }
-        });
+    forEachAnimator(data.animators, animator => {
+        if (animator.state === 'unmounting' && !removed.has(animator.id)) {
+            animator.stop();
+            animator.trigger('mount', { override: true });
+            animator.state = 'mounted';
+        }
+    });
 
+    if (unmountingDelay > 0) {
         timeout.current = setTimeout(() => {
 
             content.current = children;

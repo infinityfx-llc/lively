@@ -51,7 +51,7 @@ export default class Animator<T extends string> {
         [key in AnimatorEvent]?: Set<(...args: any) => void>;
     } = {};
     state: 'unmounted' | 'unmounting' | 'mounted' = 'unmounted';
-    delayUnmountUntil = 0; // still needed?
+    delayUnmountUntil = 0;
     isMounting = true;
     paused = false;
     timeout = 0;
@@ -207,10 +207,7 @@ export default class Animator<T extends string> {
             };
 
             for (const [clip, reversed] of clips) {
-                const index = reversed !== clip.reverse ? clip.keyframes.length - 1 : 0;
-                const { offset, ...styles } = clip.keyframes[index];
-
-                Object.assign(merged, styles);
+                Object.assign(merged, clip.getInitial(reversed));
             }
 
             styles = Object.assign(merged, styles);

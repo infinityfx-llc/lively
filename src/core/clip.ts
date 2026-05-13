@@ -92,4 +92,11 @@ export default class Clip {
         };
     }
 
+    getInitial(reverse = false) {
+        const index = reverse !== this.reverse ? this.keyframes.length - 1 : 0;
+        const { offset, ...styles } = this.keyframes[index];
+
+        return styles as ClipInitials;
+    }
+
 }

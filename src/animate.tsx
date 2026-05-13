@@ -17,7 +17,7 @@ export type AnimateProps<T extends string> = {
     ref?: React.Ref<Animator<T | 'animate'>>;
     children: React.ReactNode;
     inherit?: boolean | number;
-    initial?: ClipInitials;
+    initial?: ClipInitials | T | 'animate';
     animate?: ClipOptions | Clip;
     clips?: {
         [key in T]: ClipOptions | Clip;
@@ -61,13 +61,14 @@ export default function Animate<T extends string>({
     const previousTriggers = useRef(serializeTriggers(triggers));
     const data = useRef<Animator<any>>(null);
     if (!data.current) {
+        const clipInitials = typeof initial === 'string' ? {} : initial;
         const animations: {
             [key in T | 'animate']: Clip;
         } = {
-            animate: animate instanceof Clip ? animate : new Clip(animate, initial)
+            animate: animate instanceof Clip ? animate : new Clip(animate, clipInitials)
         } as any;
 
-        for (const name in clips) animations[name] = clips[name] instanceof Clip ? clips[name] : new Clip(clips[name], initial);
+        for (const name in clips) animations[name] = clips[name] instanceof Clip ? clips[name] : new Clip(clips[name], clipInitials);
 
         const animator = data.current = new Animator({
             id,
@@ -125,7 +126,7 @@ export default function Animate<T extends string>({
 
     useEffect(() => {
         forEachTrigger(triggers, (animation, list, options) => {
-            const previous = previousTriggers.current[animation];
+            const previous = previousTriggers.current[animation]; // if triggers change shape, possibly retrieves undefined..
 
             list.forEach((value, i) => {
                 if (previous[i] !== value && value !== false) animator.play(animation, Object.assign({ tag: animation }, options[i]));
@@ -166,10 +167,11 @@ export default function Animate<T extends string>({
         {Children.map(children, (child, i) => {
             if (!isValidElement(child)) return child;
 
+            const clipInitials = typeof initial === 'string' ? animator.clips[initial].getInitial() : initial;
             let { ref, style } = (child as React.ReactElement<React.HTMLProps<any>>).props;
             style = mergeStyles(
                 style,
-                animator.mergeInitialStyles(initial, skipMount || animator.state !== 'unmounted' ? 'mounted' : 'unmounted'),
+                animator.mergeInitialStyles(clipInitials, skipMount || animator.state !== 'unmounted' ? 'mounted' : 'unmounted'),
                 getInitialStyleFromLinks(animator.links, i)
             );
 

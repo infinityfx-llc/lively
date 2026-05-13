@@ -10,7 +10,7 @@ export default function useVisible<T extends Element = any>(threshold = .5) {
     const [exited, setExited] = useState(0);
 
     useLayoutEffect(() => {
-        const t = link.on('change', ({ x, y }) => {
+        const off = link.on('change', ({ x, y }) => {
             const intersecting = x > 0 && x < 1 && y > 0 && y < 1;
 
             if (!visible.current && intersecting) setEntered(entered + 1);
@@ -19,7 +19,9 @@ export default function useVisible<T extends Element = any>(threshold = .5) {
             visible.current = intersecting;
         });
 
-        return t;
+        link.dispatch('change');
+
+        return off;
     }, [entered, exited]);
 
     return [ref, entered, exited] as const;

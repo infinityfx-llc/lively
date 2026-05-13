@@ -32,7 +32,7 @@ export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency =
 
             analyzer.current.getFloatFrequencyData(buffer.current);
 
-            const values = link.get();
+            const values = new Array(bands).fill(0);
             const minIndex = Math.floor((minFrequency / 24000) * 1024),
                 maxIndex = Math.floor((maxFrequency / 24000) * 1024);
 
@@ -54,7 +54,7 @@ export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency =
         function suspend() {
             cancelAnimationFrame(frame);
 
-            link.set(link.get().fill(0));
+            link.set(new Array(bands).fill(0), { duration: .4 });
         }
 
         audio.addEventListener('play', () => {

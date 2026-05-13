@@ -23,13 +23,14 @@ export default function ViewAnimation({
 
     return <Animate
         {...props}
+        initial={props.initial || 'enter'}
         clips={{
             enter,
             exit
         }}
         triggers={{
-            enter: [Math.min(enters, maxEnters)],
-            exit: [Math.min(exits, maxExits)]
+            enter: [{ on: Math.min(enters, maxEnters), override: true }],
+            exit: [{ on: Math.min(exits, maxExits), override: true }]
         }}>
         {cloneElement(children, { ref })}
     </Animate>;

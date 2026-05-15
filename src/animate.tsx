@@ -126,7 +126,7 @@ export default function Animate<T extends string>({
 
     useEffect(() => {
         forEachTrigger(triggers, (animation, list, options) => {
-            const previous = previousTriggers.current[animation]; // if triggers change shape, possibly retrieves undefined..
+            const previous = previousTriggers.current[animation] || [];
 
             list.forEach((value, i) => {
                 if (previous[i] !== value && value !== false) animator.play(animation, Object.assign({ tag: animation }, options[i]));

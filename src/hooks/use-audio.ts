@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import useLink from "./use-link";
 
-export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency = 2000, smoothing = 0.7 } = {}) { // sometimes returns NaN values
+export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency = 2000, smoothing = 0.7 } = {}) {
     const ref = useRef<HTMLAudioElement>(null);
     const context = useRef<AudioContext>(null);
     const analyzer = useRef<AnalyserNode>(null);
@@ -43,7 +43,7 @@ export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency =
                 const value = buffer.current[Math.floor(index)] * (1 - ratio) +
                     buffer.current[Math.ceil(index)] * ratio;
 
-                values[i] = Math.max(0, (100 + value) / 70);
+                values[i] = isNaN(value) ? 0 : Math.max(0, (100 + value) / 70);
             }
 
             link.set(values, { duration: 0 });

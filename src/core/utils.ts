@@ -1,4 +1,4 @@
-import { isValidElement } from "react";
+import { captureOwnerStack, isValidElement } from "react";
 import { AnimationOptions, AnimationTrigger, LifeCycleTrigger } from "./animator";
 import Clip, { ClipConfig, ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes, ClipOptions } from "./clip";
 import { AnimateTriggers } from "../animate";
@@ -6,7 +6,17 @@ import AnimationLink from "./animation-link";
 import { getParentAnimator } from "./state";
 import { CorrectionAlignment } from "./track";
 
+const warnings = new Set<string>();
+
 export const keyframeEpsilon = .0001;
+
+export function warnConsoleOnce(id: string, message: string) {
+    if (process.env.NODE_ENV === 'production' || warnings.has(id)) return;
+
+    warnings.add(id);
+
+    console.warn(`Warning: ${message} ${captureOwnerStack()}`);
+}
 
 export function clampLowerBound(num: number, precision = 8) {
     const lowerBound = 1 / Math.pow(10, precision);
@@ -297,13 +307,16 @@ export function correctForParentScale(element: HTMLElement, offset: readonly [nu
 }
 
 export function filterRemovedAnimators(children: React.ReactNode, toRemove: Set<string>, prefix: string) {
-    const array = Array.isArray(children) ? children : [children];
+    let array = Array.isArray(children) ? children : [children],
+        hasDynamicKeys = false;
 
     for (let i = 0; i < array.length; i++) {
         if (!isValidElement(array[i])) continue;
 
         const { props, key } = array[i] as React.ReactElement<any>;
-        const id = prefix + (key !== null ? `${key}_` : i);
+        const id = prefix + (key !== null ? `_${key}` : i);
+
+        if (key === null) hasDynamicKeys = true;
 
         if (typeof props.triggers === 'object') {
             props.triggers._livelyId = id;
@@ -313,10 +326,10 @@ export function filterRemovedAnimators(children: React.ReactNode, toRemove: Set<
         filterRemovedAnimators(props.children, toRemove, id);
     }
 
-    return toRemove;
+    return [toRemove, hasDynamicKeys] as const;
 }
 
-export function getRemovedAnimators(children: React.ReactNode, removed: Set<string>) {
+export function getRemovedAnimators(children: React.ReactNode, removed: Set<string>, prefix: string) {
     const array = Array.isArray(children) ? children : [children];
     const animators: [number, React.ReactElement<any>][] = [];
 
@@ -324,7 +337,7 @@ export function getRemovedAnimators(children: React.ReactNode, removed: Set<stri
         if (!isValidElement(array[i])) continue;
 
         const { key } = array[i] as React.ReactElement<any>;
-        const id = '_la' + (key !== null ? `${key}_` : i);
+        const id = prefix + (key !== null ? `_${key}` : i);
 
         if (removed.has(id)) animators.push([i, array[i]]);
     }

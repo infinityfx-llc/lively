@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { filterRemovedAnimators, getRemovedAnimators, hasMountedMorphTarget } from "./core/utils";
+import { filterRemovedAnimators, getRemovedAnimators, hasMountedMorphTarget, warnConsoleOnce } from "./core/utils";
 import { forEachAnimator, registerLayoutGroup, unregisterLayoutGroup } from "./core/state";
 
 export const LayoutGroupContext = createContext<string>('');
@@ -16,25 +16,28 @@ export default function LayoutGroup({
     mode?: 'wait' | 'sync';
 }) {
     const id = '_lg' + useId();
-    const timeout = useRef(0);
+    const timeout = useRef<any>(0);
     const content = useRef(children);
     const data = registerLayoutGroup(id, skipInitialMount);
     const [_, forceUpdate] = useState(0);
 
-    const removed = filterRemovedAnimators(children, new Set(data.animators), `${id}_la_`);
+    const [removed, hasDynamicKeys] = filterRemovedAnimators(children, new Set(data.animators), id);
 
-    if (removed.size) {
-        if (mode === 'sync') { // only works for non-nested children
-            const updated = Array.isArray(children) ? children.slice() : [children];
+    if (hasDynamicKeys) warnConsoleOnce(id, `One or more <Animate> components under <LayoutGroup> is missing an explicit \`key\` prop`);
 
-            for (const [index, element] of getRemovedAnimators(content.current, removed)) {
+    if (mode === 'sync') { // only works for non-nested children
+        const updated = Array.isArray(children) ? children.slice() : [children];
+
+        if (removed.size) {
+            for (const [index, element] of getRemovedAnimators(content.current, removed, id)) {
                 updated.splice(index, 0, element);
             }
-
-            content.current = updated;
-            // mode: sync breaks newly mounting elements?
         }
 
+        content.current = updated;
+    }
+
+    if (removed.size) {
         forEachAnimator(removed, animator => {
             if (animator.state === 'mounted') {
                 if (hasMountedMorphTarget(children, animator.morphId)) return; // doesn't work if new morph is outside layoutgroup..

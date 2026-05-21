@@ -54,7 +54,7 @@ export default class Animator<T extends string> {
     delayUnmountUntil = 0;
     isMounting = true;
     paused = false;
-    timeout = 0;
+    timeout: any = 0;
     frame = 0;
 
     morphId: string;

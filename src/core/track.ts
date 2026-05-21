@@ -36,7 +36,7 @@ export default class Track {
     queue: TrackAnimation[] = [];
     animations: TrackAnimation[] = [];
     active = 0;
-    timeout = 0;
+    timeout: any = 0;
     correctAfterEnded = true;
 
     constructor(element: HTMLElement | SVGElement, shouldCache: CacheKey[], align: CorrectionAlignment) {

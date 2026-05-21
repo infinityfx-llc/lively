@@ -21,7 +21,8 @@
     "declarationDir": "dist/types",
     "emitDeclarationOnly": true,
     "moduleResolution": "bundler",
-    "isolatedModules": true
+    "isolatedModules": true,
+    "types": ["node"]
   },
   "exclude": [
     "node_modules",

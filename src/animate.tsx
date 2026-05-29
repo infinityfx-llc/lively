@@ -94,7 +94,7 @@ export default function Animate<T extends string>({
         animator.addLinks(animate);
 
         if (morph && animator.state !== 'mounted') {
-            const target = getMorphTarget(morph, animator.id);
+            const target = getMorphTarget(morph, animator.id); // TODO: gets self as target when id changes between renders..
 
             if (target) {
                 animator.isMounting = true;

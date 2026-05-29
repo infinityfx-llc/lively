@@ -106,8 +106,8 @@ export default class Track {
         this.correctAfterEnded = true;
     }
 
-    transition(from = this.cache, options: TransitionOptions = {}) {
-        this.clear('layout-transition'); // testing
+    transition(from = this.cache, options: TransitionOptions = {}) { // TODO: translate/scale transition will have mismatches when parent scale correction is applied?
+        this.clear('layout-transition');
 
         const data = this.snapshot();
         const keyframes: ClipOptions = { composite: 'override', ...options };
@@ -150,6 +150,9 @@ export default class Track {
             entry.onfinish = null;
             entry.cancel();
         });
+
+        this.correctionAnimation?.cancel(); // testing
+        this.element.style.transform = ''; // testing
 
         this.animations = this.animations.filter(animation => animation.playState === 'running');
         this.active = this.animations.filter(animation => animation.blendmode === 'none').length;

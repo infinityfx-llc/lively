@@ -383,7 +383,7 @@ export function extractAnimationLinks(animate: Clip | ClipOptions, callback: (ke
     if (!(animate instanceof Clip)) {
         for (const key in animate) {
             let value = animate[key as ClipKey];
-            if (typeof value !== 'object' && !(key in ClipConfigKeys)) value = new AnimationLink(value);
+            if (typeof value !== 'object' && !(key in ClipConfigKeys)) value = new AnimationLink(value); // TODO: maybe don't create link if single animate value has accompanying initial value?
 
             if (value instanceof AnimationLink) {
                 callbacks.push(value.on('change', () => callback(key as ClipKey, value)));

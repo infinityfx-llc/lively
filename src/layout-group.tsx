@@ -9,11 +9,13 @@ export const LayoutGroupContext = createContext<string>('');
 export default function LayoutGroup({
     children,
     skipInitialMount = false,
-    mode = 'wait'
+    mode = 'wait',
+    ignoreWarnings = false
 }: {
     children: React.ReactNode;
     skipInitialMount?: boolean;
     mode?: 'wait' | 'sync';
+    ignoreWarnings?: boolean;
 }) {
     const id = '_lg' + useId();
     const timeout = useRef<any>(0);
@@ -23,7 +25,7 @@ export default function LayoutGroup({
 
     const [removed, hasDynamicKeys] = filterRemovedAnimators(children, new Set(data.animators), id);
 
-    if (hasDynamicKeys) warnConsoleOnce(id, `One or more <Animate> components under <LayoutGroup> is missing an explicit \`key\` prop`);
+    if (hasDynamicKeys && !ignoreWarnings) warnConsoleOnce(id, `One or more <Animate> components under <LayoutGroup> is missing an explicit \`key\` prop`);
 
     if (mode === 'sync') { // only works for non-nested children
         const updated = Array.isArray(children) ? children.slice() : [children];

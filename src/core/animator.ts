@@ -127,8 +127,8 @@ export default class Animator<T extends string> {
         this.onDisposeLinks?.();
         cancelAnimationFrame(this.frame);
 
-        this.trackList.forEach(track => track.cache = track.snapshot());
         this.state = 'unmounted';
+        this.cacheTracks();
         this.stop();
 
         this.timeout = setTimeout(() => {
@@ -178,7 +178,8 @@ export default class Animator<T extends string> {
     }
 
     addTrack(element: any, index: number) {
-        if (!(element instanceof HTMLElement || element instanceof SVGElement) || this.tracks.has(element)) return;
+        if (!(element instanceof HTMLElement || element instanceof SVGElement)) return;
+        if (this.tracks.has(element)) return this.cacheTracks(index);
 
         const track = new Track(element, this.cache, this.align),
             animations = this.lifeCycleAnimations['mount'];
@@ -334,6 +335,12 @@ export default class Animator<T extends string> {
 
     stop(animation?: T) {
         this.trackList.forEach(track => track.clear(animation));
+    }
+
+    cacheTracks(index = -1) {
+        this.trackList.forEach((track, i) => {
+            if (index < 0 || index === i) track.cache = track.snapshot();
+        });
     }
 
 }

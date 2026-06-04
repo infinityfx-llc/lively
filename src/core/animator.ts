@@ -112,6 +112,8 @@ export default class Animator<T extends string> {
             // @ts-expect-error
             for (const key of this.inherit) this[key] = this.parent[key];
         }
+
+        this.cacheTracks();
     }
 
     mount() {
@@ -178,8 +180,7 @@ export default class Animator<T extends string> {
     }
 
     addTrack(element: any, index: number) {
-        if (!(element instanceof HTMLElement || element instanceof SVGElement)) return;
-        if (this.tracks.has(element)) return this.cacheTracks(index);
+        if (!(element instanceof HTMLElement || element instanceof SVGElement) || this.tracks.has(element)) return;
 
         const track = new Track(element, this.cache, this.align),
             animations = this.lifeCycleAnimations['mount'];
@@ -337,10 +338,8 @@ export default class Animator<T extends string> {
         this.trackList.forEach(track => track.clear(animation));
     }
 
-    cacheTracks(index = -1) {
-        this.trackList.forEach((track, i) => {
-            if (index < 0 || index === i) track.cache = track.snapshot();
-        });
+    cacheTracks() {
+        this.trackList.forEach(track => track.cache = track.snapshot());
     }
 
 }

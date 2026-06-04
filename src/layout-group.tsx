@@ -21,7 +21,7 @@ export default function LayoutGroup({
     const timeout = useRef<any>(0);
     const content = useRef(children);
     const data = registerLayoutGroup(id, skipInitialMount);
-    const [_, forceUpdate] = useState(0);
+    const [updates, forceUpdate] = useState(0);
 
     const [removed, hasDynamicKeys] = filterRemovedAnimators(children, new Set(data.animators), id);
 
@@ -85,7 +85,7 @@ export default function LayoutGroup({
 
             animator.isMounting = false;
         });
-    }, [children]);
+    }, [children, updates]);
 
     useEffect(() => {
         data.skipInitialMount = false;

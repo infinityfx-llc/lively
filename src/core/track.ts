@@ -101,7 +101,11 @@ export default class Track {
 
         this.animations = this.animations.filter(animation => animation.playState === 'running');
         this.animations.push(...this.queue.splice(0, 1));
-        this.active = this.animations.filter(animation => animation.blendmode === 'none').length;
+        this.active = this.animations.filter(animation => {
+            animation.play();
+
+            return animation.blendmode === 'none';
+        }).length;
 
         this.correctAfterEnded = true;
     }
@@ -151,8 +155,8 @@ export default class Track {
             entry.cancel();
         });
 
-        this.correctionAnimation?.cancel(); // testing
-        this.element.style.transform = ''; // testing
+        this.correctionAnimation?.cancel();
+        this.element.style.transform = '';
 
         this.animations = this.animations.filter(animation => animation.playState === 'running');
         this.active = this.animations.filter(animation => animation.blendmode === 'none').length;

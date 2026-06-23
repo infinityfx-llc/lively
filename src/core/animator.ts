@@ -205,7 +205,7 @@ export default class Animator<T extends string> {
         if (clips.length) {
             const merged = {
                 backfaceVisibility: 'hidden',
-                willChange: this.cache.length ? 'transform' : undefined // testing
+                willChange: this.cache.length ? 'transform' : undefined
             };
 
             for (const [clip, reversed] of clips) {
@@ -230,7 +230,7 @@ export default class Animator<T extends string> {
                 track.element.style[key] = styles[key];
             }
 
-            if (mode === 'unmounted') track.clear(); // testing
+            if (mode === 'unmounted') track.clear();
         });
     }
 
@@ -339,7 +339,10 @@ export default class Animator<T extends string> {
     }
 
     cacheTracks() {
-        this.trackList.forEach(track => track.cache = track.snapshot());
+        this.trackList.forEach(track => {
+            track.cache = track.snapshot();
+            track.correctAfterEnded = true;
+        });
     }
 
 }

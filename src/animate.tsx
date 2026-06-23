@@ -114,7 +114,7 @@ export default function Animate<T extends string>({
         document.fonts.ready.finally(() => animator.mount());
 
         const updateAnimatorCache = () => animator.cacheTracks();
-        window.addEventListener('resize', updateAnimatorCache); // throttle?
+        window.addEventListener('resize', updateAnimatorCache);
 
         return () => {
             window.removeEventListener('resize', updateAnimatorCache);

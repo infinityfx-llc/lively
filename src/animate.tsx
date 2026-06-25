@@ -11,7 +11,7 @@ import { TransitionOptions } from "./core/animation-link";
 
 export type AnimateTriggers<T extends string> = {
     [key in T]?: (AnimationTrigger | { on: AnimationTrigger } & AnimationOptions)[];
-};
+}; // add special "stop" trigger key?
 
 export type AnimateProps<T extends string> = {
     ref?: React.Ref<Animator<T | 'animate'>>;

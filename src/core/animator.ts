@@ -2,7 +2,7 @@ import AnimationLink, { TransitionOptions } from "./animation-link";
 import Clip, { ClipConfig, ClipInitials, ClipKey, ClipOptions } from "./clip";
 import { deleteMorphTarget, getParentAnimator, registerAnimator, registerAsMorph, unregisterAnimator } from "./state";
 import Track, { CacheKey, CorrectionAlignment } from "./track";
-import { extractAnimationLinks } from "./utils";
+import { extractAnimationLinks, getInitialStyleFromLinks, mergeStyles } from "./utils";
 
 export type LifeCycleTrigger = 'mount' | 'unmount';
 
@@ -42,9 +42,8 @@ export default class Animator<T extends string> {
     align: CorrectionAlignment;
     stagger: number;
     staggerLimit: number;
-    initialStyles: {
-        mounted?: ClipInitials;
-        unmounted?: ClipInitials;
+    initialStylesCache: {
+        [key: string]: ClipInitials;
     } = {};
     eventListeners: {
         [key in AnimatorEvent]?: Set<(...args: any) => void>;
@@ -205,10 +204,20 @@ export default class Animator<T extends string> {
         // ^ would also need to cascade lifeCycleAnimations?
     }
 
-    mergeInitialStyles(styles: ClipInitials, mode: 'mounted' | 'unmounted'): ClipInitials {
-        if (mode in this.initialStyles) return this.initialStyles[mode]!;
+    getInitialStyles(initial: ClipInitials | T, state: 'mounted' | 'unmounted', index: number) {
+        const key = `${state}:${index}`;
+        if (key in this.initialStylesCache) return this.initialStylesCache[key];
 
-        const reversed = mode === 'mounted';
+        const clipInitials = typeof initial === 'string' ? this.clips[initial].getInitial() : initial;
+        const styles = mergeStyles(
+            this.mergeInitialStyles(clipInitials, state === 'mounted'),
+            getInitialStyleFromLinks(this.links, index)
+        );
+
+        return this.initialStylesCache[key] = styles;
+    }
+
+    mergeInitialStyles(styles: ClipInitials, reversed: boolean): ClipInitials {
         const clips = (this.lifeCycleAnimations.mount || [])
             .map(([name, options]) => [this.clips[name], (options.reverse || false) !== reversed] as const)
             .filter(([clip]) => !clip.isEmpty);
@@ -226,14 +235,15 @@ export default class Animator<T extends string> {
             styles = Object.assign(merged, styles);
         } else
             if (this.parent) {
-                styles = this.parent.mergeInitialStyles(styles, mode);
+                styles = this.parent.mergeInitialStyles(styles, reversed);
             }
 
-        return this.initialStyles[mode] = styles;
+        return styles;
     }
 
-    applyStyles(mode: 'mounted' | 'unmounted') {
-        const styles = this.mergeInitialStyles({}, mode);
+    applyStyles(state: 'mounted' | 'unmounted') {
+        // const styles = this.mergeInitialStyles({}, mode);
+        const styles = this.getInitialStyles({}, state, 0);
 
         this.trackList.forEach(track => {
             for (const key in styles) {
@@ -241,7 +251,7 @@ export default class Animator<T extends string> {
                 track.element.style[key] = styles[key];
             }
 
-            if (mode === 'unmounted') track.clear();
+            if (state === 'unmounted') track.clear();
         });
     }
 

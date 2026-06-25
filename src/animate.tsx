@@ -168,13 +168,15 @@ export default function Animate<T extends string>({
         {Children.map(children, (child, i) => {
             if (!isValidElement(child)) return child;
 
-            const clipInitials = typeof initial === 'string' ? animator.clips[initial].getInitial() : initial;
+            // const clipInitials = typeof initial === 'string' ? animator.clips[initial].getInitial() : initial;
             let { ref, style } = (child as React.ReactElement<React.HTMLProps<any>>).props;
-            style = mergeStyles(
-                style,
-                animator.mergeInitialStyles(clipInitials, skipMount || animator.state !== 'unmounted' ? 'mounted' : 'unmounted'),
-                getInitialStyleFromLinks(animator.links, i)
-            );
+            // style = mergeStyles( // useMemo?
+            //     style,
+            //     animator.mergeInitialStyles(clipInitials, skipMount || animator.state !== 'unmounted' ? 'mounted' : 'unmounted'),
+            //     getInitialStyleFromLinks(animator.links, i)
+            // );
+
+            style = animator.getInitialStyles(initial, skipMount || animator.state !== 'unmounted' ? 'mounted' : 'unmounted', i); // maybe don't need animator.state?
 
             return cloneElement(child as React.ReactElement<React.HTMLProps<any>>, {
                 ref: mergeRefs(

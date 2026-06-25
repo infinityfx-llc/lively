@@ -74,7 +74,8 @@ export default class Track {
             try {
                 if (commit) animation.commitStyles();
             } catch { } finally {
-                animation.cancel();
+                requestAnimationFrame(() => animation.cancel()); // testing
+                // animation.cancel();
                 this.advance();
                 onEnded?.();
             }
@@ -137,7 +138,7 @@ export default class Track {
             new Clip({
                 scale: [scale.join(' '), null], // use transform instead?
                 translate: [translate.map(num => `${num}px`).join(' '), null], // use transform instead?
-                composite: 'combine', // test if combine or override works better
+                composite: 'combine',
                 ...options
             })
         ]

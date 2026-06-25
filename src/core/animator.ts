@@ -17,7 +17,7 @@ export type AnimationOptions = Omit<ClipConfig, 'duration' | 'easing'> & {
 
 export type ScaleCorrection = 'none' | 'partial' | 'all';
 
-export type AnimatorEvent = 'animationend' | 'transitionstart' | 'unmount';
+export type AnimatorEvent = 'animationend' | 'transitionstart' | 'unmount' | 'dispose';
 
 export default class Animator<T extends string> {
 
@@ -34,7 +34,6 @@ export default class Animator<T extends string> {
     links: {
         [key in ClipKey]?: AnimationLink<any>;
     } = {};
-    onDisposeLinks: (() => void) | null = null;
     tracks: Set<Element> = new Set();
     trackList: Track[] = [];
     correction: ScaleCorrection;
@@ -126,7 +125,7 @@ export default class Animator<T extends string> {
     }
 
     dispose(morph?: string) {
-        this.onDisposeLinks?.();
+        this.dispatch('dispose');
         cancelAnimationFrame(this.frame);
 
         this.state = 'unmounted';
@@ -140,10 +139,13 @@ export default class Animator<T extends string> {
         }, 1);
     }
 
-    on<K extends (...args: any) => void>(event: AnimatorEvent, callback: K) {
+    on<K extends (...args: any) => void>(event: AnimatorEvent, callback: K, { once = false }: {
+        once?: boolean;
+    } = {}) {
         if (!(event in this.eventListeners)) this.eventListeners[event] = new Set();
 
         this.eventListeners[event]!.add(callback);
+        (callback as any)._livelyRemoveAfterCall = once;
     }
 
     off<K extends (...args: any) => void>(event: AnimatorEvent, callback: K) {
@@ -151,7 +153,11 @@ export default class Animator<T extends string> {
     }
 
     dispatch(event: AnimatorEvent, ...args: any) {
-        this.eventListeners[event]?.forEach(callback => callback(...args));
+        this.eventListeners[event]?.forEach(callback => {
+            callback(...args);
+
+            if ((callback as any)._livelyRemoveAfterCall) this.off(event, callback);
+        });
     }
 
     tick() {
@@ -162,8 +168,10 @@ export default class Animator<T extends string> {
         this.frame = requestAnimationFrame(this.tick.bind(this));
     }
 
-    addLinks(animate: Clip | ClipOptions) {
-        const [links, disposeLinks] = extractAnimationLinks(animate, (key, link) => {
+    addLinks(animate: Clip | ClipOptions, initial: ClipInitials) {
+        if (Object.keys(this.links).length) return;
+
+        const [links, disposeLinks] = extractAnimationLinks(animate, initial, (key, link) => {
             this.forEachTrack((track, i) => {
                 const clip = new Clip({
                     ...link.options,
@@ -176,7 +184,10 @@ export default class Animator<T extends string> {
         });
 
         this.links = links;
-        this.onDisposeLinks = disposeLinks;
+        this.on('dispose', () => {
+            disposeLinks();
+            this.links = {};
+        }, { once: true });
     }
 
     addTrack(element: any, index: number) {
@@ -221,7 +232,7 @@ export default class Animator<T extends string> {
         return this.initialStyles[mode] = styles;
     }
 
-    setInitialStyles(mode: 'mounted' | 'unmounted') {
+    applyStyles(mode: 'mounted' | 'unmounted') {
         const styles = this.mergeInitialStyles({}, mode);
 
         this.trackList.forEach(track => {

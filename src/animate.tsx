@@ -58,10 +58,11 @@ export default function Animate<T extends string>({
     const parentId = use(AnimateContext);
     const layoutId = use(LayoutGroupContext);
 
+    const clipInitials = typeof initial === 'string' ? {} : initial;
     const previousTriggers = useRef(serializeTriggers(triggers));
     const data = useRef<Animator<any>>(null);
+
     if (!data.current) {
-        const clipInitials = typeof initial === 'string' ? {} : initial;
         const animations: {
             [key in T | 'animate']: Clip;
         } = {
@@ -82,7 +83,7 @@ export default function Animate<T extends string>({
         });
 
         animator.register(parentId, inherit, morph);
-        animator.addLinks(animate);
+        animator.addLinks(animate, clipInitials);
     }
     const { current: animator } = data;
     const [skipMount] = useState(registerToLayoutGroup(layoutId, animator.id));
@@ -91,19 +92,19 @@ export default function Animate<T extends string>({
 
     useLayoutEffect(() => {
         animator.register(parentId, inherit, morph);
-        animator.addLinks(animate);
+        animator.addLinks(animate, clipInitials);
 
         if (morph && animator.state !== 'mounted') {
             const target = getMorphTarget(morph, animator.id); // TODO: gets self as target when id changes between renders..
 
             if (target) {
                 animator.isMounting = true;
-                animator.setInitialStyles('mounted'); // testing
+                animator.applyStyles('mounted');
                 animator.transition(target);
                 animator.state = 'mounted';
 
                 target.delayUnmountUntil = 0; // fallback for multiple seperate layoutgroups
-                target.setInitialStyles('unmounted'); // testing
+                target.applyStyles('unmounted');
                 setTimeout(() => deleteMorphTarget(morph, target.id), 1);
             }
         }

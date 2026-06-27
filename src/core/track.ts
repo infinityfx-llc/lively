@@ -65,17 +65,17 @@ export default class Track {
     }
 
     push(clip: Clip, options: AnimationOptions = {}, onEnded?: () => void) {
-        const { commit, blendmode, ...config } = clip.getConfig(options);
+        const { commit, blendmode, endframe, ...config } = clip.getConfig(options);
         const animation = this.element.animate(clip.keyframes, config) as TrackAnimation;
         animation.name = options.tag;
         animation.blendmode = blendmode;
 
         animation.onfinish = () => {
             try {
-                if (commit) animation.commitStyles();
+                if (commit) Object.assign(this.element.style, endframe); // testing
+                // if (commit) animation.commitStyles();
             } catch { } finally {
-                requestAnimationFrame(() => animation.cancel()); // testing
-                // animation.cancel();
+                animation.cancel();
                 this.advance();
                 onEnded?.();
             }

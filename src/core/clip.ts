@@ -76,6 +76,8 @@ export default class Clip {
         composite = this.composite,
         commit = true
     }: AnimationOptions) {
+        const reversedEnding = (alternate ? repeat % 2 == 0 : false) !== reverse;
+        const { offset, ...endframe } = this.keyframes[reversedEnding ? 0 : this.keyframes.length - 1];
 
         return {
             duration: this.duration * 1000,
@@ -88,7 +90,8 @@ export default class Clip {
             composite: composite === 'combine' ? 'accumulate' as const : 'replace' as const,
             fill: commit ? 'both' as const : 'none' as const,
             blendmode: composite,
-            commit
+            commit,
+            endframe
         };
     }
 

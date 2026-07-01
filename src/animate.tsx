@@ -61,6 +61,7 @@ export default function Animate<T extends string>({
     const clipInitials = typeof initial === 'string' ? {} : initial;
     const previousTriggers = useRef(serializeTriggers(triggers));
     const data = useRef<Animator<any>>(null);
+    const ssr = useRef(true);
 
     if (!data.current) {
         const animations: {
@@ -91,6 +92,8 @@ export default function Animate<T extends string>({
     useImperativeHandle(ref, () => animator, []);
 
     useLayoutEffect(() => {
+        ssr.current = false;
+
         animator.register(parentId, inherit, morph);
         animator.addLinks(animate, clipInitials);
 
@@ -99,7 +102,7 @@ export default function Animate<T extends string>({
 
             if (target) {
                 animator.isMounting = true;
-                animator.applyStyles('mounted');
+                animator.applyStyles('mounted'); // needed?
                 animator.transition(target);
                 animator.state = 'mounted';
 
@@ -168,15 +171,10 @@ export default function Animate<T extends string>({
         {Children.map(children, (child, i) => {
             if (!isValidElement(child)) return child;
 
-            // const clipInitials = typeof initial === 'string' ? animator.clips[initial].getInitial() : initial;
             let { ref, style } = (child as React.ReactElement<React.HTMLProps<any>>).props;
-            // style = mergeStyles( // useMemo?
-            //     style,
-            //     animator.mergeInitialStyles(clipInitials, skipMount || animator.state !== 'unmounted' ? 'mounted' : 'unmounted'),
-            //     getInitialStyleFromLinks(animator.links, i)
-            // );
-
-            style = animator.getInitialStyles(initial, skipMount || animator.state !== 'unmounted' ? 'mounted' : 'unmounted', i); // maybe don't need animator.state?
+            style = ssr.current ? // TODO: still has issues with layout animations
+                mergeStyles(style, animator.getInitialStyles(initial, skipMount ? 'mounted' : 'unmounted', i)) :
+                style;
 
             return cloneElement(child as React.ReactElement<React.HTMLProps<any>>, {
                 ref: mergeRefs(
@@ -184,7 +182,7 @@ export default function Animate<T extends string>({
                     el => animator.addTrack(el, i)
                 ),
                 style,
-                ['pathLength' as any]: 'strokeDasharray' in style ? 1 : undefined,
+                ['pathLength' as any]: style && 'strokeDasharray' in style ? 1 : undefined,
                 ['data-lively' as any]: animator.id
             });
         })}

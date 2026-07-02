@@ -72,8 +72,7 @@ export default class Track {
 
         animation.onfinish = () => {
             try {
-                if (commit) Object.assign(this.element.style, endframe); // testing
-                // if (commit) animation.commitStyles();
+                if (commit) Object.assign(this.element.style, endframe);
             } catch { } finally {
                 animation.cancel();
                 this.advance();

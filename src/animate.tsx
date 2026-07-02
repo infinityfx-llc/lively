@@ -10,8 +10,8 @@ import { deleteMorphTarget, getMorphTarget, registerToLayoutGroup, unregisterFro
 import { TransitionOptions } from "./core/animation-link";
 
 export type AnimateTriggers<T extends string> = {
-    [key in T]?: (AnimationTrigger | { on: AnimationTrigger } & AnimationOptions)[];
-}; // add special "stop" trigger key?
+    [key in T]?: (AnimationTrigger | { on: AnimationTrigger, end?: AnimationTrigger } & AnimationOptions)[]; // TODO: end
+};
 
 export type AnimateProps<T extends string> = {
     ref?: React.Ref<Animator<T | 'animate'>>;

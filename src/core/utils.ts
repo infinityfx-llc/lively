@@ -133,12 +133,13 @@ export function addKeyframeEntry(map: Map<number, Keyframe>, offset: number, pro
     entry[prop] = value;
 }
 
-export function parseClipKeyframes(keyframes: ClipKeyframes, initial: ClipInitials) {
+export function parseClipKeyframes(keyframes: ClipKeyframes, initial: ClipInitials, omitSingularPrimitives: boolean) {
     const map = new Map<number, Keyframe>();
 
     for (const prop in keyframes) {
         const value = keyframes[prop as ClipKey]!;
         if (value instanceof AnimationLink) continue;
+        if (omitSingularPrimitives && typeof value !== 'object' && !(prop in initial)) continue;
 
         const array = Array.isArray(value) ? value : [value];
 

@@ -55,7 +55,7 @@ export default class Clip {
         easing = 'ease',
         composite = 'none',
         ...keyframes
-    }: ClipOptions, initial: ClipInitials = {}) {
+    }: ClipOptions, initial: ClipInitials = {}, omitSingularPrimitives = false) {
         this.duration = duration;
         this.delay = delay;
         this.repeat = repeat;
@@ -64,7 +64,7 @@ export default class Clip {
         this.easing = easing;
         this.composite = composite;
 
-        this.keyframes = parseClipKeyframes(keyframes, initial);
+        this.keyframes = parseClipKeyframes(keyframes, initial, omitSingularPrimitives);
         this.isEmpty = !this.keyframes.length;
     }
 

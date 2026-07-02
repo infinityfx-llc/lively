@@ -66,7 +66,7 @@ export default function Animate<T extends string>({
         const animations: {
             [key in T | 'animate']: Clip;
         } = {
-            animate: animate instanceof Clip ? animate : new Clip(animate, clipInitials)
+            animate: animate instanceof Clip ? animate : new Clip(animate, clipInitials, true)
         } as any;
 
         for (const name in clips) animations[name] = clips[name] instanceof Clip ? clips[name] : new Clip(clips[name], clipInitials);
@@ -99,7 +99,7 @@ export default function Animate<T extends string>({
 
             if (target) {
                 animator.isMounting = true;
-                animator.applyStyles('mounted'); // needed?
+                animator.applyStyles('mounted');
                 animator.transition(target);
                 animator.state = 'mounted';
 

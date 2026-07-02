@@ -127,7 +127,6 @@ export default class Animator<T extends string> {
         this.dispatch('dispose');
         cancelAnimationFrame(this.frame);
 
-        this.initialStylesCache = {};
         this.state = 'unmounted';
         this.cacheTracks();
         this.stop();
@@ -184,6 +183,8 @@ export default class Animator<T extends string> {
         });
 
         this.links = links;
+        this.initialStylesCache = {};
+
         this.on('dispose', () => {
             disposeLinks();
             this.links = {};
@@ -213,7 +214,9 @@ export default class Animator<T extends string> {
         const linkStyles = getInitialStyleFromLinks(this.links, index);
         const mergedStyles = this.getMergedStyles(clipInitials, state);
 
-        return this.initialStylesCache[key] = Object.keys(linkStyles).length ? mergeStyles(mergedStyles, linkStyles) : mergedStyles;
+        return this.initialStylesCache[key] = Object.keys(linkStyles).length ?
+            mergeStyles(mergedStyles, linkStyles) :
+            mergedStyles;
     }
 
     getMergedStyles(styles: ClipInitials, state: 'mounted' | 'unmounted'): ClipInitials {

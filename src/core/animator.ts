@@ -209,12 +209,10 @@ export default class Animator<T extends string> {
         if (key in this.initialStylesCache) return this.initialStylesCache[key];
 
         const clipInitials = typeof initial === 'string' ? this.clips[initial].getInitial() : initial;
-        const styles = mergeStyles(
-            this.getMergedStyles(clipInitials, state),
-            getInitialStyleFromLinks(this.links, index)
-        );
+        const linkStyles = getInitialStyleFromLinks(this.links, index);
+        const mergedStyles = this.getMergedStyles(clipInitials, state);
 
-        return this.initialStylesCache[key] = styles;
+        return this.initialStylesCache[key] = Object.keys(linkStyles).length ? mergeStyles(mergedStyles, linkStyles) : mergedStyles;
     }
 
     getMergedStyles(styles: ClipInitials, state: 'mounted' | 'unmounted'): ClipInitials {

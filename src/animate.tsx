@@ -3,7 +3,7 @@
 import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import Animator, { AnimationOptions, AnimationTrigger, ScaleCorrection } from "./core/animator";
 import Clip, { ClipInitials, ClipKey, ClipOptions } from "./core/clip";
-import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, getInitialStyleFromLinks, mergeStyles } from "./core/utils";
+import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, mergeStyles } from "./core/utils";
 import { CacheKey, CorrectionAlignment } from "./core/track";
 import { LayoutGroupContext } from "./layout-group";
 import { deleteMorphTarget, getMorphTarget, registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
@@ -61,7 +61,6 @@ export default function Animate<T extends string>({
     const clipInitials = typeof initial === 'string' ? {} : initial;
     const previousTriggers = useRef(serializeTriggers(triggers));
     const data = useRef<Animator<any>>(null);
-    const ssr = useRef(true);
 
     if (!data.current) {
         const animations: {
@@ -92,8 +91,6 @@ export default function Animate<T extends string>({
     useImperativeHandle(ref, () => animator, []);
 
     useLayoutEffect(() => {
-        ssr.current = false;
-
         animator.register(parentId, inherit, morph);
         animator.addLinks(animate, clipInitials);
 
@@ -172,9 +169,7 @@ export default function Animate<T extends string>({
             if (!isValidElement(child)) return child;
 
             let { ref, style } = (child as React.ReactElement<React.HTMLProps<any>>).props;
-            style = ssr.current ? // TODO: still has issues with layout animations
-                mergeStyles(style, animator.getInitialStyles(initial, skipMount ? 'mounted' : 'unmounted', i)) :
-                style;
+            style = mergeStyles(style, animator.getInitialStyles(initial, skipMount ? 'mounted' : 'unmounted', i));
 
             return cloneElement(child as React.ReactElement<React.HTMLProps<any>>, {
                 ref: mergeRefs(
@@ -182,7 +177,7 @@ export default function Animate<T extends string>({
                     el => animator.addTrack(el, i)
                 ),
                 style,
-                ['pathLength' as any]: style && 'strokeDasharray' in style ? 1 : undefined,
+                ['pathLength' as any]: 'strokeDasharray' in style ? 1 : undefined,
                 ['data-lively' as any]: animator.id
             });
         })}

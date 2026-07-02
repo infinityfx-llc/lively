@@ -127,6 +127,7 @@ export default class Animator<T extends string> {
         this.dispatch('dispose');
         cancelAnimationFrame(this.frame);
 
+        this.initialStylesCache = {};
         this.state = 'unmounted';
         this.cacheTracks();
         this.stop();

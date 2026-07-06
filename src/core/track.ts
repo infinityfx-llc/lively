@@ -70,7 +70,7 @@ export default class Track {
         animation.name = options.tag;
         animation.blendmode = blendmode;
 
-        animation.onfinish = () => {
+        animation.finished.then(() => {
             try {
                 if (commit) Object.assign(this.element.style, endframe);
             } catch { } finally {
@@ -78,7 +78,7 @@ export default class Track {
                 this.advance();
                 onEnded?.();
             }
-        };
+        }).catch(() => { });
 
         if (this.active && blendmode === 'none') {
             animation.pause();
@@ -149,9 +149,9 @@ export default class Track {
 
     clear(animation?: string) {
         this.animations.forEach(entry => {
-            if (animation && entry.name !== animation) return;
+            if (entry.name === 'animation-link' ||
+                (animation && entry.name !== animation)) return;
 
-            entry.onfinish = null;
             entry.cancel();
         });
 

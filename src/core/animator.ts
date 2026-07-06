@@ -178,7 +178,7 @@ export default class Animator<T extends string> {
                     [key]: link.get(i)
                 });
 
-                track.push(clip);
+                track.push(clip, { tag: 'animation-link' });
             });
         });
 

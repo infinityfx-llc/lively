@@ -94,11 +94,11 @@ export default function LayoutGroup({
     }, [children, updates]);
 
     useEffect(() => {
-        data.current!.skipInitialMount = false;
+        setTimeout(() => data.current!.skipInitialMount = false, 1); // todo: check if can do without timeout
 
         return () => {
             clearTimeout(timeout.current);
-            setTimeout(() => unregisterLayoutGroup(id), 1);
+            setTimeout(() => unregisterLayoutGroup(id), 1); // todo: check if can do without timeout
         }
     }, []);
 

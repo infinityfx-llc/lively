@@ -20,10 +20,16 @@ export default function LayoutGroup({
     const id = '_lg' + useId();
     const timeout = useRef<any>(0);
     const content = useRef(children);
-    const data = registerLayoutGroup(id, skipInitialMount);
+    const data = useRef<{
+        animators: Set<string>;
+        skipInitialMount: boolean;
+    }>(null);
     const [updates, forceUpdate] = useState(0);
 
-    const [removed, hasDynamicKeys] = filterRemovedAnimators(children, new Set(data.animators), id);
+    if (!data.current) data.current = registerLayoutGroup(id, skipInitialMount);
+    const { animators } = data.current;
+
+    const [removed, hasDynamicKeys] = filterRemovedAnimators(children, new Set(animators), id);
 
     if (hasDynamicKeys && !ignoreWarnings) warnConsoleOnce(id, `One or more <Animate> components under <LayoutGroup> is missing an explicit \`key\` prop`);
 
@@ -56,11 +62,11 @@ export default function LayoutGroup({
     }
 
     let endsAt = 0;
-    forEachAnimator(data.animators, animator => endsAt = Math.max(endsAt, animator.delayUnmountUntil));
+    forEachAnimator(animators, animator => endsAt = Math.max(endsAt, animator.delayUnmountUntil));
     const unmountingDelay = endsAt - performance.now();
     clearTimeout(timeout.current);
 
-    forEachAnimator(data.animators, animator => {
+    forEachAnimator(animators, animator => {
         if (animator.state === 'unmounting' && !removed.has(animator.id)) {
             animator.stop();
             animator.trigger('mount', { override: true });
@@ -80,7 +86,7 @@ export default function LayoutGroup({
         }
 
     useLayoutEffect(() => {
-        forEachAnimator(data.animators, animator => {
+        forEachAnimator(animators, animator => {
             if (animator.state === 'mounted' && !animator.isMounting) animator.transition();
 
             animator.isMounting = false;
@@ -88,7 +94,7 @@ export default function LayoutGroup({
     }, [children, updates]);
 
     useEffect(() => {
-        data.skipInitialMount = false;
+        data.current!.skipInitialMount = false;
 
         return () => {
             unregisterLayoutGroup(id);

@@ -30,7 +30,7 @@ export function unregisterAnimator(id: string) {
 }
 
 export function registerLayoutGroup(id: string, skipInitialMount: boolean) {
-    const data = registeredLayoutGroups.get(id) || {
+    const data = {
         animators: new Set<string>(),
         skipInitialMount
     };

@@ -1,6 +1,6 @@
 'use client';
 
-import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
+import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import Animator, { AnimationOptions, AnimationTrigger, ScaleCorrection } from "./core/animator";
 import Clip, { ClipInitials, ClipKey, ClipOptions } from "./core/clip";
 import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, mergeStyles } from "./core/utils";
@@ -86,7 +86,7 @@ export default function Animate<T extends string>({
         animator.addLinks(animate, clipInitials);
     }
     const { current: animator } = data;
-    const [skipMount] = useState(registerToLayoutGroup(layoutId, animator.id));
+    const skipMount = useRef(registerToLayoutGroup(layoutId, animator.id));
 
     useImperativeHandle(ref, () => animator, []);
 
@@ -109,8 +109,7 @@ export default function Animate<T extends string>({
             }
         }
 
-        registerToLayoutGroup(layoutId, animator.id);
-        if (skipMount) animator.state = 'mounted';
+        if (skipMount.current = registerToLayoutGroup(layoutId, animator.id)) animator.state = 'mounted';
 
         document.fonts.ready.finally(() => animator.mount());
 
@@ -169,7 +168,7 @@ export default function Animate<T extends string>({
             if (!isValidElement(child)) return child;
 
             let { ref, style } = (child as React.ReactElement<React.HTMLProps<any>>).props;
-            style = mergeStyles(style, animator.getInitialStyles(initial, skipMount ? 'mounted' : 'unmounted', i));
+            style = mergeStyles(style, animator.getInitialStyles(initial, skipMount.current ? 'mounted' : 'unmounted', i));
 
             return cloneElement(child as React.ReactElement<React.HTMLProps<any>>, {
                 ref: mergeRefs(

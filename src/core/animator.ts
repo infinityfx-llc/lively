@@ -129,7 +129,7 @@ export default class Animator<T extends string> {
 
         this.state = 'unmounted';
         this.cacheTracks();
-        this.stop();
+        this.stop(); // todo: also clear animation tagged with animation-link?
 
         this.timeout = setTimeout(() => {
             unregisterAnimator(this.id);

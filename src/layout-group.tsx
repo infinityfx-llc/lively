@@ -97,8 +97,8 @@ export default function LayoutGroup({
         data.current!.skipInitialMount = false;
 
         return () => {
-            unregisterLayoutGroup(id);
             clearTimeout(timeout.current);
+            setTimeout(() => unregisterLayoutGroup(id), 1);
         }
     }, []);
 

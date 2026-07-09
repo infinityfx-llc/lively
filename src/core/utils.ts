@@ -122,7 +122,7 @@ export function transformKeyframeList(list: ClipKeyframe[]) {
         last = current;
     }
 
-    return equal === keyframes.length ? null : keyframes;
+    return equal === Math.max(keyframes.length - 1, 1) ? null : keyframes;
 }
 
 export function addKeyframeEntry(map: Map<number, Keyframe>, offset: number, prop: string, value: string | number) {
@@ -196,25 +196,19 @@ export function parseFixedOffset(left: string, top: string) {
     return [tx + window.scrollX, ty + window.scrollY] as const;
 }
 
-export function getElementBounds(element: HTMLElement, skipOffsetCalculation = false) {
-    const scale: [number, number] = [1, 1];
+function getAbsoluteBounds(element: HTMLElement, skipOffsetCalculation: boolean) { // todo: refactor/rename?
+    let x = 0, y = 0, scaleX = 1, scaleY = 1;
+    let el: HTMLElement | null = element;
 
-    let x = skipOffsetCalculation ? 0 : element.offsetWidth * .5,
-        y = skipOffsetCalculation ? 0 : element.offsetHeight * .5,
-        el: Element | null = element,
-        reachedBoundary = skipOffsetCalculation;
-
-    while (el instanceof HTMLElement) {
-        if (el !== element && el.dataset.lively) reachedBoundary = true;
-
+    while (el) {
         const styles = getComputedStyle(el);
         const [msx, msy, mtx, mty] = parseMatrixTransform(styles.transform);
         const [sx, sy] = parseIndiviualTransform(styles.scale, 1);
 
-        scale[0] *= msx * sx;
-        scale[1] *= msy * sy;
+        scaleX *= msx * sx;
+        scaleY *= msy * sy;
 
-        if (!reachedBoundary) {
+        if (!skipOffsetCalculation) {
             const [tx, ty] = parseIndiviualTransform(styles.translate);
             const [ox, oy] = styles.position === 'fixed' ?
                 parseFixedOffset(styles.left, styles.top) :
@@ -222,20 +216,40 @@ export function getElementBounds(element: HTMLElement, skipOffsetCalculation = f
 
             x += mtx + tx + ox;
             y += mty + ty + oy;
+
+            if (el.offsetParent instanceof HTMLElement) {
+                x += el.offsetParent.clientLeft;
+                y += el.offsetParent.clientTop;
+            }
         }
 
-        el = el.offsetParent;
+        el = el.offsetParent as HTMLElement;
+    }
+
+    return { x, y, scaleX, scaleY };
+}
+
+export function getElementBounds(element: HTMLElement, skipOffsetCalculation = false) {
+    let parentAnimator: HTMLElement | null = element.parentElement;
+    while (parentAnimator) {
+        if (parentAnimator.dataset.lively) break;
+        parentAnimator = parentAnimator.parentElement;
+    }
+
+    const abs = getAbsoluteBounds(element, skipOffsetCalculation);
+
+    if (parentAnimator && !skipOffsetCalculation) {
+        const { x, y } = getAbsoluteBounds(parentAnimator, false);
+        abs.x -= x;
+        abs.y -= y;
     }
 
     return {
-        scale: [
-            clampLowerBound(scale[0]),
-            clampLowerBound(scale[1])
-        ] as ScaleTuple,
-        width: skipOffsetCalculation ? 0 : element.offsetWidth * scale[0],
-        height: skipOffsetCalculation ? 0 : element.offsetHeight * scale[1],
-        x,
-        y
+        scale: [clampLowerBound(abs.scaleX), clampLowerBound(abs.scaleY)] as ScaleTuple,
+        width: skipOffsetCalculation ? 0 : element.offsetWidth * abs.scaleX,
+        height: skipOffsetCalculation ? 0 : element.offsetHeight * abs.scaleY,
+        x: skipOffsetCalculation ? 0 : abs.x + element.offsetWidth * 0.5,
+        y: skipOffsetCalculation ? 0 : abs.y + element.offsetHeight * 0.5
     };
 }
 

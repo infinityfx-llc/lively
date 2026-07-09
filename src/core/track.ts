@@ -50,7 +50,7 @@ export default class Track {
 
     snapshot() {
         const data: StyleCache = { x: 0, y: 0, sx: 1, sy: 1 };
-        if (this.element instanceof SVGElement) return data;
+        if (this.element instanceof SVGElement || !this.shouldCache.length) return data;
 
         // @ts-expect-error
         for (const key of this.shouldCache) data[key] = this.styles[key];
@@ -115,28 +115,31 @@ export default class Track {
 
         const data = this.snapshot();
         const keyframes: ClipOptions = { composite: 'override', ...options };
-        const scale = [1, 1], translate = [0, 0];
+        const s = [1, 1], t = [0, 0];
 
         for (const key of this.shouldCache) {
             switch (key) {
                 case 'x':
                 case 'y':
-                    translate[key === 'x' ? 0 : 1] = from[key] - data[key];
+                    t[key === 'x' ? 0 : 1] = from[key] - data[key];
                     break;
                 case 'sx':
                 case 'sy':
-                    scale[key === 'sx' ? 0 : 1] = from[key] / clampLowerBound(data[key]);
+                    s[key === 'sx' ? 0 : 1] = from[key] / clampLowerBound(data[key]);
                     break;
                 default:
                     keyframes[key] = [from[key]!, data[key]!];
             }
         }
 
+        const translate = t.map(num => `${num}px`).join(' ');
+        const scale = s.join(' ');
+
         [
             new Clip(keyframes),
             new Clip({
-                scale: [scale.join(' '), null], // use transform instead?
-                translate: [translate.map(num => `${num}px`).join(' '), null], // use transform instead?
+                scale: scale === '1 1' ? [] : [scale, null], // use transform instead?
+                translate: translate === '0px 0px' ? [] : [translate, null], // use transform instead?
                 composite: 'combine',
                 ...options
             })

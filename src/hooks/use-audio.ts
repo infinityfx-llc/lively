@@ -4,8 +4,10 @@ import { useEffect, useRef } from "react";
 import useLink from "./use-link";
 
 export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency = 2000, smoothing = 0.7 } = {}) {
-    const ref = useRef<HTMLAudioElement>(null);
-    const context = useRef<AudioContext>(null);
+    const ref = useRef<HTMLAudioElement & {
+        context: AudioContext;
+        sourceNode: MediaElementAudioSourceNode;
+    }>(null);
     const analyzer = useRef<AnalyserNode>(null);
     const buffer = useRef(new Float32Array(1024));
 
@@ -16,14 +18,19 @@ export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency =
             ctrl = new AbortController();
 
         if (!audio) return;
-        if (!context.current) {
-            const ctx = context.current = new AudioContext();
-            const node = analyzer.current = new AnalyserNode(ctx, {
+        if (!audio.context) {
+            audio.context = new AudioContext();
+            audio.sourceNode = audio.context.createMediaElementSource(audio);
+        }
+
+        if (!analyzer.current) {
+            const node = analyzer.current = new AnalyserNode(audio.context, {
                 fftSize: 2048,
                 smoothingTimeConstant: smoothing
             });
-            ctx.createMediaElementSource(audio).connect(node);
-            node.connect(ctx.destination);
+
+            audio.sourceNode.connect(node);
+            node.connect(audio.context.destination);
         }
 
         let frame: number;
@@ -57,10 +64,10 @@ export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency =
             link.set(new Array(bands).fill(0), { duration: .4 });
         }
 
-        audio.addEventListener('play', () => {
-            if (!context.current) return;
+        audio.addEventListener('play', (e) => {
+            if (!audio.context) return;
 
-            if (context.current.state === 'suspended') context.current.resume();
+            if (audio.context.state === 'suspended') audio.context.resume();
 
             frame = requestAnimationFrame(update);
         }, { signal: ctrl.signal });
@@ -69,7 +76,7 @@ export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency =
 
         return () => {
             ctrl.abort();
-            context.current?.close();
+            audio.context.suspend();
             cancelAnimationFrame(frame);
         }
     }, []);

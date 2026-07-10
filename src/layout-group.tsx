@@ -4,6 +4,8 @@ import React, { createContext, useId, useLayoutEffect, useRef, useState } from "
 import { filterRemovedAnimators, getRemovedAnimators, hasMountedMorphTarget, warnConsoleOnce } from "./core/utils";
 import { forEachAnimator, registerLayoutGroup, unregisterLayoutGroup } from "./core/state";
 
+// todo: fluid collapsible stops working in dev mode (layoutgroup issue?)
+
 export const LayoutGroupContext = createContext<string>('');
 
 export default function LayoutGroup({

@@ -1,6 +1,6 @@
 {
 	"name": "@infinityfx/lively",
-	"version": "5.0.0-alpha.28",
+	"version": "5.0.0-alpha.29",
 	"type": "module",
 	"description": "Feature complete, lightweight react animation library.",
 	"main": "dist/index.js",
@@ -45,7 +45,8 @@
 		"animate",
 		"reactive",
 		"lightweight",
-		"performant"
+		"performant",
+		"lively"
 	],
 	"scripts": {
 		"build": "rollup -c --environment NODE_ENV:production",

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import React, { createContext, useId, useLayoutEffect, useRef, useState } from "react";
 import { filterRemovedAnimators, getRemovedAnimators, hasMountedMorphTarget, warnConsoleOnce } from "./core/utils";
 import { forEachAnimator, registerLayoutGroup, unregisterLayoutGroup } from "./core/state";
 
@@ -19,6 +19,7 @@ export default function LayoutGroup({
 }) {
     const id = '_lg' + useId();
     const timeout = useRef<any>(0);
+    const unmountTimeout = useRef<any>(0);
     const content = useRef(children);
     const data = useRef<{
         animators: Set<string>;
@@ -93,12 +94,14 @@ export default function LayoutGroup({
         });
     }, [children, updates]);
 
-    useEffect(() => {
-        setTimeout(() => data.current!.skipInitialMount = false, 1); // todo: check if can do without timeout
+    useLayoutEffect(() => {
+        clearTimeout(unmountTimeout.current);
+        data.current!.skipInitialMount = false;
 
         return () => {
             clearTimeout(timeout.current);
-            setTimeout(() => unregisterLayoutGroup(id), 1); // todo: check if can do without timeout
+            data.current!.skipInitialMount = skipInitialMount;
+            unmountTimeout.current = setTimeout(() => unregisterLayoutGroup(id), 1);
         }
     }, []);
 

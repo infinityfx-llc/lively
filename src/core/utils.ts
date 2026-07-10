@@ -117,8 +117,13 @@ export function transformKeyframeList(list: ClipKeyframe[]) {
             offset: number;
         });
 
-        const current = keyframe.to ?? keyframe.after;
-        if (last === current) equal++;
+        const { to, after } = keyframe;
+        const current = after ?? to;
+
+        if (to === undefined || after === undefined || to === after) {
+            if (last === current) equal++;
+        }
+        
         last = current;
     }
 
@@ -216,11 +221,6 @@ function getAbsoluteBounds(element: HTMLElement, skipOffsetCalculation: boolean)
 
             x += mtx + tx + ox;
             y += mty + ty + oy;
-
-            if (el.offsetParent instanceof HTMLElement) {
-                x += el.offsetParent.clientLeft;
-                y += el.offsetParent.clientTop;
-            }
         }
 
         el = el.offsetParent as HTMLElement;

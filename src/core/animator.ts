@@ -124,7 +124,7 @@ export default class Animator<T extends string> {
     }
 
     dispose(morph?: string) {
-        this.dispatch('dispose');
+        // this.dispatch('dispose');
         cancelAnimationFrame(this.frame);
 
         this.state = 'unmounted';
@@ -132,6 +132,7 @@ export default class Animator<T extends string> {
         this.stop(); // todo: also clear animation tagged with animation-link?
 
         this.timeout = setTimeout(() => {
+            this.dispatch('dispose');
             unregisterAnimator(this.id);
             if (morph) deleteMorphTarget(morph, this.id);
             if (this.parent) this.parent.dependents.delete(this);

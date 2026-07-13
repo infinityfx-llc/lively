@@ -83,9 +83,10 @@ export default function Animate<T extends string>({
         });
 
         animator.register(parentId, inherit, morph);
-        animator.addLinks(animate, clipInitials);
+        // animator.addLinks(animate, clipInitials);
     }
     const { current: animator } = data;
+    animator.addLinks(animate, clipInitials);
     const skipMount = useRef(registerToLayoutGroup(layoutId, animator.id));
 
     useImperativeHandle(ref, () => animator, []);

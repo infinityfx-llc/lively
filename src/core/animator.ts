@@ -15,7 +15,7 @@ export type AnimationOptions = Omit<ClipConfig, 'duration' | 'easing'> & {
     tag?: string;
 };
 
-export type ScaleCorrection = 'none' | 'partial' | 'all';
+export type ScaleCorrection = 'none' | 'self' | 'parent' | 'both' | 'all';
 
 export type AnimatorEvent = 'animationend' | 'transitionstart' | 'unmount' | 'dispose';
 
@@ -81,7 +81,7 @@ export default class Animator<T extends string> {
         this.clips = clips;
         this.lifeCycleAnimations = lifeCycleAnimations;
         this.correction = typeof correction === 'string' ? correction :
-            (correction ? 'all' : 'partial');
+            (correction ? 'both' : 'self');
         this.defaultTransitionOptions = options;
         this.cache = cache || ['x', 'y', 'sx', 'sy', 'rotate', 'borderRadius'];
         this.align = typeof correction === 'object' ? correction : { x: 'left', y: 'top' };
@@ -214,9 +214,10 @@ export default class Animator<T extends string> {
         const linkStyles = getInitialStyleFromLinks(this.links, index);
         const mergedStyles = this.getMergedStyles(clipInitials, state);
 
-        return this.initialStylesCache[key] = Object.keys(linkStyles).length ?
-            mergeStyles(mergedStyles, linkStyles) :
-            mergedStyles;
+        return this.initialStylesCache[key] = mergeStyles({
+            backfaceVisibility: 'hidden',
+            willChange: this.cache.length ? 'transform' : undefined
+        }, mergedStyles, linkStyles);
     }
 
     getMergedStyles(styles: ClipInitials, state: 'mounted' | 'unmounted'): ClipInitials {
@@ -227,10 +228,7 @@ export default class Animator<T extends string> {
             .filter(([clip]) => !clip.isEmpty);
 
         if (clips.length) {
-            const merged = {
-                backfaceVisibility: 'hidden',
-                willChange: this.cache.length ? 'transform' : undefined
-            };
+            const merged = {};
 
             for (const [clip, reversed] of clips) {
                 Object.assign(merged, clip.getInitial(reversed));

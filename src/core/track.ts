@@ -172,7 +172,7 @@ export default class Track {
     correct(mode: ScaleCorrection) {
         if (mode === 'none' || this.element instanceof SVGElement) return;
 
-        if (mode === 'all') {
+        if (mode === 'both' || mode === 'parent') { // todo: correction = 'all'
             const offset = parseIndiviualTransform(this.styles.translate);
             correctForParentScale(this.element, offset, this.align);
         }

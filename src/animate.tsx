@@ -9,8 +9,6 @@ import { LayoutGroupContext } from "./layout-group";
 import { deleteMorphTarget, getMorphTarget, registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
 import { TransitionOptions } from "./core/animation-link";
 
-// TODO: lively better correction control (styles, parent, both, all children?)
-
 export type AnimateTriggers<T extends string> = {
     [key in T]?: (AnimationTrigger | { on: AnimationTrigger, end?: AnimationTrigger } & AnimationOptions)[]; // TODO: end
 };
@@ -172,7 +170,6 @@ export default function Animate<T extends string>({
             let { ref, style } = (child as React.ReactElement<React.HTMLProps<any>>).props;
             style = mergeStyles(style, animator.getInitialStyles(initial, skipMount.current ? 'mounted' : 'unmounted', i));
             // todo: still has initial styles issues with Activity
-            // todo: if only links are present, no backface visibility is set..
 
             return cloneElement(child as React.ReactElement<React.HTMLProps<any>>, {
                 ref: mergeRefs(

@@ -60,6 +60,7 @@ export default function Animate<T extends string>({
 
     const clipInitials = typeof initial === 'string' ? {} : initial;
     const previousTriggers = useRef(serializeTriggers(triggers));
+    const skipMount = useRef(registerToLayoutGroup(layoutId, id));
     const data = useRef<Animator<any>>(null);
 
     if (!data.current) {
@@ -83,17 +84,15 @@ export default function Animate<T extends string>({
         });
 
         animator.register(parentId, inherit, morph);
-        // animator.addLinks(animate, clipInitials);
     }
+
     const { current: animator } = data;
     animator.addLinks(animate, clipInitials);
-    const skipMount = useRef(registerToLayoutGroup(layoutId, animator.id));
 
     useImperativeHandle(ref, () => animator, []);
 
     useLayoutEffect(() => {
         animator.register(parentId, inherit, morph);
-        animator.addLinks(animate, clipInitials);
 
         if (morph && animator.state !== 'mounted') {
             const target = getMorphTarget(morph, animator.id); // TODO: gets self as target when id changes between renders..
@@ -170,7 +169,6 @@ export default function Animate<T extends string>({
 
             let { ref, style } = (child as React.ReactElement<React.HTMLProps<any>>).props;
             style = mergeStyles(style, animator.getInitialStyles(initial, skipMount.current ? 'mounted' : 'unmounted', i));
-            // todo: still has initial styles issues with Activity
 
             return cloneElement(child as React.ReactElement<React.HTMLProps<any>>, {
                 ref: mergeRefs(

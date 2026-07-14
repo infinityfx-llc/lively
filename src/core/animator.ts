@@ -124,7 +124,6 @@ export default class Animator<T extends string> {
     }
 
     dispose(morph?: string) {
-        // this.dispatch('dispose');
         cancelAnimationFrame(this.frame);
 
         this.state = 'unmounted';

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useId, useLayoutEffect, useRef, useState } from "react";
+import React, { createContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { filterRemovedAnimators, getRemovedAnimators, hasMountedMorphTarget, warnConsoleOnce } from "./core/utils";
 import { forEachAnimator, registerLayoutGroup, unregisterLayoutGroup } from "./core/state";
 
@@ -21,14 +21,10 @@ export default function LayoutGroup({
     const timeout = useRef<any>(0);
     const unmountTimeout = useRef<any>(0);
     const content = useRef(children);
-    const data = useRef<{
-        animators: Set<string>;
-        skipInitialMount: boolean;
-    }>(null);
     const [updates, forceUpdate] = useState(0);
 
-    if (!data.current) data.current = registerLayoutGroup(id, skipInitialMount); // todo: refactor?
-    const { animators } = data.current;
+    const data = registerLayoutGroup(id, skipInitialMount); // temporary solution, need more robust registration/unregistration
+    const { animators } = data;
 
     const [removed, hasDynamicKeys] = filterRemovedAnimators(children, new Set(animators), id);
 
@@ -94,17 +90,18 @@ export default function LayoutGroup({
         });
     }, [children, updates]);
 
+    useEffect(() => {
+        data.skipInitialMount = false;
+    }, []);
+
     useLayoutEffect(() => {
         clearTimeout(unmountTimeout.current);
-        if (data.current) data.current.skipInitialMount = false; // temporary fix?
+        registerLayoutGroup(id, skipInitialMount);
 
         return () => {
             clearTimeout(timeout.current);
-            data.current!.skipInitialMount = skipInitialMount;
-            unmountTimeout.current = setTimeout(() => {
-                unregisterLayoutGroup(id);
-                data.current = null;
-            }, 1);
+            data.skipInitialMount = skipInitialMount;
+            unmountTimeout.current = setTimeout(() => unregisterLayoutGroup(id), 1);
         }
     }, []);
 

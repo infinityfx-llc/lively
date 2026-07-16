@@ -48,7 +48,7 @@ export function unregisterAnimator(id: string) {
 }
 
 export function registerLayoutGroup(id: string, skipInitialMount: boolean) {
-    const data = {
+    const data = registeredLayoutGroups.get(id) || {
         animators: new Set<string>(),
         skipInitialMount
     };

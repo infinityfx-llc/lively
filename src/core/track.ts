@@ -38,7 +38,11 @@ export default class Track {
     active = 0;
     timeout: any = 0;
     correctAfterEnded = true;
-    pendingCorrection?: { transform?: string, borderRadius?: string, boxShadow?: string };
+    pendingCorrection: {
+        transform?: string;
+        borderRadius?: string;
+        boxShadow?: string;
+    } = {};
 
     constructor(element: HTMLElement | SVGElement, shouldCache: CacheKey[], align: CorrectionAlignment) {
         this.element = element;
@@ -173,32 +177,25 @@ export default class Track {
     prepareCorrect(mode: ScaleCorrection) {
         if (mode === 'none' || this.element instanceof SVGElement) return;
 
-        let transform;
         if (mode === 'both' || mode === 'parent') { // todo: correction = 'all'
-            const offset = parseIndiviualTransform(this.styles.translate);
-            const childScale = parseIndiviualTransform(this.styles.scale, 1);
-            transform = correctForParentScale(this.element, offset, childScale, this.align);
+            this.pendingCorrection.transform = correctForParentScale(
+                this.element,
+                parseIndiviualTransform(this.styles.translate),
+                parseIndiviualTransform(this.styles.scale, 1),
+                this.align
+            );
         }
 
-        let corrected;
         if (this.animations.length || this.correctAfterEnded) {
             this.correctAfterEnded = false;
             this.scale = getLocalBounds(this.element, true).scale;
 
-            corrected = {
-                borderRadius: scaleCorrectRadius(this.styles.borderRadius, this.scale),
-                boxShadow: scaleCorrectShadow(this.styles.boxShadow, this.scale)
-            };
-        }
-
-        if (transform !== undefined || corrected !== undefined) {
-            this.pendingCorrection = { transform, ...corrected };
+            this.pendingCorrection.borderRadius = scaleCorrectRadius(this.styles.borderRadius, this.scale);
+            this.pendingCorrection.boxShadow = scaleCorrectShadow(this.styles.boxShadow, this.scale);
         }
     }
 
     correct() {
-        if (!this.pendingCorrection) return;
-
         if (this.pendingCorrection.transform !== undefined && this.element.style.transform !== this.pendingCorrection.transform) {
             this.element.style.transform = this.pendingCorrection.transform;
         }
@@ -216,7 +213,7 @@ export default class Track {
             });
         }
 
-        this.pendingCorrection = undefined;
+        this.pendingCorrection = {};
     }
 
 }

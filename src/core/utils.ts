@@ -254,8 +254,8 @@ export function getLocalBounds(element: HTMLElement, skipOffsetCalculation = fal
         scale: [clampLowerBound(abs.scaleX), clampLowerBound(abs.scaleY)] as ScaleTuple,
         width: skipOffsetCalculation ? 0 : element.offsetWidth * abs.scaleX,
         height: skipOffsetCalculation ? 0 : element.offsetHeight * abs.scaleY,
-        x: skipOffsetCalculation ? 0 : abs.x + element.offsetWidth * 0.5,
-        y: skipOffsetCalculation ? 0 : abs.y + element.offsetHeight * 0.5
+        x: skipOffsetCalculation ? 0 : abs.x + (parent ? 0 : element.offsetWidth * 0.5),
+        y: skipOffsetCalculation ? 0 : abs.y + (parent ? 0 : element.offsetHeight * 0.5)
     };
 }
 
@@ -302,7 +302,7 @@ export function scaleCorrectShadow(shadow: string, scale: ScaleTuple) {
     return shadows.map(val => `${color} ${val.map(val => `${val}px`).join(' ')}${inset ? ' inset' : ''}`).join(', ');
 }
 
-export function correctForParentScale(element: HTMLElement, offset: readonly [number, number], childScale: readonly [number, number], align: CorrectionAlignment) { // doesn't take into account intermediate transform parent scale correction?
+export function correctForParentScale(element: HTMLElement, [tx, ty]: readonly [number, number], [cx, cy]: readonly [number, number], align: CorrectionAlignment) { // doesn't take into account intermediate transform parent scale correction?
     let animator;
     let parent: HTMLElement | null = element;
     while (parent = parent?.parentElement) {
@@ -318,14 +318,14 @@ export function correctForParentScale(element: HTMLElement, offset: readonly [nu
     const x = 1 / scale[0];
     const y = 1 / scale[1];
 
-    const cx = clampLowerBound(childScale[0]);
-    const cy = clampLowerBound(childScale[1]);
+    cx = clampLowerBound(cx);
+    cy = clampLowerBound(cy);
 
-    const dx = (align.x === 'center' ? 0 : (1 - x) * 50 * (align.x === 'right' ? 1 : -1)) / cx;
-    const dy = (align.y === 'center' ? 0 : (1 - y) * 50 * (align.y === 'bottom' ? 1 : -1)) / cy;
+    const dx = (align.x === 'center' ? 0 : 50 * (1 - cx * x) * (align.x === 'right' ? 1 : -1)) / cx;
+    const dy = (align.y === 'center' ? 0 : 50 * (1 - cy * y) * (align.y === 'bottom' ? 1 : -1)) / cy;
 
-    const tx = offset[0] * (x - 1) / cx;
-    const ty = offset[1] * (y - 1) / cy;
+    tx *= (x - 1) / cx;
+    ty *= (y - 1) / cy;
 
     return `translate(${tx}px, ${ty}px) translate(${dx}%, ${dy}%) scale(${x}, ${y})`;
 }

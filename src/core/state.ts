@@ -26,7 +26,7 @@ let globalFrame = 0;
 
 function globalTick() {
     forEachTrack(track => track.correctionAnimation?.cancel());
-    forEachTrack((track, { correction }) => track.prepareCorrect(correction));
+    forEachTrack((track, { correction }) => track.measure(correction));
     forEachTrack(track => track.correct());
 
     globalFrame = requestAnimationFrame(globalTick);

@@ -174,7 +174,7 @@ export default class Track {
         this.animations.forEach(animation => animation[paused ? 'pause' : 'play']());
     }
 
-    prepareCorrect(mode: ScaleCorrection) {
+    measure(mode: ScaleCorrection) {
         if (mode === 'none' || this.element instanceof SVGElement) return;
 
         if (mode === 'both' || mode === 'parent') { // todo: correction = 'all'

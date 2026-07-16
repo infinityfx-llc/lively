@@ -183,7 +183,7 @@ export default class Animator<T extends string> {
         const track = new Track(element, this.cache, this.align),
             animations = this.lifeCycleAnimations['mount'];
 
-        track.prepareCorrect(this.correction);
+        track.measure(this.correction);
         track.correct();
 
         this.tracks.add(element);

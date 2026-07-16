@@ -53,7 +53,6 @@ export default class Animator<T extends string> {
     isMounting = true;
     paused = false;
     timeout: any = 0;
-    frame = 0;
 
     morphId: string;
 
@@ -118,14 +117,9 @@ export default class Animator<T extends string> {
         if (this.state === 'unmounted') this.trigger('mount');
 
         this.state = 'mounted';
-
-        cancelAnimationFrame(this.frame);
-        this.tick();
     }
 
     dispose(morph?: string) {
-        cancelAnimationFrame(this.frame);
-
         this.state = 'unmounted';
         this.cacheTracks();
         this.stop(); // todo: also clear animation tagged with animation-link?
@@ -159,14 +153,6 @@ export default class Animator<T extends string> {
         });
     }
 
-    tick() {
-        if (!this.paused) this.trackList.forEach(track => {
-            track.correct(this.correction);
-        });
-
-        this.frame = requestAnimationFrame(this.tick.bind(this));
-    }
-
     addLinks(animate: Clip | ClipOptions, initial: ClipInitials) {
         if (Object.keys(this.links).length) return;
 
@@ -197,7 +183,8 @@ export default class Animator<T extends string> {
         const track = new Track(element, this.cache, this.align),
             animations = this.lifeCycleAnimations['mount'];
 
-        track.correct(this.correction);
+        track.prepareCorrect(this.correction);
+        track.applyCorrect();
 
         this.tracks.add(element);
         this.trackList.splice(index, 0, track);

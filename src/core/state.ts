@@ -21,12 +21,45 @@ export function getParentAnimator(id: string, stepsRemoved: number) {
     return parent;
 }
 
+let tickFrame = 0;
+
+function globalTick() {
+    for (const animator of registeredAnimators.values()) {
+        if (!animator.paused && animator.state === 'mounted') {
+            animator.trackList.forEach(track => track.cancelCorrection());
+        }
+    }
+
+    for (const animator of registeredAnimators.values()) {
+        if (!animator.paused && animator.state === 'mounted') {
+            animator.trackList.forEach(track => track.prepareCorrect(animator.correction));
+        }
+    }
+
+    for (const animator of registeredAnimators.values()) {
+        if (!animator.paused && animator.state === 'mounted') {
+            animator.trackList.forEach(track => track.applyCorrect());
+        }
+    }
+
+    tickFrame = requestAnimationFrame(globalTick);
+}
+
 export function registerAnimator(id: string, animator: Animator<any>) {
     registeredAnimators.set(id, animator);
+    
+    if (!tickFrame && typeof window !== 'undefined') {
+        tickFrame = requestAnimationFrame(globalTick);
+    }
 }
 
 export function unregisterAnimator(id: string) {
     registeredAnimators.delete(id);
+    
+    if (registeredAnimators.size === 0 && tickFrame) {
+        cancelAnimationFrame(tickFrame);
+        tickFrame = 0;
+    }
 }
 
 export function registerLayoutGroup(id: string, skipInitialMount: boolean) {

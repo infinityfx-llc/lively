@@ -207,7 +207,7 @@ function getAbsoluteBounds(element: HTMLElement, skipOffsetCalculation: boolean)
 
     while (el) {
         const styles = getComputedStyle(el);
-        const [msx, msy, mtx, mty] = parseMatrixTransform(styles.transform);
+        let [msx, msy, mtx, mty] = parseMatrixTransform(styles.transform);
         const [sx, sy] = parseIndiviualTransform(styles.scale, 1);
 
         scaleX *= msx * sx;
@@ -229,7 +229,7 @@ function getAbsoluteBounds(element: HTMLElement, skipOffsetCalculation: boolean)
     return { x, y, scaleX, scaleY };
 }
 
-export function getElementBounds(element: HTMLElement, skipOffsetCalculation = false) {
+export function getElementBounds(element: HTMLElement, skipOffsetCalculation = false, align?: CorrectionAlignment) {
     let parentAnimator: HTMLElement | null = element.parentElement;
     while (parentAnimator) {
         if (parentAnimator.dataset.lively) break;
@@ -240,8 +240,19 @@ export function getElementBounds(element: HTMLElement, skipOffsetCalculation = f
 
     if (parentAnimator && !skipOffsetCalculation) {
         const { x, y } = getAbsoluteBounds(parentAnimator, false);
-        abs.x -= x;
-        abs.y -= y;
+        let ax = x;
+        let ay = y;
+
+        if (align) {
+            if (align.x === 'right') ax += parentAnimator.offsetWidth - element.offsetWidth;
+            else if (align.x === 'center') ax += parentAnimator.offsetWidth / 2 - element.offsetWidth / 2;
+
+            if (align.y === 'bottom') ay += parentAnimator.offsetHeight - element.offsetHeight;
+            else if (align.y === 'center') ay += parentAnimator.offsetHeight / 2 - element.offsetHeight / 2;
+        }
+
+        abs.x -= ax;
+        abs.y -= ay;
     }
 
     return {
@@ -296,7 +307,7 @@ export function scaleCorrectShadow(shadow: string, scale: ScaleTuple) {
     return shadows.map(val => `${color} ${val.map(val => `${val}px`).join(' ')}${inset ? ' inset' : ''}`).join(', ');
 }
 
-export function correctForParentScale(element: HTMLElement, offset: readonly [number, number], align: CorrectionAlignment) { // doesn't take into account intermediate transform parent scale correction
+export function correctForParentScale(element: HTMLElement, offset: readonly [number, number], childScale: readonly [number, number], align: CorrectionAlignment) { // doesn't take into account intermediate transform parent scale correction
     let animator;
     let parent: HTMLElement | null = element;
     while (parent = parent?.parentElement) {
@@ -306,19 +317,22 @@ export function correctForParentScale(element: HTMLElement, offset: readonly [nu
         }
     }
 
-    if (!parent || !animator || !animator.trackList.some(track => track.animations.length || track.correctAfterEnded)) return;
+    if (!parent || !animator || !animator.trackList.some(track => track.animations.length || track.correctAfterEnded)) return '';
 
     const { scale } = getElementBounds(parent, true);
     const x = 1 / scale[0];
     const y = 1 / scale[1];
 
-    const dx = align.x === 'center' ? 0 : (1 - x) * 50 * (align.x === 'right' ? 1 : -1);
-    const dy = align.y === 'center' ? 0 : (1 - y) * 50 * (align.y === 'bottom' ? 1 : -1);
+    const cx = childScale[0] || 0.00001;
+    const cy = childScale[1] || 0.00001;
 
-    const ox = align.x !== 'left' ? 0 : offset[0] * Math.min(scale[0], 1); // only supports top/left alignment
-    const oy = align.y !== 'top' ? 0 : offset[1] * Math.min(scale[1], 1);
+    const dx = (align.x === 'center' ? 0 : (1 - x) * 50 * (align.x === 'right' ? 1 : -1)) / cx;
+    const dy = (align.y === 'center' ? 0 : (1 - y) * 50 * (align.y === 'bottom' ? 1 : -1)) / cy;
 
-    element.style.transform = `translate(${-offset[0]}px, ${-offset[1]}px) translate(${dx}%, ${dy}%) scale(${x}, ${y}) translate(${ox}px, ${oy}px)`;
+    const tx = offset[0] * (x - 1) / cx;
+    const ty = offset[1] * (y - 1) / cy;
+
+    return `translate(${tx}px, ${ty}px) translate(${dx}%, ${dy}%) scale(${x}, ${y})`;
 }
 
 export function filterRemovedAnimators(children: React.ReactNode, toRemove: Set<string>, prefix: string) {

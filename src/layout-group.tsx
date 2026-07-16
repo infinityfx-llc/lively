@@ -4,8 +4,6 @@ import React, { createContext, useId, useLayoutEffect, useRef, useState } from "
 import { filterRemovedAnimators, getRemovedAnimators, hasMountedMorphTarget, warnConsoleOnce } from "./core/utils";
 import { forEachAnimator, registerLayoutGroup, unregisterLayoutGroup } from "./core/state";
 
-// todo: fluid collapsible stops working in dev mode (layoutgroup issue?)
-
 export const LayoutGroupContext = createContext<string>('');
 
 export default function LayoutGroup({
@@ -29,7 +27,7 @@ export default function LayoutGroup({
     }>(null);
     const [updates, forceUpdate] = useState(0);
 
-    if (!data.current) data.current = registerLayoutGroup(id, skipInitialMount);
+    if (!data.current) data.current = registerLayoutGroup(id, skipInitialMount); // todo: refactor?
     const { animators } = data.current;
 
     const [removed, hasDynamicKeys] = filterRemovedAnimators(children, new Set(animators), id);
@@ -103,7 +101,10 @@ export default function LayoutGroup({
         return () => {
             clearTimeout(timeout.current);
             data.current!.skipInitialMount = skipInitialMount;
-            unmountTimeout.current = setTimeout(() => unregisterLayoutGroup(id), 1);
+            unmountTimeout.current = setTimeout(() => {
+                unregisterLayoutGroup(id);
+                data.current = null;
+            }, 1);
         }
     }, []);
 

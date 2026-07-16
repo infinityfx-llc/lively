@@ -49,7 +49,7 @@ export default function Animate<T extends string>({
     staggerLimit = 10,
     correction,
     transition,
-    morph,
+    morph, // todo: concat with parent morph id?
     clips,
     paused = false,
     onAnimationEnd

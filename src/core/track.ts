@@ -115,7 +115,7 @@ export default class Track {
         this.correctAfterEnded = true;
     }
 
-    transition(from = this.cache, options: TransitionOptions = {}) { // TODO: translate/scale transition will have mismatches when parent scale correction is applied?
+    transition(from = this.cache, options: TransitionOptions = {}) {
         this.clear('layout-transition');
 
         const data = this.snapshot();
@@ -143,8 +143,8 @@ export default class Track {
         [
             new Clip(keyframes),
             new Clip({
-                scale: scale === '1 1' ? [] : [scale, null], // use transform instead?
-                translate: translate === '0px 0px' ? [] : [translate, null], // use transform instead?
+                scale: scale === '1 1' ? [] : [scale, null],
+                translate: translate === '0px 0px' ? [] : [translate, null],
                 composite: 'combine',
                 ...options
             })

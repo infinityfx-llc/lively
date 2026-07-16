@@ -260,7 +260,7 @@ export function getLocalBounds(element: HTMLElement, skipOffsetCalculation = fal
 }
 
 export function scaleCorrectRadius(radius: string, scale: ScaleTuple) {
-    if (/^\s*$|0px/.test(radius)) return radius;
+    if (/^\s*$|^0px/.test(radius)) return radius;
 
     const array = radius.split(/\s*\/\s*/);
     if (array.length < 2) array[1] = array[0];

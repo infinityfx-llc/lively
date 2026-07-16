@@ -1,4 +1,5 @@
 import Animator from "./animator";
+import type Track from "./track";
 
 const registeredAnimators = new Map<string, Animator<any>>();
 
@@ -21,44 +22,28 @@ export function getParentAnimator(id: string, stepsRemoved: number) {
     return parent;
 }
 
-let tickFrame = 0;
+let globalFrame = 0;
 
 function globalTick() {
-    for (const animator of registeredAnimators.values()) {
-        if (!animator.paused && animator.state === 'mounted') {
-            animator.trackList.forEach(track => track.cancelCorrection());
-        }
-    }
+    forEachTrack(track => track.correctionAnimation?.cancel());
+    forEachTrack((track, { correction }) => track.prepareCorrect(correction));
+    forEachTrack(track => track.correct());
 
-    for (const animator of registeredAnimators.values()) {
-        if (!animator.paused && animator.state === 'mounted') {
-            animator.trackList.forEach(track => track.prepareCorrect(animator.correction));
-        }
-    }
-
-    for (const animator of registeredAnimators.values()) {
-        if (!animator.paused && animator.state === 'mounted') {
-            animator.trackList.forEach(track => track.applyCorrect());
-        }
-    }
-
-    tickFrame = requestAnimationFrame(globalTick);
+    globalFrame = requestAnimationFrame(globalTick);
 }
 
 export function registerAnimator(id: string, animator: Animator<any>) {
     registeredAnimators.set(id, animator);
-    
-    if (!tickFrame && typeof window !== 'undefined') {
-        tickFrame = requestAnimationFrame(globalTick);
-    }
+
+    if (!globalFrame && typeof window !== 'undefined') globalFrame = requestAnimationFrame(globalTick);
 }
 
 export function unregisterAnimator(id: string) {
     registeredAnimators.delete(id);
-    
-    if (registeredAnimators.size === 0 && tickFrame) {
-        cancelAnimationFrame(tickFrame);
-        tickFrame = 0;
+
+    if (registeredAnimators.size === 0 && globalFrame) {
+        cancelAnimationFrame(globalFrame);
+        globalFrame = 0;
     }
 }
 
@@ -93,6 +78,14 @@ export function unregisterFromLayoutGroup(layoutId: string, id: string) {
     const layoutGroup = registeredLayoutGroups.get(layoutId);
 
     if (layoutGroup) layoutGroup.animators.delete(id);
+}
+
+export function forEachTrack(callback: (track: Track, animator: Animator<any>) => void) {
+    for (const animator of registeredAnimators.values()) {
+        if (animator.paused || animator.state !== 'mounted') continue;
+
+        animator.trackList.forEach(track => callback(track, animator));
+    }
 }
 
 export function forEachAnimator(ids: Set<string>, callback: (animator: Animator<any>) => void) {

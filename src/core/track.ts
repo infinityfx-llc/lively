@@ -1,7 +1,7 @@
 import { TransitionOptions } from "./animation-link";
 import { AnimationOptions, ScaleCorrection } from "./animator";
 import Clip, { BlendMode, ClipKey, ClipOptions } from "./clip";
-import { clampLowerBound, correctForParentScale, getElementBounds, parseIndiviualTransform, scaleCorrectRadius, scaleCorrectShadow, ScaleTuple } from "./utils";
+import { clampLowerBound, correctForParentScale, getLocalBounds, parseIndiviualTransform, scaleCorrectRadius, scaleCorrectShadow, ScaleTuple } from "./utils";
 
 export type CacheKey = Exclude<ClipKey, 'scale' | 'translate'> | 'x' | 'y' | 'sx' | 'sy';
 
@@ -56,7 +56,7 @@ export default class Track {
         // @ts-expect-error
         for (const key of this.shouldCache) data[key] = this.styles[key];
 
-        const { x, y, width, height } = getElementBounds(this.element, false, this.align);
+        const { x, y, width, height } = getLocalBounds(this.element, false, this.align);
         data.sx = width;
         data.sy = height;
         data.x = x;
@@ -170,10 +170,6 @@ export default class Track {
         this.animations.forEach(animation => animation[paused ? 'pause' : 'play']());
     }
 
-    cancelCorrection() {
-        this.correctionAnimation?.cancel();
-    }
-
     prepareCorrect(mode: ScaleCorrection) {
         if (mode === 'none' || this.element instanceof SVGElement) return;
 
@@ -186,7 +182,8 @@ export default class Track {
 
         let corrected;
         if (this.animations.length || this.correctAfterEnded) {
-            this.scale = getElementBounds(this.element, true).scale;
+            this.correctAfterEnded = false;
+            this.scale = getLocalBounds(this.element, true).scale;
 
             corrected = {
                 borderRadius: scaleCorrectRadius(this.styles.borderRadius, this.scale),
@@ -199,29 +196,26 @@ export default class Track {
         }
     }
 
-    applyCorrect() {
+    correct() {
         if (!this.pendingCorrection) return;
 
         if (this.pendingCorrection.transform !== undefined && this.element.style.transform !== this.pendingCorrection.transform) {
             this.element.style.transform = this.pendingCorrection.transform;
         }
 
-        if (this.pendingCorrection.borderRadius !== undefined) {
-            if (this.pendingCorrection.borderRadius !== this.styles.borderRadius ||
-                this.pendingCorrection.boxShadow !== this.styles.boxShadow) {
-                
-                this.correctionAnimation = this.element.animate({
-                    borderRadius: this.pendingCorrection.borderRadius,
-                    boxShadow: this.pendingCorrection.boxShadow
-                }, {
-                    duration: 0,
-                    fill: 'forwards'
-                });
-            }
-            
-            this.correctAfterEnded = false;
+        if (this.pendingCorrection.borderRadius !== undefined && (
+            this.pendingCorrection.borderRadius !== this.styles.borderRadius ||
+            this.pendingCorrection.boxShadow !== this.styles.boxShadow)) {
+
+            this.correctionAnimation = this.element.animate({
+                borderRadius: this.pendingCorrection.borderRadius,
+                boxShadow: this.pendingCorrection.boxShadow
+            }, {
+                duration: 0,
+                fill: 'forwards'
+            });
         }
-        
+
         this.pendingCorrection = undefined;
     }
 

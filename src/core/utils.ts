@@ -123,7 +123,7 @@ export function transformKeyframeList(list: ClipKeyframe[]) {
         if (to === undefined || after === undefined || to === after) {
             if (last === current) equal++;
         }
-        
+
         last = current;
     }
 
@@ -201,13 +201,13 @@ export function parseFixedOffset(left: string, top: string) {
     return [tx + window.scrollX, ty + window.scrollY] as const;
 }
 
-function getAbsoluteBounds(element: HTMLElement, skipOffsetCalculation: boolean) { // todo: refactor/rename?
+function getElementBounds(element: HTMLElement, skipOffsetCalculation: boolean) {
     let x = 0, y = 0, scaleX = 1, scaleY = 1;
     let el: HTMLElement | null = element;
 
     while (el) {
         const styles = getComputedStyle(el);
-        let [msx, msy, mtx, mty] = parseMatrixTransform(styles.transform);
+        const [msx, msy, mtx, mty] = parseMatrixTransform(styles.transform);
         const [sx, sy] = parseIndiviualTransform(styles.scale, 1);
 
         scaleX *= msx * sx;
@@ -229,30 +229,25 @@ function getAbsoluteBounds(element: HTMLElement, skipOffsetCalculation: boolean)
     return { x, y, scaleX, scaleY };
 }
 
-export function getElementBounds(element: HTMLElement, skipOffsetCalculation = false, align?: CorrectionAlignment) {
-    let parentAnimator: HTMLElement | null = element.parentElement;
-    while (parentAnimator) {
-        if (parentAnimator.dataset.lively) break;
-        parentAnimator = parentAnimator.parentElement;
+export function getLocalBounds(element: HTMLElement, skipOffsetCalculation = false, align: CorrectionAlignment = { x: 'left', y: 'top' }) {
+    let parent: HTMLElement | null = element.parentElement;
+    while (parent) {
+        if (parent.dataset.lively) break;
+        parent = parent.parentElement;
     }
 
-    const abs = getAbsoluteBounds(element, skipOffsetCalculation);
+    const abs = getElementBounds(element, skipOffsetCalculation);
 
-    if (parentAnimator && !skipOffsetCalculation) {
-        const { x, y } = getAbsoluteBounds(parentAnimator, false);
-        let ax = x;
-        let ay = y;
+    if (parent && !skipOffsetCalculation) {
+        let { x, y } = getElementBounds(parent, false);
 
-        if (align) {
-            if (align.x === 'right') ax += parentAnimator.offsetWidth - element.offsetWidth;
-            else if (align.x === 'center') ax += parentAnimator.offsetWidth / 2 - element.offsetWidth / 2;
+        if (align.x === 'right') x += parent.offsetWidth - element.offsetWidth;
+        if (align.x === 'center') x += parent.offsetWidth / 2 - element.offsetWidth / 2;
+        if (align.y === 'bottom') y += parent.offsetHeight - element.offsetHeight;
+        if (align.y === 'center') y += parent.offsetHeight / 2 - element.offsetHeight / 2;
 
-            if (align.y === 'bottom') ay += parentAnimator.offsetHeight - element.offsetHeight;
-            else if (align.y === 'center') ay += parentAnimator.offsetHeight / 2 - element.offsetHeight / 2;
-        }
-
-        abs.x -= ax;
-        abs.y -= ay;
+        abs.x -= x;
+        abs.y -= y;
     }
 
     return {
@@ -307,7 +302,7 @@ export function scaleCorrectShadow(shadow: string, scale: ScaleTuple) {
     return shadows.map(val => `${color} ${val.map(val => `${val}px`).join(' ')}${inset ? ' inset' : ''}`).join(', ');
 }
 
-export function correctForParentScale(element: HTMLElement, offset: readonly [number, number], childScale: readonly [number, number], align: CorrectionAlignment) { // doesn't take into account intermediate transform parent scale correction
+export function correctForParentScale(element: HTMLElement, offset: readonly [number, number], childScale: readonly [number, number], align: CorrectionAlignment) { // doesn't take into account intermediate transform parent scale correction?
     let animator;
     let parent: HTMLElement | null = element;
     while (parent = parent?.parentElement) {
@@ -319,12 +314,12 @@ export function correctForParentScale(element: HTMLElement, offset: readonly [nu
 
     if (!parent || !animator || !animator.trackList.some(track => track.animations.length || track.correctAfterEnded)) return '';
 
-    const { scale } = getElementBounds(parent, true);
+    const { scale } = getLocalBounds(parent, true);
     const x = 1 / scale[0];
     const y = 1 / scale[1];
 
-    const cx = childScale[0] || 0.00001;
-    const cy = childScale[1] || 0.00001;
+    const cx = clampLowerBound(childScale[0]);
+    const cy = clampLowerBound(childScale[1]);
 
     const dx = (align.x === 'center' ? 0 : (1 - x) * 50 * (align.x === 'right' ? 1 : -1)) / cx;
     const dy = (align.y === 'center' ? 0 : (1 - y) * 50 * (align.y === 'bottom' ? 1 : -1)) / cy;

@@ -184,7 +184,7 @@ export default class Animator<T extends string> {
             animations = this.lifeCycleAnimations['mount'];
 
         track.prepareCorrect(this.correction);
-        track.applyCorrect();
+        track.correct();
 
         this.tracks.add(element);
         this.trackList.splice(index, 0, track);

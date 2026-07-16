@@ -96,7 +96,7 @@ export default function LayoutGroup({
 
     useLayoutEffect(() => {
         clearTimeout(unmountTimeout.current);
-        data.current!.skipInitialMount = false;
+        if (data.current) data.current.skipInitialMount = false; // temporary fix?
 
         return () => {
             clearTimeout(timeout.current);

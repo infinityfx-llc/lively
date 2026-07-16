@@ -155,9 +155,9 @@ export default class Track {
         this.cache = data;
     }
 
-    clear(animation?: string) {
+    clear(animation?: string, omit = ['animation-link']) {
         this.animations.forEach(entry => {
-            if (entry.name === 'animation-link' ||
+            if (omit.includes(entry.name as string) ||
                 (animation && entry.name !== animation)) return;
 
             entry.cancel();

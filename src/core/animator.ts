@@ -122,7 +122,7 @@ export default class Animator<T extends string> {
     dispose(morph?: string) {
         this.state = 'unmounted';
         this.cacheTracks();
-        this.stop(); // todo: also clear animation tagged with animation-link?
+        this.stop();
 
         this.timeout = setTimeout(() => {
             this.dispatch('dispose');
@@ -344,7 +344,7 @@ export default class Animator<T extends string> {
     }
 
     stop(animation?: T) {
-        this.trackList.forEach(track => track.clear(animation));
+        this.trackList.forEach(track => track.clear(animation, []));
     }
 
     cacheTracks() {

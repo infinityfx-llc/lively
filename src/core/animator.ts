@@ -159,8 +159,8 @@ export default class Animator<T extends string> {
         const [links, disposeLinks] = extractAnimationLinks(animate, initial, (key, link) => {
             this.forEachTrack((track, i) => {
                 const clip = new Clip({
-                    ...link.options,
                     composite: 'override',
+                    ...link.options,
                     [key]: link.get(i)
                 });
 
@@ -211,8 +211,12 @@ export default class Animator<T extends string> {
         if (state in this.initialStylesCache) return this.initialStylesCache[state];
 
         const clips = (this.lifeCycleAnimations.mount || [])
-            .map(([name, options]) => [this.clips[name], (options.reverse || false) !== (state === 'mounted')] as const)
-            .filter(([clip]) => !clip.isEmpty);
+            .map(([name, options]) => {
+                if (options.commit === false) return [];
+
+                return [this.clips[name], (options.reverse || false) !== (state === 'mounted')] as const;
+            }) 
+            .filter(([clip]) => clip && !clip.isEmpty);
 
         if (clips.length) {
             const merged = {};
@@ -315,6 +319,7 @@ export default class Animator<T extends string> {
 
             const added = track.push(clip, {
                 ...options,
+                tag,
                 delay: delay + Math.min(i, this.staggerLimit - 1) * this.stagger
             }, i === this.tracks.size - 1 ? () => this.dispatch('animationend', tag) : undefined);
 

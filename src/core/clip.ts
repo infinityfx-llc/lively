@@ -77,7 +77,7 @@ export default class Clip {
         commit = true
     }: AnimationOptions) {
         const reversedEnding = (alternate ? repeat % 2 == 0 : false) !== reverse;
-        const { offset, ...endframe } = this.keyframes[reversedEnding ? 0 : this.keyframes.length - 1];
+        const { offset, ...endframe } = this.isEmpty ? {} : this.keyframes[reversedEnding ? 0 : this.keyframes.length - 1];
 
         return {
             duration: this.duration * 1000,

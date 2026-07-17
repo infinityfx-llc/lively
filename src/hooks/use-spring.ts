@@ -49,11 +49,13 @@ export default function useSpring(initial: number | number[], {
         // else dispatch animation end somehow?
     }, []);
 
-    link.set = (value) => {
+    link.set = (value, { duration } = {}) => {
         if (value === state.current.target) return;
-        
-        state.current.target = asArray(value);
+        const values = asArray(value);
+
+        state.current.target = values;
         state.current.time = Date.now();
+        if (duration === 0) link.value = isArray ? values : values[0];
 
         requestAnimationFrame(update);
     }

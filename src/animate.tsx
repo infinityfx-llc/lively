@@ -146,11 +146,12 @@ export default function Animate<T extends string>({
 
             if (!link || typeof value === 'object') continue;
 
-            link.set(value, {
-                duration: animate.duration,
-                easing: animate.easing,
-                composite: animate.composite
+            const options: TransitionOptions = {};
+            (['duration', 'easing', 'composite'] as const).forEach(key => {
+                if (key in animate) options[key] = animate[key] as any;
             });
+
+            link.set(value, options);
         }
     }, [animate]);
 

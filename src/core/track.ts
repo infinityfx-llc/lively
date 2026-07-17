@@ -71,19 +71,25 @@ export default class Track {
 
     push(clip: Clip, options: AnimationOptions = {}, onEnded?: () => void) {
         const { commit, blendmode, endframe, ...config } = clip.getConfig(options);
+        const duration = (config.duration * config.iterations + config.delay) / 1000;
+
+        const cleanup = (animation?: Animation) => {
+            if (commit) Object.assign(this.element.style, endframe);
+            animation?.cancel();
+            onEnded?.();
+            this.advance();
+        }
+
+        if (!duration && (blendmode !== 'none' || !this.active)) {
+            cleanup();
+            return 0;
+        }
+
         const animation = this.element.animate(clip.keyframes, config) as TrackAnimation;
         animation.name = options.tag;
         animation.blendmode = blendmode;
 
-        animation.finished.then(() => {
-            try {
-                if (commit) Object.assign(this.element.style, endframe);
-            } catch { } finally {
-                animation.cancel();
-                this.advance();
-                onEnded?.();
-            }
-        }).catch(() => { });
+        animation.finished.then(cleanup).catch(() => { });
 
         if (this.active && blendmode === 'none') {
             animation.pause();
@@ -94,13 +100,13 @@ export default class Track {
             this.animations.push(animation);
             if (blendmode === 'none') this.active++;
 
-            return (config.duration * config.iterations + config.delay) / 1000;
+            return duration;
         }
     }
 
     advance() {
         clearTimeout(this.timeout);
-        this.timeout = setTimeout(() => this.cache = this.snapshot(), 1 / 120);
+        this.timeout = setTimeout(() => this.cache = this.snapshot(), 1 / 30);
 
         if (--this.active > 0) return;
 

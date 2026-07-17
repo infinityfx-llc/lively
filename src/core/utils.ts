@@ -50,34 +50,61 @@ export function mergeStyles(...stylesList: (ClipInitials | undefined)[]) {
     return merged;
 }
 
-export function forEachTrigger<T extends string>(triggers: AnimateTriggers<T>, callback: (key: T, triggerList: AnimationTrigger[], options: AnimationOptions[]) => void) {
+export type TriggerObject = {
+    on: AnimationTrigger;
+    end: number | boolean;
+    options: AnimationOptions;
+};
+
+export function forEachTrigger<T extends string>(triggers: AnimateTriggers<T>, callback: (key: T, list: TriggerObject[]) => void) {
     for (const key in triggers) {
         if (key === '_livelyId') continue;
 
-        const optionsArray: AnimationOptions[] = [];
-
         const list = triggers[key]!.map(value => {
-            const { on, ...options } = typeof value === 'object' && 'on' in value ? value : { on: value };
+            const { on, end = false, ...options } = typeof value === 'object' && 'on' in value ? value : { on: value };
 
-            optionsArray.push(options);
-
-            return on;
+            return { on, end, options };
         });
 
-        callback(key, list, optionsArray);
+        callback(key, list);
     }
 }
 
 export function serializeTriggers<T extends string>(triggers: AnimateTriggers<T>) {
     const serialized: {
-        [key: string]: any[];
+        [key: string]: Omit<TriggerObject, 'options'>[];
     } = {};
 
     forEachTrigger(triggers, (key, list) => {
-        serialized[key] = list;
+        serialized[key] = list.map(({ on, end }) => ({ on, end }));
     });
 
     return serialized;
+}
+
+export function synchronizeTriggers(current: TriggerObject[], previous: Omit<TriggerObject, 'options'>[]) {
+    const actions = {
+        play: false,
+        stop: false,
+        options: {} as AnimationOptions
+    };
+
+    for (let i = 0; i < current.length; i++) {
+        const { on, end, options } = current[i];
+
+        if (previous[i].on !== on && on !== false && !actions.play) {
+            actions.options = options;
+            actions.play = true;
+        }
+
+        if (previous[i].end !== end && end !== false) {
+            actions.stop = true;
+        }
+
+        previous[i] = { on, end };
+    }
+
+    return actions;
 }
 
 export function getLifeCycleAnimations<T extends string>(triggers: AnimateTriggers<T>) {
@@ -85,13 +112,13 @@ export function getLifeCycleAnimations<T extends string>(triggers: AnimateTrigge
         [key in LifeCycleTrigger]?: [T, AnimationOptions][];
     } = {};
 
-    forEachTrigger(triggers, (key, list, options) => {
+    forEachTrigger(triggers, (key, list) => {
         (['mount', 'unmount'] as const).forEach(trigger => {
-            const index = list.indexOf(trigger);
-            if (index < 0) return;
+            const entry = list.find(entry => entry.on === trigger);
+            if (!entry) return;
 
             if (!(trigger in animations)) animations[trigger] = [];
-            animations[trigger]!.push([key, options[index]]);
+            animations[trigger]!.push([key, entry.options]);
         });
     });
 
@@ -272,9 +299,13 @@ export function scaleCorrectRadius(radius: string, scale: ScaleTuple) {
     }).join('/');
 }
 
-export function scaleCorrectShadow(shadow: string, scale: ScaleTuple) {
-    if (/^\s*$|none/.test(shadow)) return shadow;
+export function mapRgbColor(color: string, callback: (rgba: number[]) => number[]) {
+    const rgba = color.replace(/rgba\(|\)/g, '').split(/,\s/g).map(parseFloat);
 
+    return `rgba(${callback(rgba).join(', ')})`;
+}
+
+export function scaleBoxShadow(shadow: string, scale: ScaleTuple) {
     const [color, params, inset] = shadow
         .split(/(?<=px),\s?/)[0]
         .split(/(?<=\))\s|\s(?=inset)/);
@@ -299,7 +330,20 @@ export function scaleCorrectShadow(shadow: string, scale: ScaleTuple) {
         shadows[2][1] += 1 / scale[1];
     }
 
-    return shadows.map(val => `${color} ${val.map(val => `${val}px`).join(' ')}${inset ? ' inset' : ''}`).join(', ');
+    const shadowColor = mapRgbColor(color, ([r, g, b, a]) => [r, g, b, a / 3]);
+
+    return shadows.map(val => `${shadowColor} ${val.map(val => `${val}px`).join(' ')}${inset ? ' inset' : ''}`).join(', ');
+}
+
+export function scaleCorrectShadow(shadow: string, scale: ScaleTuple) {
+    if (/^\s*$|none/.test(shadow)) return shadow;
+
+    const shadows = shadow.replace(/(x),\s/g, '$1_').split(/_/g);
+
+    return shadows
+        .map(shadow => scaleBoxShadow(shadow, scale))
+        .filter(Boolean)
+        .join(', ');
 }
 
 export function correctForParentScale(element: HTMLElement, [tx, ty]: readonly [number, number], [cx, cy]: readonly [number, number], align: CorrectionAlignment) { // doesn't take into account intermediate transform parent scale correction?

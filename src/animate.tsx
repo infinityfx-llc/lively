@@ -3,14 +3,16 @@
 import { Children, cloneElement, createContext, isValidElement, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import Animator, { AnimationOptions, AnimationTrigger, ScaleCorrection } from "./core/animator";
 import Clip, { ClipInitials, ClipKey, ClipOptions } from "./core/clip";
-import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, mergeStyles } from "./core/utils";
+import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, mergeStyles, synchronizeTriggers } from "./core/utils";
 import { CacheKey, CorrectionAlignment } from "./core/track";
 import { LayoutGroupContext } from "./layout-group";
 import { deleteMorphTarget, getMorphTarget, registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
 import { TransitionOptions } from "./core/animation-link";
 
+// todo: easy way to set willChange?
+
 export type AnimateTriggers<T extends string> = {
-    [key in T]?: (AnimationTrigger | { on: AnimationTrigger, end?: AnimationTrigger } & AnimationOptions)[]; // TODO: end
+    [key in T]?: (AnimationTrigger | { on: AnimationTrigger, end?: number | boolean } & AnimationOptions)[];
 };
 
 export type AnimateProps<T extends string> = {
@@ -125,14 +127,13 @@ export default function Animate<T extends string>({
     }, []);
 
     useEffect(() => {
-        forEachTrigger(triggers, (animation, list, options) => {
+        forEachTrigger(triggers, (animation, list) => {
             const previous = previousTriggers.current[animation] || [];
 
-            list.forEach((value, i) => {
-                if (previous[i] !== value && value !== false) animator.play(animation, Object.assign({ tag: animation }, options[i]));
+            const { play, stop, options } = synchronizeTriggers(list, previous);
 
-                previous[i] = value;
-            });
+            if (play) animator.play(animation, Object.assign({ tag: animation }, options));
+            if (stop) animator.stop(animation);
         });
     }, [triggers]);
 

@@ -2,9 +2,14 @@
 
 import React, { createContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { filterRemovedAnimators, getRemovedAnimators, hasMountedMorphTarget, warnConsoleOnce } from "./core/utils";
-import { forEachAnimator, registerLayoutGroup, unregisterLayoutGroup } from "./core/state";
+import { forEachAnimator } from "./core/state";
 
-export const LayoutGroupContext = createContext<string>('');
+export type LayoutGroupData = {
+    animators: Set<string>;
+    skipInitialMount: boolean;
+};
+
+export const LayoutGroupContext = createContext<LayoutGroupData | null>(null);
 
 export default function LayoutGroup({
     children,
@@ -19,12 +24,16 @@ export default function LayoutGroup({
 }) {
     const id = '_lg' + useId();
     const timeout = useRef<any>(0);
-    const unmountTimeout = useRef<any>(0);
     const content = useRef(children);
     const [updates, forceUpdate] = useState(0);
 
-    const data = registerLayoutGroup(id, skipInitialMount); // temporary solution, need more robust registration/unregistration
-    const { animators } = data;
+    const data = useRef<LayoutGroupData | null>(null);
+    if (!data.current) data.current = {
+        animators: new Set(),
+        skipInitialMount
+    };
+
+    const { animators } = data.current;
 
     const [removed, hasDynamicKeys] = filterRemovedAnimators(children, new Set(animators), id);
 
@@ -73,7 +82,6 @@ export default function LayoutGroup({
 
     if (unmountingDelay > 0) {
         timeout.current = setTimeout(() => {
-
             content.current = children;
             forceUpdate(n => n + 1);
         }, unmountingDelay);
@@ -91,21 +99,15 @@ export default function LayoutGroup({
     }, [children, updates]);
 
     useEffect(() => {
-        data.skipInitialMount = false;
+        data.current!.skipInitialMount = false;
     }, []);
 
-    useLayoutEffect(() => {
-        clearTimeout(unmountTimeout.current);
-        registerLayoutGroup(id, skipInitialMount);
-
-        return () => {
-            clearTimeout(timeout.current);
-            data.skipInitialMount = skipInitialMount;
-            unmountTimeout.current = setTimeout(() => unregisterLayoutGroup(id), 1);
-        }
+    useLayoutEffect(() => () => {
+        clearTimeout(timeout.current);
+        data.current!.skipInitialMount = skipInitialMount;
     }, []);
 
-    return <LayoutGroupContext value={id}>
+    return <LayoutGroupContext value={data.current}>
         {content.current}
     </LayoutGroupContext>;
 }

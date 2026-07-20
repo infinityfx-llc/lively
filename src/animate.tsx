@@ -6,7 +6,7 @@ import Clip, { ClipInitials, ClipKey, ClipOptions } from "./core/clip";
 import { forEachTrigger, getLifeCycleAnimations, mergeRefs, serializeTriggers, mergeStyles, synchronizeTriggers } from "./core/utils";
 import { CacheKey, CorrectionAlignment } from "./core/track";
 import { LayoutGroupContext } from "./layout-group";
-import { deleteMorphTarget, getMorphTarget, registerToLayoutGroup, unregisterFromLayoutGroup } from "./core/state";
+import { deleteMorphTarget, getMorphTarget } from "./core/state";
 import { TransitionOptions } from "./core/animation-link";
 
 // todo: easy way to set willChange?
@@ -58,11 +58,11 @@ export default function Animate<T extends string>({
 }: AnimateProps<T>) {
     const id = (triggers as any)._livelyId ?? '_la' + useId();
     const parentId = use(AnimateContext);
-    const layoutId = use(LayoutGroupContext);
+    const layoutGroup = use(LayoutGroupContext);
 
     const clipInitials = typeof initial === 'string' ? {} : initial;
     const previousTriggers = useRef(serializeTriggers(triggers));
-    const skipMount = useRef(registerToLayoutGroup(layoutId, id));
+    const skipMount = useRef(layoutGroup ? layoutGroup.skipInitialMount : false);
     const data = useRef<Animator<any>>(null);
 
     if (!data.current) {
@@ -111,7 +111,10 @@ export default function Animate<T extends string>({
             }
         }
 
-        if (skipMount.current = registerToLayoutGroup(layoutId, animator.id)) animator.state = 'mounted';
+        if (layoutGroup) {
+            layoutGroup.animators.add(animator.id);
+            if (skipMount.current = layoutGroup.skipInitialMount) animator.state = 'mounted';
+        }
 
         document.fonts.ready.finally(() => animator.mount());
 
@@ -122,7 +125,7 @@ export default function Animate<T extends string>({
             window.removeEventListener('resize', updateAnimatorCache);
 
             animator.dispose(morph);
-            unregisterFromLayoutGroup(layoutId, animator.id);
+            if (layoutGroup) layoutGroup.animators.delete(animator.id);
         }
     }, []);
 

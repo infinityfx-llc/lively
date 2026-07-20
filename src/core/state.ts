@@ -3,10 +3,9 @@ import type Track from "./track";
 
 const registeredAnimators = new Map<string, Animator<any>>();
 
-const registeredLayoutGroups = new Map<string, {
-    animators: Set<string>;
-    skipInitialMount: boolean;
-}>();
+export function getAnimator(id: string) {
+    return registeredAnimators.get(id);
+}
 
 const morphGroups = new Map<string, Set<string>>();
 
@@ -25,7 +24,7 @@ export function getParentAnimator(id: string, stepsRemoved: number) {
 let globalFrame = 0;
 
 function globalTick() {
-    forEachTrack(track => track.correctionAnimation?.cancel());
+    forEachTrack(track => track.uncorrect());
     forEachTrack((track, { correction }) => track.measure(correction));
     forEachTrack(track => track.correct());
 
@@ -45,39 +44,6 @@ export function unregisterAnimator(id: string) {
         cancelAnimationFrame(globalFrame);
         globalFrame = 0;
     }
-}
-
-export function registerLayoutGroup(id: string, skipInitialMount: boolean) {
-    const data = registeredLayoutGroups.get(id) || {
-        animators: new Set<string>(),
-        skipInitialMount
-    };
-
-    registeredLayoutGroups.set(id, data);
-
-    return data;
-}
-
-
-export function unregisterLayoutGroup(id: string) {
-    registeredLayoutGroups.delete(id);
-}
-
-export function registerToLayoutGroup(layoutId: string, id: string) {
-    const layoutGroup = registeredLayoutGroups.get(layoutId);
-
-    if (layoutGroup) {
-        layoutGroup.animators.add(id);
-        return layoutGroup.skipInitialMount;
-    }
-
-    return false;
-}
-
-export function unregisterFromLayoutGroup(layoutId: string, id: string) {
-    const layoutGroup = registeredLayoutGroups.get(layoutId);
-
-    if (layoutGroup) layoutGroup.animators.delete(id);
 }
 
 export function forEachTrack(callback: (track: Track, animator: Animator<any>) => void) {

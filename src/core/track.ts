@@ -180,6 +180,10 @@ export default class Track {
         this.animations.forEach(animation => animation[paused ? 'pause' : 'play']());
     }
 
+    uncorrect() {
+        if (this.animations.length || this.correctAfterEnded) this.correctionAnimation?.cancel();
+    }
+
     measure(mode: ScaleCorrection) {
         if (mode === 'none' || this.element instanceof SVGElement) return;
 

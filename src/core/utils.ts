@@ -391,7 +391,7 @@ export function filterRemovedAnimators(children: React.ReactNode, toRemove: Set<
             toRemove.delete(id);
         }
 
-        filterRemovedAnimators(props.children, toRemove, id);
+        if (filterRemovedAnimators(props.children, toRemove, id)[1]) hasDynamicKeys = true;
     }
 
     return [toRemove, hasDynamicKeys] as const;

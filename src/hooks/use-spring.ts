@@ -37,7 +37,7 @@ export default function useSpring(initial: number | number[], {
             velocity[i] += ((stiffness * (target[i] - values[i])) - (damping * velocity[i])) / mass;
             values[i] += velocity[i] * deltaT;
 
-            difference += Math.abs(velocity[i]) / velocity.length;
+            difference += (Math.abs(target[i] - values[i]) + Math.abs(velocity[i])) / values.length;
         }
 
         link.value = isArray ? values as any : values[0];
@@ -55,7 +55,10 @@ export default function useSpring(initial: number | number[], {
 
         state.current.target = values;
         state.current.time = Date.now();
-        if (duration === 0) link.value = isArray ? values : values[0];
+
+        if (duration === 0) {
+            link.value = isArray ? values : values[0];
+        }
 
         requestAnimationFrame(update);
     }

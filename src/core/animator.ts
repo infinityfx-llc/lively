@@ -53,8 +53,7 @@ export default class Animator<T extends string> {
     isMounting = true;
     paused = false;
     timeout: any = 0;
-
-    morphId: string;
+    morphId = '';
 
     constructor({ id, clips, lifeCycleAnimations, correction, transition, stagger, staggerLimit, morph }: {
         id: string;
@@ -87,8 +86,6 @@ export default class Animator<T extends string> {
         this.stagger = stagger;
         this.staggerLimit = staggerLimit;
 
-        this.morphId = morph || '';
-
         if (correction === undefined) this.inherit.push('correction');
         if (correction === undefined) this.inherit.push('align');
         if (!transition) this.inherit.push('defaultTransitionOptions');
@@ -98,7 +95,7 @@ export default class Animator<T extends string> {
     register(parentId: string, inherit: boolean | number, morph?: string) {
         clearTimeout(this.timeout);
         registerAnimator(this.id, this);
-        if (morph) registerAsMorph(morph, this.id);
+        if (morph) registerAsMorph(this.morphId = morph, this.id);
 
         if (parentId && inherit !== false) {
             this.parent = getParentAnimator(parentId, typeof inherit === 'boolean' ? 0 : inherit);
@@ -119,7 +116,7 @@ export default class Animator<T extends string> {
         this.state = 'mounted';
     }
 
-    dispose(morph?: string) {
+    dispose() {
         this.state = 'unmounted';
         this.cacheTracks();
         this.stop();
@@ -127,7 +124,7 @@ export default class Animator<T extends string> {
         this.timeout = setTimeout(() => {
             this.dispatch('dispose');
             unregisterAnimator(this.id);
-            if (morph) deleteMorphTarget(morph, this.id);
+            if (this.morphId) deleteMorphTarget(this.morphId, this.id);
             if (this.parent) this.parent.dependents.delete(this);
         }, 1);
     }

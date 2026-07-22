@@ -51,7 +51,7 @@ export default function Animate<T extends string>({
     staggerLimit = 10,
     correction,
     transition,
-    morph, // todo: concat with parent morph id?
+    morph,
     clips,
     paused = false,
     onAnimationEnd
@@ -96,8 +96,8 @@ export default function Animate<T extends string>({
     useLayoutEffect(() => {
         animator.register(parentId, inherit, morph);
 
-        if (morph && animator.state !== 'mounted') {
-            const target = getMorphTarget(morph, animator.id); // TODO: gets self as target when id changes between renders..
+        if (animator.morphId && animator.state !== 'mounted') {
+            const target = getMorphTarget(animator.morphId, animator.id); // TODO: gets self as target when id changes between renders..
 
             if (target) {
                 animator.isMounting = true;
@@ -107,7 +107,7 @@ export default function Animate<T extends string>({
 
                 target.delayUnmountUntil = 0; // fallback for multiple seperate layoutgroups
                 target.applyStyles('unmounted');
-                setTimeout(() => deleteMorphTarget(morph, target.id), 1);
+                setTimeout(() => deleteMorphTarget(animator.morphId, target.id), 1);
             }
         }
 
@@ -124,7 +124,7 @@ export default function Animate<T extends string>({
         return () => {
             window.removeEventListener('resize', updateAnimatorCache);
 
-            animator.dispose(morph);
+            animator.dispose();
             if (layoutGroup) layoutGroup.animators.delete(animator.id);
         }
     }, []);

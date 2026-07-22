@@ -413,7 +413,9 @@ export function getRemovedAnimators(children: React.ReactNode, removed: Set<stri
     return animators;
 }
 
-export function hasMountedMorphTarget(children: React.ReactNode, morphId: string) { // todo: refactor
+export function hasMountedMorphTarget(children: React.ReactNode, morphId: string) {
+    if (!morphId) return false;
+
     const array = Array.isArray(children) ? children : [children];
 
     for (let i = 0; i < array.length; i++) {

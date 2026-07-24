@@ -1,9 +1,10 @@
 'use client';
 
-import { cloneElement } from "react";
+import { cloneElement, isValidElement } from "react";
 import Animate, { AnimateProps } from "../animate";
 import { useVisible } from "../hooks";
 import Clip, { ClipOptions } from "../core/clip";
+import { mergeRefs } from "../core/utils";
 
 export default function ViewAnimation({
     children,
@@ -13,7 +14,7 @@ export default function ViewAnimation({
     maxExits = 0,
     ...props
 }: Omit<AnimateProps<'enter' | 'exit'>, 'children' | 'animate' | 'clips' | 'triggers' | 'stagger' | 'staggerLimit'> & {
-    children: React.ReactElement<any>;
+    children: React.ReactElement;
     enter: ClipOptions | Clip;
     exit?: ClipOptions | Clip;
     maxEnters?: number;
@@ -32,6 +33,11 @@ export default function ViewAnimation({
             enter: [{ on: Math.min(enters, maxEnters), override: true }],
             exit: [{ on: Math.min(exits, maxExits), override: true }]
         }}>
-        {cloneElement(children, { ref })}
+        {isValidElement(children) ?
+            cloneElement(children, {
+                // @ts-expect-error
+                ref: mergeRefs(children.props.ref || null, ref)
+            }) :
+            children}
     </Animate>;
 }

@@ -92,13 +92,15 @@ export function synchronizeTriggers(current: TriggerObject[], previous: Omit<Tri
     for (let i = 0; i < current.length; i++) {
         const { on, end, options } = current[i];
 
-        if (previous[i].on !== on && on !== false && !actions.play) {
-            actions.options = options;
-            actions.play = true;
-        }
+        if (previous[i]) {
+            if (previous[i].on !== on && on !== false && !actions.play) {
+                actions.options = options;
+                actions.play = true;
+            }
 
-        if (previous[i].end !== end && end !== false) {
-            actions.stop = true;
+            if (previous[i].end !== end && end !== false) {
+                actions.stop = true;
+            }
         }
 
         previous[i] = { on, end };

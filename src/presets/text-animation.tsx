@@ -7,9 +7,11 @@ export type ReactText = string | number | boolean | null | undefined | ReactText
 export default function TextAnimation<T extends string>({
     children,
     duration = 1,
+    split = 'char',
     ...props
 }: Omit<AnimateProps<T>, 'stagger' | 'staggerLimit'> & {
     duration?: number;
+    split?: 'char' | 'word';
 }) {
     let i = 0;
 
@@ -17,13 +19,13 @@ export default function TextAnimation<T extends string>({
     const characters = array.map(child => {
         if (!['string', 'number'].includes(typeof child)) return child;
 
-        return (child as string | number)
-            .toString()
-            .split('')
-            .map(char => <span key={i++} style={{
-                display: 'inline-block',
-                whiteSpace: 'pre-wrap'
-            }}>{char}</span>);
+        const str = child.toString() as string;
+        const array = split === 'char' ? str.split('') : str.split(/(\s)/g);
+
+        return array.map(char => <span key={i++} style={{
+            display: 'inline-block',
+            whiteSpace: 'pre-wrap'
+        }}>{char}</span>);
     }).flat();
 
     return <Animate {...props} stagger={duration / characters.length} staggerLimit={Number.MAX_VALUE}>

@@ -18,8 +18,23 @@ export default function LayoutGroup({
     ignoreWarnings = false
 }: {
     children: React.ReactNode;
+    /**
+     * Whether to skip playing the mount animation for any child `Animate` elements, when the `LayoutGroup` first mounts.
+     * 
+     * @default false
+     */
     skipInitialMount?: boolean;
+    /**
+     * Whether to wait for unmount animations to finish playing before playing any newly mounted `Animate` mount animations.
+     * 
+     * @default 'wait'
+     */
     mode?: 'wait' | 'sync';
+    /**
+     * Suppress missing child `Animate` key warnings.
+     * 
+     * @default false
+     */
     ignoreWarnings?: boolean;
 }) {
     const id = '_lg' + useId();

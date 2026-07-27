@@ -7,12 +7,43 @@ export type BlendMode = 'none' | 'override' | 'combine';
 export type Easing = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'step-start' | 'step-end' | (string & {});
 
 export type ClipConfig = {
+    /**
+     * Duration in seconds.
+     * 
+     * @default .5
+     */
     duration?: number;
+    /**
+     * Delay in seconds.
+     * 
+     * @default 0
+     */
     delay?: number;
+    /**
+     * Amount of times to play the animation upon a single trigger.
+     * 
+     * @default 1
+     */
     repeat?: number;
+    /**
+     * Whether to alternate between forward and reverse play, when repeated.
+     * 
+     * @default false
+     */
     alternate?: boolean;
+    /**
+     * @default false
+     */
     reverse?: boolean;
+    /**
+     * @default 'ease'
+     */
     easing?: Easing;
+    /**
+     * Whether to queue the animation when one is already playing or to override/combine them.
+     * 
+     * @default 'none'
+     */
     composite?: BlendMode;
 };
 

@@ -18,19 +18,82 @@ export type AnimateTriggers<T extends string> = {
 export type AnimateProps<T extends string> = {
     ref?: React.Ref<Animator<T | 'animate'>>;
     children: React.ReactNode;
+    /**
+     * Whether to inherit animation clips from a parent `Animate` and let animation triggers cascade.
+     * 
+     * @default false
+     */
     inherit?: boolean | number;
+    /**
+     * Starting animation values
+     * 
+     * @default {}
+     */
     initial?: ClipInitials | T | 'animate';
+    /**
+     * Defines the default animation that is played on mount.
+     * 
+     * Allows for the passing of `AnimationLinks` to dynamically animate properties.
+     * 
+     * @default {}
+     */
     animate?: ClipOptions | Clip;
+    /**
+     * Defines a map of named animations that can be referenced within `triggers`.
+     * 
+     * @default {}
+     */
     clips?: {
         [key in T]: ClipOptions | Clip;
     };
+    /**
+     * A key/value map linking a specific animation to a reactive value, allowing the animation to trigger when the value changes.
+     * 
+     * Additionally accepts either `'mount'` or `'unmount'` as trigger values.
+     * 
+     * @default { animate: ['mount'] }
+     */
     triggers?: AnimateTriggers<T | 'animate'>;
+    /**
+     * By how seconds to stagger animations for multiple elements.
+     * 
+     * @default .07
+     */
     stagger?: number;
+    /**
+     * Limits the number of elements to stagger their animation.
+     * 
+     * Any elements exceeding this limit will animate all at once.
+     * 
+     * @default 10
+     */
     staggerLimit?: number;
+    /**
+     * Enables correction of border radii, box shadows and child elements when animating scale.
+     * 
+     * If an alignment object is passed will behave as `'both'`.
+     * 
+     * @default 'self'
+     */
     correction?: CorrectionAlignment | ScaleCorrection;
+    /**
+     * Allows for configuring transition animations that play when an element morphs or changes layout.
+     * 
+     * Layout change detection requires a parent `LayoutGroup` component.
+     * 
+     * @default { cache: ['x', 'y', 'sx', 'sy', 'rotate', 'borderRadius'] }
+     */
     transition?: (TransitionOptions & {
+        /**
+         * An array of animatable properties that determine which properties to transition between.
+         */
         cache?: CacheKey[];
     }) | boolean;
+    /**
+     * An optional globally unique id which enables morph animations when set.
+     * 
+     * Elements with the same id to morph into eachother when simultaneously removed/added to the DOM.
+     */
     morph?: string;
     paused?: boolean;
     onAnimationEnd?: (animation?: T) => void;

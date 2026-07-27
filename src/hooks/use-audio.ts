@@ -3,7 +3,33 @@
 import { useEffect, useRef } from "react";
 import useLink from "./use-link";
 
-export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency = 2000, smoothing = 0.7 } = {}) {
+/**
+ * @returns A tupple of a `React.Ref` to attach to an `Audio` element and an `AnimationLink`.
+ */
+export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency = 2000, smoothing = 0.7 }: {
+    /**
+     * Amount of bands and subsequent animation values to divide the audio spectrum in to.
+     * 
+     * @default 8
+     */
+    bands?: number;
+    /**
+     * The minimum audio spectrum frequency in hertz.
+     * 
+     * @default 100
+     */
+    minFrequency?: number;
+    /**
+     * The maximum audio spectrum frequency in hertz.
+     * 
+     * @default 2000
+     */
+    maxFrequency?: number;
+    /**
+     * @default .7
+     */
+    smoothing?: number;
+} = {}) {
     const ref = useRef<HTMLAudioElement & {
         context: AudioContext;
         sourceNode: MediaElementAudioSourceNode;

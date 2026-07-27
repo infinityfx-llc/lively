@@ -15,9 +15,25 @@ export default function ViewAnimation({
     ...props
 }: Omit<AnimateProps<'enter' | 'exit'>, 'children' | 'animate' | 'clips' | 'triggers' | 'stagger' | 'staggerLimit'> & {
     children: React.ReactElement;
+    /**
+     * The animation that plays when the element enters the viewport.
+     */
     enter: ClipOptions | Clip;
+    /**
+     * The animation that plays when the element exits the viewport.
+     */
     exit?: ClipOptions | Clip;
+    /**
+     * How many times to re-play the enter animation.
+     * 
+     * @default 1
+     */
     maxEnters?: number;
+    /**
+     * How many times to re-play the exit animation.
+     * 
+     * @default 0
+     */
     maxExits?: number;
 }) {
     const [ref, enters, exits] = useVisible(0);

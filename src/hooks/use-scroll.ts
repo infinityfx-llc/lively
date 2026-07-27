@@ -3,6 +3,9 @@
 import { useLayoutEffect } from "react";
 import useLink from "./use-link";
 
+/**
+ * @returns An `AnimationLink` containing `x` and `y` scroll offsets from `0` to `1`.
+ */
 export default function useScroll<T extends HTMLElement>(target?: React.RefObject<T>) {
     const link = useLink({ x: 0, y: 0 });
 

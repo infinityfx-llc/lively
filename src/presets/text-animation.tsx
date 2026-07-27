@@ -10,7 +10,17 @@ export default function TextAnimation<T extends string>({
     split = 'char',
     ...props
 }: Omit<AnimateProps<T>, 'stagger' | 'staggerLimit'> & {
+    /**
+     * Total duration of the text animation.
+     * 
+     * @default 1
+     */
     duration?: number;
+    /**
+     * Whether to break up text per character or per word.
+     * 
+     * @default 'char'
+     */
     split?: 'char' | 'word';
 }) {
     let i = 0;

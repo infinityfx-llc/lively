@@ -92,6 +92,9 @@ export default class Animator<T extends string> {
         if (!cache) this.inherit.push('cache');
     }
 
+    /**
+     * @private
+     */
     register(parentId: string, inherit: boolean | number, morph?: string) {
         clearTimeout(this.timeout);
         registerAnimator(this.id, this);
@@ -110,12 +113,18 @@ export default class Animator<T extends string> {
         this.cacheTracks();
     }
 
+    /**
+     * @private
+     */
     mount() {
         if (this.state === 'unmounted') this.trigger('mount');
 
         this.state = 'mounted';
     }
 
+    /**
+     * @private
+     */
     dispose() {
         this.state = 'unmounted';
         this.cacheTracks();
@@ -150,6 +159,9 @@ export default class Animator<T extends string> {
         });
     }
 
+    /**
+     * @private
+     */
     addLinks(animate: Clip | ClipOptions, initial: ClipInitials) {
         if (Object.keys(this.links).length) return;
 
@@ -174,6 +186,9 @@ export default class Animator<T extends string> {
         }, { once: true });
     }
 
+    /**
+     * @private
+     */
     addTrack(element: any, index: number) {
         if (!(element instanceof HTMLElement || element instanceof SVGElement) || this.tracks.has(element)) return;
 
@@ -204,6 +219,9 @@ export default class Animator<T extends string> {
         }, mergedStyles, linkStyles);
     }
 
+    /**
+     * @private
+     */
     getMergedStyles(styles: ClipInitials, state: 'mounted' | 'unmounted'): ClipInitials {
         if (state in this.initialStylesCache) return this.initialStylesCache[state];
 
@@ -244,6 +262,9 @@ export default class Animator<T extends string> {
         });
     }
 
+    /**
+     * @private
+     */
     pretime(clip: Clip, options: AnimationOptions) {
         if (clip.isEmpty) return 0;
 
@@ -251,6 +272,9 @@ export default class Animator<T extends string> {
         return (duration * iterations + delay) / 1000 + Math.max(Math.min(this.tracks.size, this.staggerLimit) - 1, 0) * this.stagger;
     }
 
+    /**
+     * Trigger a mount or unmount animation.
+     */
     trigger(on: LifeCycleTrigger, options: AnimationOptions = {}) {
         let animations = this.lifeCycleAnimations[on],
             elapsed = 0;
@@ -260,6 +284,9 @@ export default class Animator<T extends string> {
         return elapsed;
     }
 
+    /**
+     * Play an animation by name.
+     */
     play(animation: T | Clip, { cascade = 'forward', delay = 0, tag, ...options }: AnimationOptions = {}) {
         if (this.paused || (this.parent && !tag)) return 0;
 
@@ -281,6 +308,9 @@ export default class Animator<T extends string> {
         });
     }
 
+    /**
+     * @private
+     */
     cascade(clip: Clip, options: AnimationOptions) {
         let elapsed = 0;
 
@@ -345,6 +375,11 @@ export default class Animator<T extends string> {
         this.dependents.forEach(animator => animator.setPlayState(paused));
     }
 
+    /**
+     * Immediately stop and remove an or all animations.
+     * 
+     * Will remove all animations when no argument is provided.
+     */
     stop(animation?: T) {
         this.trackList.forEach(track => track.clear(animation, []));
     }

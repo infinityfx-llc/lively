@@ -3,7 +3,15 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import useViewport from "./use-viewport";
 
-export default function useVisible<T extends Element = any>(threshold = .5) {
+/**
+ * @returns A tupple of a `React.Ref` to attach to an element, a `number` counting the number of times the element has entered the viewport and a `number` counting the number of times the element has left the viewport.
+ */
+export default function useVisible<T extends Element = any>(
+    /**
+     * @default .5
+     */
+    threshold = .5
+) {
     const visible = useRef(false);
     const [ref, link] = useViewport<T>(threshold);
     const [entered, setEntered] = useState(0);

@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
+/**
+ * @returns A tupple of a `React.Ref` to attach to an element and an `boolean` hover state.
+ */
 export default function useHover<T extends HTMLElement = any>() {
     const ref = useRef<T>(null);
     const [hovering, setHovering] = useState(false);

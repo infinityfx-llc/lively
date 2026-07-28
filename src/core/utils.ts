@@ -1,4 +1,4 @@
-import { captureOwnerStack, isValidElement } from "react";
+import { captureOwnerStack, Children, isValidElement } from "react";
 import { AnimationOptions, AnimationTrigger, LifeCycleTrigger } from "./animator";
 import Clip, { ClipConfig, ClipInitials, ClipKey, ClipKeyframe, ClipKeyframes, ClipOptions } from "./clip";
 import { AnimateTriggers } from "../animate";
@@ -111,15 +111,17 @@ export function synchronizeTriggers(current: TriggerObject[], previous: Omit<Tri
 
 export function getLifeCycleAnimations<T extends string>(triggers: AnimateTriggers<T>) {
     const animations: {
-        [key in LifeCycleTrigger]?: [T, AnimationOptions][];
-    } = {};
+        [key in LifeCycleTrigger]: [T, AnimationOptions][];
+    } = {
+        mount: [],
+        unmount: []
+    };
 
     forEachTrigger(triggers, (key, list) => {
         (['mount', 'unmount'] as const).forEach(trigger => {
             const entry = list.find(entry => entry.on === trigger);
             if (!entry) return;
 
-            if (!(trigger in animations)) animations[trigger] = [];
             animations[trigger]!.push([key, entry.options]);
         });
     });
@@ -377,7 +379,7 @@ export function correctForParentScale(element: HTMLElement, [tx, ty]: readonly [
 }
 
 export function filterRemovedAnimators(children: React.ReactNode, toRemove: Set<string>, prefix: string) {
-    let array = Array.isArray(children) ? children : [children],
+    let array = Children.toArray(children),
         hasDynamicKeys = false;
 
     for (let i = 0; i < array.length; i++) {
@@ -400,16 +402,16 @@ export function filterRemovedAnimators(children: React.ReactNode, toRemove: Set<
 }
 
 export function getRemovedAnimators(children: React.ReactNode, removed: Set<string>, prefix: string) {
-    const array = Array.isArray(children) ? children : [children];
+    const array = Children.toArray(children);
     const animators: [number, React.ReactElement<any>][] = [];
 
     for (let i = 0; i < array.length; i++) {
         if (!isValidElement(array[i])) continue;
 
-        const { key } = array[i] as React.ReactElement<any>;
+        const { key } = array[i] as React.ReactElement;
         const id = prefix + (key !== null ? `_${key}` : i);
 
-        if (removed.has(id)) animators.push([i, array[i]]);
+        if (removed.has(id)) animators.push([i, array[i] as React.ReactElement]);
     }
 
     return animators;
@@ -418,7 +420,7 @@ export function getRemovedAnimators(children: React.ReactNode, removed: Set<stri
 export function hasMountedMorphTarget(children: React.ReactNode, morphId: string) {
     if (!morphId) return false;
 
-    const array = Array.isArray(children) ? children : [children];
+    const array = Children.toArray(children);
 
     for (let i = 0; i < array.length; i++) {
         if (!isValidElement(array[i])) continue;

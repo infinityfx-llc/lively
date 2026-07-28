@@ -29,7 +29,7 @@ export default class Animator<T extends string> {
         [key in T]: Clip;
     };
     lifeCycleAnimations: {
-        [key in LifeCycleTrigger]?: [T, AnimationOptions][];
+        [key in LifeCycleTrigger]: [T, AnimationOptions][];
     };
     links: {
         [key in ClipKey]?: AnimationLink<any>;
@@ -61,7 +61,7 @@ export default class Animator<T extends string> {
             [key in T]: Clip;
         };
         lifeCycleAnimations: {
-            [key in LifeCycleTrigger]?: [T, AnimationOptions][];
+            [key in LifeCycleTrigger]: [T, AnimationOptions][];
         };
         correction?: CorrectionAlignment | ScaleCorrection;
         transition?: (TransitionOptions & {
@@ -159,6 +159,14 @@ export default class Animator<T extends string> {
         });
     }
 
+    getClip(name?: string) {
+        if (!name || !(name in this.clips)) return null;
+
+        const clip = this.clips[name as T];
+
+        return !clip.isEmpty ? clip : null;
+    }
+
     /**
      * @private
      */
@@ -201,7 +209,11 @@ export default class Animator<T extends string> {
         this.tracks.add(element);
         this.trackList.splice(index, 0, track);
 
-        if (this.state === 'mounted' && animations) animations.forEach(([name, options]) => track.push(this.clips[name], options)); // instead of this.clips use this.getClip()? (able to get parent clip)
+        if (this.state === 'mounted') animations.forEach(([name, options]) => {
+            const clip = this.getClip(name); // todo: be able to get parent clip?
+            
+            if (clip) track.push(clip, options);
+        });
         // ^ would also need to cascade lifeCycleAnimations?
     }
 
@@ -225,12 +237,12 @@ export default class Animator<T extends string> {
     getMergedStyles(styles: ClipInitials, state: 'mounted' | 'unmounted'): ClipInitials {
         if (state in this.initialStylesCache) return this.initialStylesCache[state];
 
-        const clips = (this.lifeCycleAnimations.mount || [])
+        const clips = this.lifeCycleAnimations.mount
             .map(([name, options]) => {
                 if (options.commit === false) return [];
 
                 return [this.clips[name], (options.reverse || false) !== (state === 'mounted')] as const;
-            }) 
+            })
             .filter(([clip]) => clip && !clip.isEmpty);
 
         if (clips.length) {
@@ -279,7 +291,7 @@ export default class Animator<T extends string> {
         let animations = this.lifeCycleAnimations[on],
             elapsed = 0;
 
-        if (animations) animations.forEach(([name, opts]) => elapsed = Math.max(this.play(name, Object.assign(opts, options)), elapsed));
+        animations.forEach(([name, opts]) => elapsed = Math.max(this.play(name, Object.assign(opts, options)), elapsed));
 
         return elapsed;
     }
@@ -291,7 +303,8 @@ export default class Animator<T extends string> {
         if (this.paused || (this.parent && !tag)) return 0;
 
         let clip = typeof animation === 'string' ? this.clips[animation] : animation;
-        if (tag && tag in this.clips) clip = this.clips[tag as T];
+        const tagClip = this.getClip(tag);
+        if (tagClip) clip = tagClip;
         if (!tag && typeof animation === 'string') tag = animation;
 
         const duration = this.pretime(clip, options);

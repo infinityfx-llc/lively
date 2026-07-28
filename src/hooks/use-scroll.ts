@@ -8,7 +8,7 @@ import useLink from "./use-link";
  * 
  * @see {@link https://lively.infinityfx.dev/docs/hooks/use-scroll}
  */
-export default function useScroll<T extends HTMLElement>(target?: React.RefObject<T>) {
+export default function useScroll<T extends HTMLElement>(target?: React.RefObject<T | null>) {
     const link = useLink({ x: 0, y: 0 });
 
     useLayoutEffect(() => {

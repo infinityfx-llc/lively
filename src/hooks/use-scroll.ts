@@ -5,6 +5,8 @@ import useLink from "./use-link";
 
 /**
  * @returns An `AnimationLink` containing `x` and `y` scroll offsets from `0` to `1`.
+ * 
+ * @see {@link https://lively.infinityfx.dev/docs/hooks/use-scroll}
  */
 export default function useScroll<T extends HTMLElement>(target?: React.RefObject<T>) {
     const link = useLink({ x: 0, y: 0 });

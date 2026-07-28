@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 
 /**
  * @returns A `boolean` indicating whether the user prefers reduced motion.
+ * 
+ * @see {@link https://lively.infinityfx.dev/docs/hooks/use-reduced-motion}
  */
 export default function useReducedMotion() {
     const [reduced, setReduced] = useState(false);

@@ -5,6 +5,8 @@ import useViewport from "./use-viewport";
 
 /**
  * @returns A tupple of a `React.Ref` to attach to an element, a `number` counting the number of times the element has entered the viewport and a `number` counting the number of times the element has left the viewport.
+ * 
+ * @see {@link https://lively.infinityfx.dev/docs/hooks/use-visible}
  */
 export default function useVisible<T extends Element = any>(
     /**

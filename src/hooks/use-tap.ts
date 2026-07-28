@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 
 /**
  * @returns A tupple of a `React.Ref` to attach to an element and an `boolean` pressing state.
+ * 
+ * @see {@link https://lively.infinityfx.dev/docs/hooks/use-tap}
  */
 export default function useTap<T extends HTMLElement = any>() {
     const ref = useRef<T>(null);

@@ -101,6 +101,11 @@ export type AnimateProps<T extends string> = {
 
 export const AnimateContext = createContext<string>('');
 
+/**
+ * Wrap around an element to animate it.
+ * 
+ * @see {@link https://lively.infinityfx.dev/docs/components/animate}
+ */
 export default function Animate<T extends string>({
     ref,
     children,

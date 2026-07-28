@@ -4,6 +4,11 @@ import Animate, { AnimateProps } from "../animate";
 
 export type ReactText = string | number | boolean | null | undefined | ReactText[];
 
+/**
+ * Wrap around text to animate it.
+ * 
+ * @see {@link https://lively.infinityfx.dev/docs/components/text-animation}
+ */
 export default function TextAnimation<T extends string>({
     children,
     duration = 1,

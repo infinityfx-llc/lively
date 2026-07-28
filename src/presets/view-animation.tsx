@@ -6,6 +6,11 @@ import { useVisible } from "../hooks";
 import Clip, { ClipOptions } from "../core/clip";
 import { mergeRefs } from "../core/utils";
 
+/**
+ * Wrap around an element to animate it when it enters or leaves the viewport.
+ * 
+ * @see {@link https://lively.infinityfx.dev/docs/components/view-animation}
+ */
 export default function ViewAnimation({
     children,
     enter,

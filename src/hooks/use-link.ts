@@ -3,6 +3,9 @@
 import { useEffect, useRef } from "react";
 import AnimationLink from "../core/animation-link";
 
+/**
+ * @see {@link https://lively.infinityfx.dev/docs/hooks/use-link}
+ */
 export default function useLink<T>(initial: T): AnimationLink<T>;
 export default function useLink<T, K = T>(initial: AnimationLink<T>, transform: (value: T, index: number) => K): AnimationLink<K>;
 export default function useLink<T, K = T>(initial: T | AnimationLink<T>, transform?: (value: T, index: number) => K) {

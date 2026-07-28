@@ -11,6 +11,11 @@ export type LayoutGroupData = {
 
 export const LayoutGroupContext = createContext<LayoutGroupData | null>(null);
 
+/**
+ * Allows for any child `Animate` elements to animate when their layout changes or they unmount.
+ * 
+ * @see {@link https://lively.infinityfx.dev/docs/components/layout-group}
+ */
 export default function LayoutGroup({
     children,
     skipInitialMount = false,

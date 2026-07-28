@@ -5,6 +5,8 @@ import useLink from "./use-link";
 
 /**
  * @returns A tupple of a `React.Ref` to attach to an element and an `AnimationLink` containing `x` and `y` viewport positions from `0` to `1`.
+ * 
+ * @see {@link https://lively.infinityfx.dev/docs/hooks/use-viewport}
  */
 export default function useViewport<T extends Element = any>(
     /**

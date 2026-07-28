@@ -5,6 +5,8 @@ import useLink from "./use-link";
 
 /**
  * @returns A tupple of a `React.Ref` to attach to an `Audio` element and an `AnimationLink`.
+ * 
+ * @see {@link https://lively.infinityfx.dev/docs/hooks/use-audio}
  */
 export default function useAudio({ bands = 8, minFrequency = 100, maxFrequency = 2000, smoothing = 0.7 }: {
     /**

@@ -11,6 +11,9 @@ type SpringOptions = {
     mass?: number;
 };
 
+/**
+ * @see {@link https://lively.infinityfx.dev/docs/hooks/use-spring}
+ */
 export default function useSpring(initial: number, options?: SpringOptions): AnimationLink<number>;
 export default function useSpring(initial: number[], options?: SpringOptions): AnimationLink<number[]>;
 export default function useSpring(initial: number | number[], {
